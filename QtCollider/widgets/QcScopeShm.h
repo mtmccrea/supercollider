@@ -17,6 +17,9 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
+
+* Hacked to include code for FoaScope... work in progress.
+* Once completed, these files would live in ~/src/supercollider/QtCollider/widgets/
 ************************************************************************/
 
 #ifndef QC_SCOPE_H
@@ -54,7 +57,13 @@ class QcScopeShm : public QWidget, QcHelper
   Q_PROPERTY( bool fill READ fill WRITE setFill );
   Q_PROPERTY( int updateInterval READ updateInterval WRITE setUpdateInterval );
   Q_PROPERTY( bool running READ running );
-
+    // mtm
+    Q_PROPERTY( int drawFrames READ drawFrames WRITE setDrawFrames );
+    Q_PROPERTY( float ampShape READ ampShape WRITE setAmpShape );
+    Q_PROPERTY( float normScale READ normScale WRITE setNormScale );
+    Q_PROPERTY( float elWarp READ elWarp WRITE setElWarp );
+    Q_PROPERTY( bool overlay READ overlay WRITE setOverlay );
+    
   public:
     QcScopeShm();
     ~QcScopeShm();
@@ -65,8 +74,8 @@ class QcScopeShm : public QWidget, QcHelper
     void setYOffset( float f )      { yOffset = f; }
     void setXZoom( float f )        { xZoom = f; }
     void setYZoom( float f )        { yZoom = f; }
-    int style() const               { return _style; }
-    void setStyle( int i )          { _style = i; }
+//    int style() const               { return _style; }
+//    void setStyle( int i )          { _style = i; }
     void setWaveColors( const QVariantList & colors );
     QColor background() const       { return _bkg; }
     void setBackground( const QColor &c ) { _bkg = c; update(); }
@@ -77,12 +86,29 @@ class QcScopeShm : public QWidget, QcHelper
     bool running() const            { return _running; }
     QSize sizeHint() const          { return QSize( 500, 300 ); }
     QSize minimumSizeHint() const   { return QSize( 50, 50 ); }
+    // mtm
+    void setDrawFrames( int i )     { _drawFrames = i; }
+    int drawFrames() const          { return _drawFrames; }
+    void setAmpShape( float f )     { _ampShape = f; }
+    float ampShape() const          { return _ampShape; }
+    void setNormScale( float f )    { _normScale = f; }
+    float normScale() const         { return _normScale; }
+    void setElWarp( float f )       { _elWarp = f; updateElWarp(); }
+    float elWarp() const            { return _elWarp; }
+    void setOverlay( bool b )       { _overlay = b; resetPixmaps(); }
+    bool overlay()                  { return _overlay; }
+    int style() const               { return _style; }
+    void setStyle( int i )          { _style = i; setMeterStyle(); }
+
+
+    
   public Q_SLOTS:
     void start();
     void stop();
   protected:
     void resizeEvent ( QResizeEvent * );
     void paintEvent ( QPaintEvent * );
+    
   private Q_SLOTS:
     void updateScope();
   private:
@@ -90,7 +116,44 @@ class QcScopeShm : public QWidget, QcHelper
     void initScopeReader( ScopeShm *, int index );
     void paint1D( bool overlapped, int channels, int maxFrames, int frames, const QRect &area, QPainter & );
     void paint2D( int channels, int maxFrames, int frames, const QRect &area, QPainter & );
+    
+    // mtm
+    void lensDeform(const QPainterPath &source, const qreal radius, const qreal elev, const qreal directivity, const qreal lensDeform, QPainter &, bool fill);
+    
+    void paintAeda(int maxFrames, int availFrames, int frames, float ampShape, float normScale, bool overlay, bool fill, const QRect &area, QPainter & );
+    void paintAedaGrid( const QRect &area, QPainter & painter, bool overlay);
+    
+    void paintMercator(int maxFrames, int availFrames, int frames, float ampShape, float normScale, const QRect &area, QPainter & );
+    void paintMercatorGrid(const QRect &area, QPainter & painter);
+    
+    void paintMollweide(int maxFrames, int availFrames, int frames, float ampShape, float normScale, const QRect &area, QPainter & );
+    void paintMollweideGrid(const QRect &area, QPainter & painter);
+    
+    void prepPainter (QPainter &p, QColor &color, bool fill);
+    void paintVectorScope(int maxFrames, int availFrames, int drawCount, const QRect &area, QPainter &painter);
+    void paintVectorGrid(const QRect &area, QPainter & );
 
+    
+    void initMercatorPixDecoder( const int width, const int height, const float elWarp);
+    void initMollweidePixDecoder( const int width, const int height);
+    void storeCoeffs(int x, int y, float pat);
+    void updateElWarp();
+    void setMeterStyle();
+    void resetPixmaps();
+    
+    int _drawFrames;
+    float _ampShape, _normScale, _elWarp;
+    bool _overlay;
+    
+    int nCols, nRows;
+    bool decoderInitialized, gridDrawn;
+    float wcoeff;
+    float * xcoeffs, * ycoeffs, * zcoeffs;
+    int storeDex, storeCnt;
+    QImage img;
+    QVector<QPoint> mwPixelPnts;
+    // end mtm
+    
     int _srvPort;
     int _scopeIndex;
 
@@ -110,7 +173,12 @@ class QcScopeShm : public QWidget, QcHelper
     QColor _bkg;
     bool _fill;
 
-    QPixmap _pixmap;
+    QSize scopeSize;
+//    QPixmap _pixmap;
+    QPixmap _pixmap_meter;
+    QPixmap _pixmap_bkg;
+    QPixmap _pixmap_grid;
+    QPixmap _prev_pixmap_meter;
 };
 
 #endif
