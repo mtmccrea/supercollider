@@ -48,6 +48,7 @@ static void doLoadFactories ()
   QC_ADD_FACTORY( QcRangeSlider );
   QC_ADD_FACTORY( QcScope );
   QC_ADD_FACTORY( QcScopeShm );
+  QC_ADD_FACTORY( QcSpaceScopeShm ); //mtm
   QC_ADD_FACTORY( QcScrollWidget );
   QC_ADD_FACTORY( QcScrollArea );
   QC_ADD_FACTORY( QcSlider );
