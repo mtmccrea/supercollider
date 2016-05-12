@@ -281,7 +281,7 @@ void QcSpaceScopeShm::paintEvent ( QPaintEvent * event )
                 case 1:
                     paintMercatorGrid(area, p_grid); break;
                 case 2:
-                    paintMollweideGrid(area, p_grid); break;
+                   // paintMollweideGrid(area, p_grid); break;
                 case 3:
                     paintVectorGrid(area, p_grid); break;
             }
@@ -1208,6 +1208,7 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
 
     float decx, decy, decz, sum;
     float max = 0.0;
+        float max0 = 0.0; // TEMP
     float summedSamps[storeCnt]; // TODO: allocate on init?
 
     // decoded samples across the sphere
@@ -1217,15 +1218,16 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
         decz = zcoeffs[i] * z;
         sum = decx + decy + decz + wdecoeff;
         summedSamps[i] = sum;
-//        if(sum > max) max = sum;
+        if(sum > max0) max0 = sum; // TEMP
     }
     // TODO: correct this measure of max amplitude of a decoded point
     max = sqrt((w * w * 2) + x*x + y*y + z*z) * 0.5;  // local max to this frame
     
-//    float normDist =    1. - max;
-    float fullNormFac = 1. / max;
+//    float fullNormFac = 1. / max;
+        float fullNormFac = 1. / max0; // TEMP... until dif btwn max and max0 is resolved
     
-    float refDist = peak - max;
+//    float refDist = peak - max;
+    float refDist = 1. - peak;
     float normFac = (peak + (refDist * normScale)) / peak; // this tracks peak ("ref")
     
     for (int i=0; i<storeCnt; ++i) {
@@ -1235,11 +1237,13 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
         shapedVal *= max;                       // scale back to 0 > max
         shapedVal *= normFac;                   // scale from maxRef up to 1 according to normScale, maxRef = 1 when normFac=1
 
-        color.setAlpha(shapedVal * 255);        // sum changes the opacity
+        color.setAlpha(shapedVal * 255);
         QPoint pnt = mwPixelPnts[i];
         img.setPixel(pnt.x(), pnt.y(), color.rgba());
     }
     
+    // TEMP
+    float maxCol = pow(max0* fullNormFac, ampShape) * max * normFac * 255;
 
 //    float normFac =  1. / max;
 //    float normDist = 1. - max;
@@ -1284,9 +1288,12 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
     painter.drawText(offsetRect, Qt::AlignBottom | Qt::AlignLeft,
 //                     QString::number(floor(max * pow(10., 4) + .5) / pow(10., 4)) + "\n" +
 //                     QString::number(floor(peak * pow(10., 4) + .5) / pow(10., 4))+ "\n" +
-                     QString::number(max) + "\n" +
-                     QString::number(peak)+ "\n" +
-                     QString::number(max-peak)
+                     "decMax " + QString::number(20* log10(max0)) + "\n" +
+                     "nrgMax " + QString::number(20* log10(max)) + "\n" +
+                     "dec-nrg " + QString::number((20* log10(max0))-(20* log10(max))) + "\n" +
+                     "refMax " + QString::number(20* log10(peak))+ "\n" +
+                     "ref-nrg " + QString::number((20* log10(peak))-(20* log10(max)))+ "\n" +
+                     "maxCol "+QString::number(maxCol)+"\t"+ "max0 "+QString::number(max0)+"\t"+ "fullNormFac "+QString::number(fullNormFac)+"\t"+ "ampShape "+QString::number(ampShape)+"\t"+ "max "+QString::number(max)+"\t"+ "normFac "+QString::number(normFac)
                      );
     /*end added from init mercator*/
 }
