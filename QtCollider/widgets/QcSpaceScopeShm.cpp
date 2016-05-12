@@ -1185,19 +1185,21 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
     int minSize  = qMin(area.width()/2, area.height());
     int minSize2 = minSize*2;
 
-    float *dataw = _data;
-    float *datax = _data + maxFrames;
-    float *datay = _data + maxFrames*2;
-    float *dataz = _data + maxFrames*3;
+    float *dataw =  _data;
+    float *datax =  _data + maxFrames;
+    float *datay =  _data + maxFrames*2;
+    float *dataz =  _data + maxFrames*3;
+    float *datapk = _data + maxFrames*4; // peak amplitude of energy
 
     // TODO: NOTE: currently just using first frame,
     // so "sample rate" is window refresh rate
     // It's therefore sensible to set input rms window to at least 1/windowRefreshRate
-    float w,x,y,z;
+    float w,x,y,z, peak;
     w = dataw[0];
     x = datax[0];
     y = datay[0];
     z = dataz[0];
+    peak = datapk[0]; // global max, slewed across frame on scsynth side
 
     // the w coefficient doesn't change with position, so no need for matrix
     float wdecoeff = wcoeff * w;
@@ -1208,28 +1210,50 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
     float max = 0.0;
     float summedSamps[storeCnt]; // TODO: allocate on init?
 
+    // decoded samples across the sphere
     for (int i=0; i<storeCnt; ++i) {
         decx = xcoeffs[i] * x;
         decy = ycoeffs[i] * y;
         decz = zcoeffs[i] * z;
         sum = decx + decy + decz + wdecoeff;
         summedSamps[i] = sum;
-        if(sum > max) max = sum;
+//        if(sum > max) max = sum;
     }
-
-    float normFac  = 1. / max;
-    float normDist = 1. - max;
-
+    // TODO: correct this measure of max amplitude of a decoded point
+    max = sqrt((w * w * 2) + x*x + y*y + z*z) * 0.5;  // local max to this frame
+    
+//    float normDist =    1. - max;
+    float fullNormFac = 1. / max;
+    
+    float refDist = peak - max;
+    float normFac = (peak + (refDist * normScale)) / peak; // this tracks peak ("ref")
+    
     for (int i=0; i<storeCnt; ++i) {
-        float normVal, shapedVal, renormFac;
-        normVal = summedSamps[i] * normFac;
-        shapedVal = pow(normVal, ampShape);       // shape the amplitude response to accentuate peaks
-        renormFac = normScale * normDist + max;
-        shapedVal *= renormFac;
-        color.setAlpha(shapedVal * 255);    // sum changes the opacity
+        float normVal, shapedVal;
+        normVal = summedSamps[i] * fullNormFac;
+        shapedVal = pow(normVal, ampShape);     // shape the amplitude response to accentuate peaks
+        shapedVal *= max;                       // scale back to 0 > max
+        shapedVal *= normFac;                   // scale from maxRef up to 1 according to normScale, maxRef = 1 when normFac=1
+
+        color.setAlpha(shapedVal * 255);        // sum changes the opacity
         QPoint pnt = mwPixelPnts[i];
         img.setPixel(pnt.x(), pnt.y(), color.rgba());
     }
+    
+
+//    float normFac =  1. / max;
+//    float normDist = 1. - max;
+//
+//    for (int i=0; i<storeCnt; ++i) {
+//        float normVal, shapedVal, renormFac;
+//        normVal = summedSamps[i] * normFac;
+//        shapedVal = pow(normVal, ampShape);       // shape the amplitude response to accentuate peaks
+//        renormFac = normScale * normDist + max;
+//        shapedVal *= renormFac;
+//        color.setAlpha(shapedVal * 255);    // sum changes the opacity
+//        QPoint pnt = mwPixelPnts[i];
+//        img.setPixel(pnt.x(), pnt.y(), color.rgba());
+//    }
 
     /*added from init mercator*/
 
@@ -1253,12 +1277,21 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
     QSize scaleSize(minSize2, minSize); // add 2 px so boarder isn't cut off
     QRect offsetRect(offsetPnt, scaleSize);
 
+    
     meterscene.render(&painter, offsetRect);
 
+    painter.setPen(Qt::yellow);
+    painter.drawText(offsetRect, Qt::AlignBottom | Qt::AlignLeft,
+//                     QString::number(floor(max * pow(10., 4) + .5) / pow(10., 4)) + "\n" +
+//                     QString::number(floor(peak * pow(10., 4) + .5) / pow(10., 4))+ "\n" +
+                     QString::number(max) + "\n" +
+                     QString::number(peak)+ "\n" +
+                     QString::number(max-peak)
+                     );
     /*end added from init mercator*/
 }
 
-void QcSpaceScopeShm::paintMollweideGrid( const QRect &area, QPainter & painter ) {
+void QcSpaceScopeShm::paintMollweideGrid( const QRect &area, QPainter &painter ) {
 
     //std::cout<<"painting MOLLWEIDE grid\n";
 
