@@ -281,7 +281,7 @@ void QcSpaceScopeShm::paintEvent ( QPaintEvent * event )
                 case 1:
                     paintMercatorGrid(area, p_grid); break;
                 case 2:
-                   // paintMollweideGrid(area, p_grid); break;
+                    paintMollweideGrid(area, p_grid); break;
                 case 3:
                     paintVectorGrid(area, p_grid); break;
             }
@@ -1204,7 +1204,8 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
     // the w coefficient doesn't change with position, so no need for matrix
     float wdecoeff = wcoeff * w;
 
-    QColor color = QColor(Qt::red);
+//    QColor color = QColor(Qt::red);
+    QColor color = QColor();
 
     float decx, decy, decz, sum;
     float max = 0.0;
@@ -1236,8 +1237,8 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
         shapedVal = pow(normVal, ampShape);     // shape the amplitude response to accentuate peaks
         shapedVal *= max;                       // scale back to 0 > max
         shapedVal *= normFac;                   // scale from maxRef up to 1 according to normScale, maxRef = 1 when normFac=1
-
-        color.setAlpha(shapedVal * 255);
+        color.setHsv((1-shapedVal)*240, 255, 255, shapedVal*200+55);
+//        color.setAlpha(shapedVal * 255);
         QPoint pnt = mwPixelPnts[i];
         img.setPixel(pnt.x(), pnt.y(), color.rgba());
     }
