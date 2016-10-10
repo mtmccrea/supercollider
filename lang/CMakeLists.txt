@@ -21,7 +21,9 @@ include_directories(${CMAKE_SOURCE_DIR}/include/common
                     ${CMAKE_SOURCE_DIR}/external_libraries/hidapi/hidapi_parser
 
                     ${CMAKE_SOURCE_DIR}/external_libraries/nova-tt
-                    LangSource/Bison)
+                    LangSource/Bison
+)
+
 
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -31,6 +33,12 @@ endif()
 find_package(Readline 5.0)
 
 find_package(Sndfile)
+
+if (SC_QT OR SC_IDE)
+	set(LOCALSOCK_UTIL_FILE ${CMAKE_SOURCE_DIR}/editors/sc-ide/primitives/localsocket_utils.cpp)
+else ()
+	set(LOCALSOCK_UTIL_FILE)
+endif ()
 
 set(sclang_sources
 	LangPrimSource/SC_HID_api.cpp
@@ -81,6 +89,7 @@ set(sclang_sources
 	${CMAKE_SOURCE_DIR}/common/SC_StringBuffer.cpp
 	${CMAKE_SOURCE_DIR}/common/SC_StringParser.cpp
 	${CMAKE_SOURCE_DIR}/common/SC_TextUtils.cpp
+	${LOCALSOCK_UTIL_FILE}
 
 	${CMAKE_SOURCE_DIR}/common/sc_popen.cpp
 )
@@ -287,7 +296,7 @@ if (FFTW3F_FOUND)
 endif()
 
 if (WIN32)
-	target_link_libraries(libsclang wsock32 ws2_32 portmidi iphlpapi)
+	target_link_libraries(libsclang wsock32 ws2_32 portmidi iphlpapi hid)
 endif()
 
 if (GC_SANITYCHECK)
@@ -334,13 +343,9 @@ elseif(WIN32)
         add_custom_command(TARGET sclang
             PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/SCClassLibrary/Common/GUI" $<TARGET_FILE_DIR:sclang>/SCClassLibrary/scide_scqt/Common/GUI
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/SCClassLibrary/deprecated/3.7" $<TARGET_FILE_DIR:sclang>/SCClassLibrary/scide_scqt/deprecated/3.7
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/SCClassLibrary/JITLib/GUI" $<TARGET_FILE_DIR:sclang>/SCClassLibrary/scide_scqt/JITLib/GUI
             COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:sclang>/SCClassLibrary/Common/GUI
-            COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:sclang>/SCClassLibrary/deprecated/3.7
             COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:sclang>/SCClassLibrary/JITLib/GUI
-            COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:sclang>/SCClassLibrary/Common/GUI/Base
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/SCClassLibrary/Common/GUI/Base/Model.sc" $<TARGET_FILE_DIR:sclang>/SCClassLibrary/Common/GUI/Base
         )
     endif(NOT SC_QT)
 

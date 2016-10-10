@@ -390,6 +390,10 @@ int prFloat_AsStringPrec(struct VMGlobals *g, int numArgsPushed)
 	if (err) return err;
 
 	char fmt[8], str[256];
+	// if our precision is bigger than our stringsize, we can generate a very nasty buffer overflow here. So
+	if( precision <= 0 ) precision = 1;
+	if( precision >= 200 ) precision = 200; // Nothing is that big anyway. And we know we will be smaller than our 256 char string
+
 	sprintf(fmt, "%%.%dg", precision);
 	sprintf(str, fmt, slotRawFloat(a));
 
@@ -3540,7 +3544,7 @@ static int prLanguageConfig_getCurrentConfigPath(struct VMGlobals * g, int numAr
     } else {
         SetObject(a, str);
     }
-    
+
 	return errNone;
 }
 
@@ -4231,9 +4235,6 @@ void initRendezvousPrimitives();
 
 void initCocoaFilePrimitives();
 	initCocoaFilePrimitives();
-
-void initCocoaBridgePrimitives();
-	initCocoaBridgePrimitives();
 #endif
 
 void initSchedPrimitives();
@@ -4241,7 +4242,7 @@ void initSchedPrimitives();
 
 void initHIDAPIPrimitives();
 	initHIDAPIPrimitives();
-	
+
 #if defined(__APPLE__) || defined(HAVE_ALSA) || defined(HAVE_PORTMIDI)
 void initMIDIPrimitives();
 	initMIDIPrimitives();
@@ -4261,7 +4262,7 @@ void initSerialPrimitives();
 void initWiiPrimitives();
 	initWiiPrimitives();
 #endif
-	
+
 #endif
 #ifdef __APPLE__
 void initCoreAudioPrimitives();
