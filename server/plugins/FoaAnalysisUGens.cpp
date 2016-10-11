@@ -138,84 +138,64 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
 {
     float *in   = ZIN(0);
     float *out  = ZOUT(0);
+    float * data    = unit->msquares;
     
-    int prevnsamps  = unit->nsamps;
+    int startnsamps = unit->nsamps;     // keep track of previous block's window size
     int maxsamps    = unit->maxsamps;
-    int resetcount  = unit->resetcount;
+    int resetcount  = unit->resetcount; // trigger sum<>sum2 swap
+
+    int head        = unit->head;       // current write index in the rolling buffer
+    int tail        = unit->tail;       // current tail  index in the rolling buffer
+    int prevnsamps  = unit->nsamps;     // keep track of window size as it ramps to new size
+    float sum       = unit->msum;
+    float sum2      = unit->msum2;      // modeled after RunningSum - thanks to Ross Bencina
     bool reset      = unit->reset;
     
-    float * data= unit->msquares;
-    float sum   = unit->msum;
-    float sum2  = unit->msum2;          // modeled after RunningSum - thanks to Ross Bencina
-    int head    = unit->head;           // current write index in the rolling buffer
-    int tail    = unit->tail;           // current tail  index in the rolling buffer
+    int nsamps = (int) ZIN0(1);         // number of samples to average
     
-    int startnsamps = unit->nsamps;   // keep track of previous window size
-    
-    int nsamps = (int) ZIN0(1);                     // number of samples to average
     nsamps = sc_max(1, sc_min(nsamps, maxsamps));   // clamp 1>maxsamp
 
     
-//    int startnsamps = unit->nsamps;   // keep track of previous window size
     float dsamp_slope = CALCSLOPE( (float)nsamps, startnsamps );
-//    float dsamp_slope = CALCSLOPE( (float)nsamps, prevnsamps );
     
-//        printf("prevnsamps %i, startnsamps %i, nsamps %i, dsamp_slope: %f\n", prevnsamps, startnsamps, nsamps, dsamp_slope);
-    
-//    float preSampDiff = sum2;
+//    printf("prevnsamps %i, startnsamps %i, nsamps %i, dsamp_slope: %f\n", prevnsamps, startnsamps, nsamps, dsamp_slope);
     
     for (int i=0; i<inNumSamples; ++i) {
         
         // handle change in summing window size
         if (dsamp_slope != 0.f) {
-            int nextnsamps = startnsamps + (int)(dsamp_slope * (i+1)); // CHECK +1, remove?
-            int dsamp = nextnsamps - prevnsamps;    // window size delta
+            int nextnsamps = startnsamps + (int)(dsamp_slope * (i+1));
+            int dsamp = nextnsamps - prevnsamps;            // window size delta
             
             if (dsamp != 0) {
-                float dsampDiff = 0.;
+                float sumChange = 0.;
                 
-                if (dsamp > 0) {
-                    // window grows
+                if (dsamp > 0) {                            // window grows
                     for (int j=0; j<dsamp; ++j) {
-                        
-                        // grow the sum range by 1, wrap in range if needed
-                        tail--;
-                        if (tail < 0) tail += maxsamps; // tail is last index in buffer
-                        
-//                        // add value overtaken by growing window
-//                        sum +=  data[tail];
-//                        sum2 += data[tail];
-                        
-                        dsampDiff += data[tail];
-
-//                        resetcount++;
+                        tail--;                             // grow window
+                        if (tail < 0) tail += maxsamps;     // wrap
+                        sumChange += data[tail];
+                        // resetcount++;
                     }
                     // add accumulated value overtaken by growing window
                     // should be outside loop to avoid accumulating error
-                    sum  += dsampDiff;
-                    sum2 += dsampDiff;
+                    sum  += sumChange;
+                    sum2 += sumChange;
                     
-                } else {
-                    // window shrinks: dsamp < 0
+                } else {                                    // window shrinks: dsamp < 0
                     int test = abs(dsamp);
                     for (int j=0; j < test; ++j) {
-//                        // subtract the sample values at the tail
-//                        sum -=  data[tail];
-//                        sum2 -= data[tail];
+                        sumChange += data[tail];
+                        tail++;                             // shrink window
+                        if (tail == maxsamps) tail = 0;     // wrap
                         
-                        dsampDiff += data[tail];
-                        
-                        // shrink the sum range by 1, wrap if needed
-                        tail++;
-                        if (tail == maxsamps) tail = 0;
-                        
-//                        resetcount--;
-//                        resetcount++; // try always incrementing operation reset count
+                        // resetcount--;
+                        // resetcount++; // try always incrementing operation reset count
                     }
                     // remove sum of values accumulated by shrinking window
                     // should be outside loop to avoid accumulating error
-                    sum  -= dsampDiff;
-                    sum2 -= dsampDiff;
+                    sum  -= sumChange;
+                    sum2 -= sumChange;
                 }
                 
                 prevnsamps += dsamp;
@@ -224,7 +204,7 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
         
         // remove the tail
         float rmv = data[tail];
-        sum -=  rmv;
+        sum -= rmv;
 
         // only remove last val from sum2 if sum2 wasn't just reset
         if  ( !reset ) {
@@ -232,9 +212,9 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
             reset = false;
         }
 
-        // add and store new inval
+        // write the new sample in and add it
         float next= ZXP(in);
-        data[head]= next;     // write the new sample in and add it
+        data[head]= next;
         sum  += next;
         sum2 += next;
 
@@ -255,11 +235,10 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
         if (head == maxsamps) head = 0;
         tail++;
         if (tail == maxsamps) tail = 0;
-        
-        // swap the sums once window is full to avoid floating point error (tip from RunningSum)
         resetcount++;
         
-        // orig
+        // swap the sums once window is full to avoid floating
+        // point error (tip from RunningSum)
         if (resetcount == nsamps) {
             sum  = sum2;
             sum2 = 0.;
