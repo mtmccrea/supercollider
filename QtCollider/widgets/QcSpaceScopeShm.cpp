@@ -818,23 +818,23 @@ float pos3
 //            pos3 = 0.35;
             
             col.setHsv(hue,
-                       sat1 * 255 + ((1-sat1) * 255 * mag_scale_inv),                     // saturation white > partial color
-                       val1 * 255 + ((1-val1) * 255 * mag_scale_inv),                   // grayness
-                       (al1 * al1max + ((1-al1) * al1max * mag_scale_inv)) * dcount_recip  // alpha
+                       sat1 * 255 + ((1-sat1) * 155 * mag_scale),                     // saturation white > partial color
+                       val1 * 255 + ((1-val1) * 255 * mag_scale),                   // grayness
+                       (al1 * al1max + ((1-al1) * al1max * mag_scale)) * dcount_recip  // alpha
                        );
             gr.setColorAt(0.0, col);
             
             col.setHsv(hue,
-                       sat2 * 255 + ((1-sat2) * 255 * mag_scale_inv),                     // saturation white > partial color
-                       val2 * 255 + ((1-val2) * 255 * mag_scale_inv),                   // grayness
-                       (al2 * al2max + ((1-al2) * al2max * mag_scale_inv)) * dcount_recip  // alpha
+                       sat2 * 255 + ((1-sat2) * 155 * mag_scale),                     // saturation white > partial color
+                       val2 * 255 + ((1-val2) * 255 * mag_scale),                   // grayness
+                       (al2 * al2max + ((1-al2) * al2max * mag_scale)) * dcount_recip  // alpha
                        );
             gr.setColorAt(pos2 + ((1-pos2) * pow(mag_scale_inv, 2)), col);
             
             col.setHsv(hue,
-                       sat3 * 255 + ((1-sat3) * 255 * mag_scale_inv),                     // saturation white > partial color
-                       val3 * 255 + ((1-val3) * 255 * mag_scale_inv),                   // grayness
-                       (al3 * al3max + ((1-al3) * al3max * mag_scale_inv)) * dcount_recip  // alpha
+                       sat3 * 255 + ((1-sat3) * 155 * mag_scale),                     // saturation white > partial color
+                       val3 * 255 + ((1-val3) * 255 * mag_scale),                   // grayness
+                       (al3 * al3max + ((1-al3) * al3max * mag_scale)) * dcount_recip  // alpha
                        );
             gr.setColorAt(pos3 + ((1-pos3) * pow(mag_scale_inv, 2)), col);
             
