@@ -75,7 +75,26 @@ QcSpaceScopeShm::QcSpaceScopeShm() :
   xcoeffs(0), ycoeffs(0), zcoeffs(0),   // init to null pntr
   storeDex(0), storeCnt(0),
   img(),
-  gridDrawn(false)
+  gridDrawn(false),
+
+// TEMP testing aed representation params
+_sat1(0.216),
+_val1(1),
+_al1(0.379),
+_al1max(145),
+
+_sat2(0.607),
+_val2(0.705),
+_al2(0.467),
+_al2max(75),
+_pos2(0.2),
+
+_sat3(1),
+_val3(0.51),
+_al3(0.385),
+_al3max(65),
+_pos3(0.35)
+
 
 {
   setAttribute( Qt::WA_OpaquePaintEvent, true );
@@ -259,7 +278,22 @@ void QcSpaceScopeShm::paintEvent ( QPaintEvent * event )
         switch (_style) {
             case 0:
 //                std::cout<<"painting case case\n";
-                paintAeda(maxFrames, _availableFrames, _drawFrames, _ampShape, _normScale, _overlay, _fill, area, p_meter); break;
+                paintAeda(maxFrames, _availableFrames, _drawFrames, _ampShape, _normScale, _overlay, _fill, area, p_meter,
+                          _sat1,
+                          _val1,
+                          _al1,
+                          _al1max,
+                          _sat2,
+                          _val2,
+                          _al2,
+                          _al2max,
+                          _pos2,
+                          _sat3,
+                          _val3,
+                          _al3,
+                          _al3max,
+                          _pos3
+                          ); break;
             case 1:
                 paintMercator(maxFrames, _availableFrames, _drawFrames, _ampShape, _normScale, area, p_meter); break;
             case 2:
@@ -537,20 +571,20 @@ void QcSpaceScopeShm::paintAedaGrid( const QRect &area, QPainter & painter, bool
         // painter.setPen(Qt::red);
         if (!overlay)
             painter.drawText(txtRect, Qt::AlignLeft | Qt::AlignTop, hemLabels[i]);
-
+        
+        /* Gradient overlay for 3D look */
         diam   = minSize-hemSpacing;
         rad    = diam/2;
         offset = -rad;
         bounds = QRectF(offset, offset, diam, diam);
 
-//        QPoint fPnt( rad/5, rad/5 );   // focal point of gradient
-        QPoint fPnt( 0, 0 );   // focal point of gradient
+        QPoint fPnt( 0, 0 );            // focal point of gradient
         if (i==1) fPnt *= -1;           // mirror across origin for lower hemi
         qreal colScale = 1 - 0.5*i;
         int col = colScale*255;
         QRadialGradient gr( 0, 0, rad, fPnt.x(), fPnt.y() );
-        gr.setColorAt(0.0, QColor(col, col, col, 110));
-        gr.setColorAt(0.4*colScale, QColor(col, col, col, 80));
+        gr.setColorAt(0.0, QColor(col, col, col, 90));
+        gr.setColorAt(0.4*colScale, QColor(col, col, col, 68));
         gr.setColorAt(0.9, QColor(col, col, col, 25));
         gr.setColorAt(1, QColor(0, 0, 0, 0));
 
@@ -566,7 +600,24 @@ void QcSpaceScopeShm::paintAedaGrid( const QRect &area, QPainter & painter, bool
 
 void QcSpaceScopeShm::paintAeda( int maxFrames, int availFrames, int drawCount,
                            float ampShape, float normScale, bool overlay, bool fill,
-                           const QRect &area, QPainter &painter )
+                           const QRect &area, QPainter &painter,
+                                // temp
+float sat1,
+float val1,
+float al1,
+float al1max,
+float sat2,
+float val2,
+float al2,
+float al2max,
+float pos2,
+float sat3,
+float val3,
+float al3,
+float al3max,
+float pos3
+
+)
 
 {
     float minSize, halfMin;
@@ -732,79 +783,93 @@ void QcSpaceScopeShm::paintAeda( int maxFrames, int availFrames, int drawCount,
                 if (e < 0.)
                     painter.translate(xoff,0);
 
-            qreal diam   = minSize-hemSpacing;
-            qreal rad    = diam/2;
+            qreal diam =   minSize-hemSpacing;
+            qreal rad =    diam/2;
             qreal offset = -rad;
 
             QPoint fPnt( 0, cos(e) * offset ); // focal point of gradient
             QRadialGradient gr(0, 0, rad, fPnt.x(), fPnt.y() );
 
-            qreal mag_scale_inv = 1 - (mag*0.98);
-            qreal mag_scale = mag * 0.99 + 0.01;
-            qreal dcount_recip = 1 / sqrt(drawCount);
+            qreal mag_scale_inv = 1 - (mag*0.98);           // decreases with magnitude
+            qreal mag_scale =     mag * 0.99 + 0.01;        // increases with magnitude
+            qreal dcount_recip =  1 / sqrt(drawCount);      // scale down with increasing draw count
 
-            //        std::cout << "mag_norm: " <<mag_norm<< "\tmag_scale: "<<mag_scale<< "\tmag_inv: "<<mag_scale_inv<<"\n";
+//            std::cout << "mag_norm: " <<mag_norm<< "\tmag_scale: "<<mag_scale<< "\tmag_inv: "<<mag_scale_inv<<"\n";
 
             QColor col;
             int hue = 90 - (int)(30.*sin(e)); // 60 - yellow (positive elev), 120 - green (negative elev)
-
+            
+//            sat1 = 0.216;
+//            val1 = 1;
+//            al1 = 0.379;
+//            al1max = 145;
+//            
+//
+//            sat2 = 0.607;
+//            val2 = 0.705;
+//            al2 = 0.467;
+//            al2max = 75;
+//            pos2 = 0.2;
+//            
+//            sat3 = 1;
+//            val3 = 0.51;
+//            al3 = 0.385;
+//            al3max = 65;
+//            pos3 = 0.35;
+            
             col.setHsv(hue,
-                       200*mag_scale_inv+55,   // saturation white > partial color
-                       255,                 // value: "grayness"; black = 0
-                       (90*mag_scale+55) *dcount_recip);   // alpha
+                       sat1 * 255 + ((1-sat1) * 255 * mag_scale_inv),                     // saturation white > partial color
+                       val1 * 255 + ((1-val1) * 255 * mag_scale_inv),                   // grayness
+                       (al1 * al1max + ((1-al1) * al1max * mag_scale_inv)) * dcount_recip  // alpha
+                       );
             gr.setColorAt(0.0, col);
-
+            
             col.setHsv(hue,
-                       100*mag_scale_inv+155,    // saturation white > partial color
-                       75*mag_scale_inv+180,    // value: "grayness"; black = 0
-                       (40*mag_scale_inv+35) *dcount_recip);   // alpha
-            gr.setColorAt(0.8 * pow(mag_scale_inv, 2) + 0.2, col);
-
+                       sat2 * 255 + ((1-sat2) * 255 * mag_scale_inv),                     // saturation white > partial color
+                       val2 * 255 + ((1-val2) * 255 * mag_scale_inv),                   // grayness
+                       (al2 * al2max + ((1-al2) * al2max * mag_scale_inv)) * dcount_recip  // alpha
+                       );
+            gr.setColorAt(pos2 + ((1-pos2) * pow(mag_scale_inv, 2)), col);
+            
             col.setHsv(hue,
-                       255,       // saturation
-                       125*mag_scale_inv+130, // grayness
-                       (40*mag_scale_inv+25) *dcount_recip);  // alpha
-            gr.setColorAt(0.6 * pow(mag_scale_inv, 2) + 0.35, col);
-
+                       sat3 * 255 + ((1-sat3) * 255 * mag_scale_inv),                     // saturation white > partial color
+                       val3 * 255 + ((1-val3) * 255 * mag_scale_inv),                   // grayness
+                       (al3 * al3max + ((1-al3) * al3max * mag_scale_inv)) * dcount_recip  // alpha
+                       );
+            gr.setColorAt(pos3 + ((1-pos3) * pow(mag_scale_inv, 2)), col);
+            
             col.setHsv(hue,
-                       125,             // saturation, doesn't matter, it's black
-                       0,               // grayness: black
-                       0);   // alpha
-//            gr.setColorAt(0.65 * mag_scale_inv + 0.3, col);
+                       125,                                 // saturation, doesn't matter, it's black, clear
+                       0,                                   // grayness: black
+                       0);                                  // alpha
             gr.setColorAt(1.0, col);
 
-//            gr.setColorAt(1.0, QColor(0, 0, 0, 0)); // black
-
-
-
-//            qreal mag_scale_inv = 1 - (mag * 0.85);
-//            qreal mag_scale = pow(mag, 2) * 0.9 + 0.1;
-//            //        std::cout << "mag_norm: " <<mag_norm<< "\tmag_scale: "<<mag_scale<< "\tmag_inv: "<<mag_scale_inv<<"\n";
-//
-//            QColor col;
-//            int hue = 90 - (int)(30.*sin(e)); // 60 - yellow (positive elev), 120 - green (negative elev)
-//
+            
 //            col.setHsv(hue,
-//                       mag_scale_inv*125,    // saturation white > partial color
-//                       100*mag_scale+155,    // value: "grayness"
-//                       130*mag_scale + 100); // alpha
+//                       55 + (200 * mag_scale_inv),                      // saturation white > partial color
+//                       255,                                             // value: "grayness"; 0 = black
+//                       (55 + (90 * mag_scale)) * dcount_recip);         // alpha
 //            gr.setColorAt(0.0, col);
-//
+//            
 //            col.setHsv(hue,
-//                       130*mag_scale+125,    // saturation
-//                       150*mag_scale+105,    // grayness
-//                       100*mag_scale+60);    // alpha
-//            gr.setColorAt(0.5 * mag_scale_inv, col);
-//
+//                       155 + (100 * mag_scale_inv),                     // saturation white > partial color
+//                       180 + (75  * mag_scale_inv),                     // grayness
+//                       (35 + (40  * mag_scale_inv)) * dcount_recip);    // alpha
+//            gr.setColorAt(0.8 * pow(mag_scale_inv, 2) + 0.2, col);
+//            
 //            col.setHsv(hue,
-//                       125,                  // saturation, doesn't matter, it's black
-//                       0,                    // grayness: black
-//                       60*mag_scale );       // alpha
-//            gr.setColorAt(1.0 * mag_scale_inv, col);
-//
-//            gr.setColorAt(1.0, QColor(0, 0, 0, 0)); // black
-
-
+//                       255,                                             // saturation
+//                       130 + (125 * mag_scale_inv),                     // grayness
+//                       (25 + (40  * mag_scale_inv)) * dcount_recip);    // alpha
+//            gr.setColorAt(0.6 * pow(mag_scale_inv, 2) + 0.35, col);
+//            
+//            col.setHsv(hue,
+//                       125,                                 // saturation, doesn't matter, it's black, clear
+//                       0,                                   // grayness: black
+//                       0);                                  // alpha
+//            gr.setColorAt(1.0, col);
+////            gr.setColorAt(1.0, QColor(0, 0, 0, 0)); // black
+            
             //        painter.setRenderHint(QPainter::Antialiasing);
             painter.setBrush(gr);
             painter.setPen(Qt::NoPen);

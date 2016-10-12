@@ -66,6 +66,24 @@ class QcSpaceScopeShm : public QWidget, QcHelper
     Q_PROPERTY( float normScale READ normScale WRITE setNormScale );
     Q_PROPERTY( float elWarp READ elWarp WRITE setElWarp );
     Q_PROPERTY( bool overlay READ overlay WRITE setOverlay );
+    
+    // TEMP
+    Q_PROPERTY( float sat1 READ sat1 WRITE sat1);
+    Q_PROPERTY( float val1 READ val1 WRITE val1);
+    Q_PROPERTY( float al1 READ al1 WRITE al1);
+    Q_PROPERTY( float al1max READ al1max WRITE al1max);
+    
+    Q_PROPERTY( float sat2 READ sat2 WRITE sat2);
+    Q_PROPERTY( float val2 READ val2 WRITE val2);
+    Q_PROPERTY( float al2 READ al2 WRITE al2);
+    Q_PROPERTY( float al2max READ al2max WRITE al2max);
+    Q_PROPERTY( float pos2 READ pos2 WRITE pos2);
+    
+    Q_PROPERTY( float sat3 READ sat3 WRITE sat3);
+    Q_PROPERTY( float val3 READ val3 WRITE val3);
+    Q_PROPERTY( float al3 READ al3 WRITE al3);
+    Q_PROPERTY( float al3max READ al3max WRITE al3max);
+    Q_PROPERTY( float pos3 READ pos3 WRITE pos3);
 
   public:
     QcSpaceScopeShm();
@@ -104,6 +122,36 @@ class QcSpaceScopeShm : public QWidget, QcHelper
     int style() const               { return _style; }
     void setStyle( int i )          { _style = i; setMeterStyle(); }
 
+    // TEMP
+    void sat1( float f )     { _sat1 = f; }
+    void val1( float f )     { _val1 = f; }
+    void al1( float f )     { _al1 = f; }
+    void al1max( float f )     { _al1max = f; }
+    void sat2( float f )     { _sat2 = f; }
+    void val2( float f )     { _val2 = f; }
+    void al2( float f )     { _al2 = f; }
+    void al2max( float f )     { _al2max = f; }
+    void pos2( float f )     { _pos2 = f; }
+    void sat3( float f )     { _sat3 = f; }
+    void val3( float f )     { _val3 = f; }
+    void al3( float f )     { _al3 = f; }
+    void al3max( float f )     { _al3max = f; }
+    void pos3( float f )     { _pos3 = f; }
+
+    float sat1() const     { return _sat1; }
+    float val1() const     { return _val1; }
+    float al1() const     { return _al1; }
+    float al1max() const     { return _al1max; }
+    float sat2() const     { return _sat2; }
+    float val2() const     { return _val2; }
+    float al2() const     { return _al2; }
+    float al2max() const     { return _al2max; }
+    float pos2() const     { return _pos2; }
+    float sat3() const     { return _sat3; }
+    float val3() const     { return _val3; }
+    float al3() const     { return _al3; }
+    float al3max() const     { return _al3max; }
+    float pos3() const     { return _pos3; }
 
 
   public Q_SLOTS:
@@ -124,7 +172,23 @@ class QcSpaceScopeShm : public QWidget, QcHelper
     // mtm
     void lensDeform(const QPainterPath &source, const qreal radius, const qreal elev, const qreal directivity, const qreal lensDeform, QPainter &, bool fill);
 
-    void paintAeda(int maxFrames, int availFrames, int frames, float ampShape, float normScale, bool overlay, bool fill, const QRect &area, QPainter & );
+    void paintAeda(int maxFrames, int availFrames, int frames, float ampShape, float normScale, bool overlay, bool fill, const QRect &area, QPainter &,
+                   float sat1,
+                   float val1,
+                   float al1,
+                   float al1max,
+                   float sat2,
+                   float val2,
+                   float al2,
+                   float al2max,
+                   float pos2,
+                   float sat3,
+                   float val3,
+                   float al3,
+                   float al3max,
+                   float pos3
+
+                   );
     void paintAedaGrid( const QRect &area, QPainter & painter, bool overlay);
 
     void paintMercator(int maxFrames, int availFrames, int frames, float ampShape, float normScale, const QRect &area, QPainter & );
@@ -160,6 +224,23 @@ class QcSpaceScopeShm : public QWidget, QcHelper
     int storeDex, storeCnt;
     QImage img;
     QVector<QPoint> mwPixelPnts;
+    
+    // TEMP
+    float  _sat1,
+     _val1,
+     _al1,
+     _al1max,
+     _sat2,
+     _val2,
+     _al2,
+     _al2max,
+     _pos2,
+     _sat3,
+     _val3,
+     _al3,
+     _al3max,
+    _pos3;
+
     // end mtm
 
     int _srvPort;
