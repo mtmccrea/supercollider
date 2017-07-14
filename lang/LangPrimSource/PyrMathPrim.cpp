@@ -36,6 +36,11 @@
 
 #include "boost/math/special_functions.hpp"
 
+// mtm
+#include "boost/math/special_functions/spherical_harmonic.hpp"
+#include "boost/math/special_functions/legendre.hpp"
+#include "PyrSymbol.h"
+
 const int INT_MAX_BY_PyrSlot = INT_MAX / sizeof(PyrSlot);
 
 inline bool IsSignal(PyrSlot* slot) { return (IsObj(slot) && slotRawObject(slot)->classptr == class_signal); }
@@ -1080,6 +1085,77 @@ int prAsFraction(struct VMGlobals *g, int numArgsPushed)
 	}
 }
 
+int prSphericalHarmonic(struct VMGlobals *g, int numArgsPushed)
+{
+	PyrSlot *a = g->sp - 3; // n (SphericalOrder)
+	PyrSlot *b = g->sp - 2; // m (index within the order)
+	PyrSlot *c = g->sp - 1; // theta
+	PyrSlot *d = g->sp;     // phi
+
+	int err;
+
+	int n = 0;
+	int m = 0;
+	double theta = 0.0;
+	double phi = 0.0;
+
+	// if ( isKindOfSlot( a, SC_CLASS(SphericalOrder) ) )
+
+	PyrObject *sphOrd = slotRawObject(a);
+
+	err = slotDoubleVal(c, &theta);
+	if (err) return err;
+	err = slotDoubleVal(d, &phi);
+	if (err) return err;
+
+	err = slotIntVal(b, &m);
+	if (err) return err;
+	err = slotIntVal(sphOrd->slots+0, &n); // from the first slot of the object being called (SphericalOrder)
+	if (err) return err;
+
+	// TODO: look into Policy
+	auto res_cmplx =  boost::math::spherical_harmonic(n, m, theta, phi);
+
+	PyrObject *obj = instantiateObject( gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true );
+	SetObject( a, obj );
+
+	PyrSlot *slots = obj->slots;
+	SetFloat( slots+0, res_cmplx.real() );
+	SetFloat( slots+1, res_cmplx.imag() );
+	return errNone;
+}
+
+int prLegendreP(struct VMGlobals *g, int numArgsPushed)
+{
+	PyrSlot *a = g->sp - 2; // l - Associated Legendre degree (ambisonic 'order')
+	PyrSlot *b = g->sp - 1; // m - Associated Legendre order (ambisonic 'index')
+	PyrSlot *c = g->sp;     // x - phi
+
+	int err;
+
+	int l = 0;
+	int m = 0;
+	double x = 0.0;
+
+	// if ( isKindOfSlot( a, SC_CLASS(SphericalOrder) ) )
+
+	PyrObject *sphOrd = slotRawObject(a);
+
+	err = slotDoubleVal(c, &x);
+	if (err) return err;
+
+	err = slotIntVal(b, &m);
+	if (err) return err;
+	err = slotIntVal(sphOrd->slots+0, &l);
+	if (err) return err;
+
+	// TODO: look into Policy
+	double res =  boost::math::legendre_p(l, m, x);
+	SetFloat( a, res );
+
+	return errNone;
+}
+
 void initMathPrimitives()
 {
 	int base, index;
@@ -1115,5 +1191,8 @@ void initMathPrimitives()
 
 	definePrimitive(base, index++, "_SimpleNumberSeries", prSimpleNumberSeries, 3, 0);
 	definePrimitive(base, index++, "_AsFraction", prAsFraction, 3, 0);
-}
 
+	// mtm added
+	definePrimitive(base, index++, "_SphHarmComplex", prSphericalHarmonic, 4, 0);
+	definePrimitive(base, index++, "_LegendreP", prLegendreP, 3, 0);
+}
