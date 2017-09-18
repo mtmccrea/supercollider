@@ -56,6 +56,7 @@ set( QT_COLLIDER_HDRS
   ${QT_COLLIDER_DIR}/widgets/QcTextEdit.h
   ${QT_COLLIDER_DIR}/widgets/QcScope.h
   ${QT_COLLIDER_DIR}/widgets/QcScopeShm.h
+  ${QT_COLLIDER_DIR}/widgets/QcSpaceScopeShm.h
   ${QT_COLLIDER_DIR}/widgets/QcGraph.h
   ${QT_COLLIDER_DIR}/widgets/QcLevelIndicator.h
   ${QT_COLLIDER_DIR}/widgets/QcCanvas.h
@@ -108,6 +109,7 @@ set( QT_COLLIDER_SRCS
   ${QT_COLLIDER_DIR}/widgets/QcTextEdit.cpp
   ${QT_COLLIDER_DIR}/widgets/QcScope.cpp
   ${QT_COLLIDER_DIR}/widgets/QcScopeShm.cpp
+  ${QT_COLLIDER_DIR}/widgets/QcSpaceScopeShm.cpp
   ${QT_COLLIDER_DIR}/widgets/QcLevelIndicator.cpp
   ${QT_COLLIDER_DIR}/widgets/QcWindow.cpp
   ${QT_COLLIDER_DIR}/widgets/QcGraph.cpp
