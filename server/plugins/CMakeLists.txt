@@ -47,6 +47,7 @@ set(plugin_sources
 	UnaryOpUGens.cpp
 	UnpackFFTUGens.cpp
 	FoaAnalysisUGens.cpp
+	Delay_OS.cpp
 )
 
 set(plugins "")
