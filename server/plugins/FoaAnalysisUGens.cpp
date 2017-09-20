@@ -16,7 +16,7 @@ static InterfaceTable *ft;
 struct Aeda : public Unit { };
 
 // for time domain onset detection/RMS
-struct VRunningSum : public Unit {
+struct RunningSum2 : public Unit {
     int nsamps, maxsamps, head, tail, resetcount;
     float msum,msum2;
     bool reset;
@@ -24,15 +24,15 @@ struct VRunningSum : public Unit {
 };
 
 extern "C" {
-    
+
     void load(InterfaceTable *inTable);
-    
+
     void Aeda_Ctor(Aeda *unit);
     void Aeda_next(Aeda *unit, int inNumSamples);
 
-    void VRunningSum_Ctor(VRunningSum *unit);
-    void VRunningSum_Dtor(VRunningSum *unit);
-    void VRunningSum_next_a(VRunningSum *unit, int inNumSamples);
+    void RunningSum2_Ctor(RunningSum2 *unit);
+    void RunningSum2_Dtor(RunningSum2 *unit);
+    void RunningSum2_next_a(RunningSum2 *unit, int inNumSamples);
 }
 
 void Aeda_Ctor( Aeda *unit) {
@@ -47,7 +47,7 @@ void Aeda_next( Aeda *unit, int inNumSamples) {
     float *Xin = IN(1);
     float *Yin = IN(2);
     float *Zin = IN(3);
-    
+
     float *out0 = OUT(0);   // azimuth
     float *out1 = OUT(1);   // elevation
     float *out2 = OUT(2);   // directivity
@@ -56,28 +56,28 @@ void Aeda_next( Aeda *unit, int inNumSamples) {
     float w, x, y, z, w_sqrd;
     float azim, elev, dir, amp;
     float p_sqrd, v_sqrd;
-    
-    
+
+
     /* aed-a calculation */
-    
+
     for (int i=0; i<inNumSamples; ++i) {
-        
+
         w = Win[i] * sqrt(2);       // scale W
         x = Xin[i];
         y = Yin[i];
         z = Zin[i];
         w_sqrd = pow(w,2);
-        
+
         double b_sqrd[4] = { w_sqrd, pow(x,2), pow(y,2), pow(z,2) };
-        
+
         p_sqrd = b_sqrd[0];                             // W component
         v_sqrd = b_sqrd[1] + b_sqrd[2] + b_sqrd[3];     // summed XYZ
-        
+
         // directivity measure
         dir = M_PI_2 - (2. * atan2(sqrt(v_sqrd), sqrt(p_sqrd)));
 //        dir = 1.0 - ( fabs(dir) / M_PI_2 );             // normalized dir
         dir = 1. - ( fabs(dir) * rHalfPi );
-        
+
         //  pv_mean = b[0] * b;
         float pv_mean[4] = { w_sqrd, x * w, y * w, z * w };
         // atan2(y,x) - see pv_mean above
@@ -86,30 +86,30 @@ void Aeda_next( Aeda *unit, int inNumSamples) {
         elev = atan2( pv_mean[3], sqrt( pow( pv_mean[1],2) + pow(pv_mean[2], 2 ) ) );
         // sqrt((b**2).sum / 2);
         amp = sqrt( ( b_sqrd[0] + b_sqrd[1] + b_sqrd[2] + b_sqrd[3] ) * 0.5 );
-        
+
         out0[i] = azim;
         out1[i] = elev;
         out2[i] = dir;
         out3[i] = amp;
     }
-    
+
 }
 
 
 // ------------------------------------------------------
-// VRunningSum
+// RunningSum2
 
-void VRunningSum_Ctor( VRunningSum* unit )
+void RunningSum2_Ctor( RunningSum2* unit )
 {
     if ((int) ZIN0(2) == 0) {
-        printf("VRunningSum Error: maxsamps initialized to 0.\n");
+        printf("RunningSum2 Error: maxsamps initialized to 0.\n");
         SETCALC(*ClearUnitOutputs);
         unit->mDone = true;
         return;
     }
-    
-    SETCALC(VRunningSum_next_a);
-    
+
+    SETCALC(RunningSum2_next_a);
+
     unit->maxsamps  = (int) ZIN0(2);
     unit->nsamps    = sc_max(1, sc_min( (int) ZIN0(1), unit->maxsamps )); // clamp 1>maxsamp
     unit->msum      = 0.0f;
@@ -118,28 +118,28 @@ void VRunningSum_Ctor( VRunningSum* unit )
     unit->head      = 0; // first write position
     unit->tail      = unit->maxsamps - unit->nsamps;
     unit->reset     = false;
-    
+
 //    printf("initnsamp: %i, maxsamps: %i\n", unit->nsamps, unit->maxsamps);
-    
+
     unit->msquares  = (float*)RTAlloc(unit->mWorld, unit->maxsamps * sizeof(float));
     //initialise to zeroes
     for(int i=0; i<unit->maxsamps; ++i)
         unit->msquares[i] = 0.f;
-    
+
 }
 
-void VRunningSum_Dtor(VRunningSum *unit)
+void RunningSum2_Dtor(RunningSum2 *unit)
 {
     RTFree(unit->mWorld, unit->msquares);
 }
 
 
-void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
+void RunningSum2_next_a( RunningSum2 *unit, int inNumSamples )
 {
     float *in   = ZIN(0);
     float *out  = ZOUT(0);
     float * data    = unit->msquares;
-    
+
     int startnsamps = unit->nsamps;     // keep track of previous block's window size
     int maxsamps    = unit->maxsamps;
     int resetcount  = unit->resetcount; // trigger sum<>sum2 swap
@@ -150,26 +150,26 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
     float sum       = unit->msum;
     float sum2      = unit->msum2;      // modeled after RunningSum - thanks to Ross Bencina
     bool reset      = unit->reset;
-    
+
     int nsamps = (int) ZIN0(1);         // number of samples to average
-    
+
     nsamps = sc_max(1, sc_min(nsamps, maxsamps));   // clamp 1>maxsamp
 
-    
+
     float dsamp_slope = CALCSLOPE( (float)nsamps, startnsamps );
-    
+
 //    printf("prevnsamps %i, startnsamps %i, nsamps %i, dsamp_slope: %f\n", prevnsamps, startnsamps, nsamps, dsamp_slope);
-    
+
     for (int i=0; i<inNumSamples; ++i) {
-        
+
         // handle change in summing window size
         if (dsamp_slope != 0.f) {
             int nextnsamps = startnsamps + (int)(dsamp_slope * (i+1));
             int dsamp = nextnsamps - prevnsamps;            // window size delta
-            
+
             if (dsamp != 0) {
                 float sumChange = 0.;
-                
+
                 if (dsamp > 0) {                            // window grows
                     for (int j=0; j<dsamp; ++j) {
                         tail--;                             // grow window
@@ -181,14 +181,14 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
                     // should be outside loop to avoid accumulating error
                     sum  += sumChange;
                     sum2 += sumChange;
-                    
+
                 } else {                                    // window shrinks: dsamp < 0
                     int test = abs(dsamp);
                     for (int j=0; j < test; ++j) {
                         sumChange += data[tail];
                         tail++;                             // shrink window
                         if (tail == maxsamps) tail = 0;     // wrap
-                        
+
                         // resetcount--;
                         // resetcount++; // try always incrementing operation reset count
                     }
@@ -197,11 +197,11 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
                     sum  -= sumChange;
                     sum2 -= sumChange;
                 }
-                
+
                 prevnsamps += dsamp;
             }
         }
-        
+
         // remove the tail
         float rmv = data[tail];
         sum -= rmv;
@@ -219,7 +219,7 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
         sum2 += next;
 
         ZXP(out) = sum;
-        
+
 //        // DEBUG: the true sum of the window:
 //        float trueSum = 0;
 //        for (int j=0; j<nsamps; ++j) {
@@ -228,15 +228,15 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
 //            trueSum += data[dex];
 //        }
 //        ZXP(out) = trueSum;
-        
-        
+
+
         // increment and wrap the head and tail
         head++;
         if (head == maxsamps) head = 0;
         tail++;
         if (tail == maxsamps) tail = 0;
         resetcount++;
-        
+
         // swap the sums once window is full to avoid floating
         // point error (tip from RunningSum)
         if (resetcount == nsamps) {
@@ -246,7 +246,7 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
             reset = true;
         }
     }
-    
+
     unit->nsamps = nsamps;
     unit->resetcount= resetcount;
     unit->head  = head;
@@ -258,11 +258,10 @@ void VRunningSum_next_a( VRunningSum *unit, int inNumSamples )
 
 
 PluginLoad(FoaAnalysisUGens) {
-    
-    ft = inTable; // store pointer to InterfaceTable
-    
-    DefineSimpleUnit(Aeda);
-    
-    DefineDtorUnit(VRunningSum);
-}
 
+    ft = inTable; // store pointer to InterfaceTable
+
+    DefineSimpleUnit(Aeda);
+
+    DefineDtorUnit(RunningSum2);
+}
