@@ -571,7 +571,7 @@ void QcSpaceScopeShm::paintAedaGrid( const QRect &area, QPainter & painter, bool
         // painter.setPen(Qt::red);
         if (!overlay)
             painter.drawText(txtRect, Qt::AlignLeft | Qt::AlignTop, hemLabels[i]);
-        
+
         /* Gradient overlay for 3D look */
         diam   = minSize-hemSpacing;
         rad    = diam/2;
@@ -798,78 +798,78 @@ float pos3
 
             QColor col;
             int hue = 90 - (int)(30.*sin(e)); // 60 - yellow (positive elev), 120 - green (negative elev)
-            
+
 //            sat1 = 0.216;
 //            val1 = 1;
 //            al1 = 0.379;
 //            al1max = 145;
-//            
+//
 //
 //            sat2 = 0.607;
 //            val2 = 0.705;
 //            al2 = 0.467;
 //            al2max = 75;
 //            pos2 = 0.2;
-//            
+//
 //            sat3 = 1;
 //            val3 = 0.51;
 //            al3 = 0.385;
 //            al3max = 65;
 //            pos3 = 0.35;
-            
+
             col.setHsv(hue,
                        sat1 * 255 + ((1-sat1) * 155 * mag_scale),                     // saturation white > partial color
                        val1 * 255 + ((1-val1) * 255 * mag_scale),                   // grayness
                        (al1 * al1max + ((1-al1) * al1max * mag_scale)) * dcount_recip  // alpha
                        );
             gr.setColorAt(0.0, col);
-            
+
             col.setHsv(hue,
                        sat2 * 255 + ((1-sat2) * 155 * mag_scale),                     // saturation white > partial color
                        val2 * 255 + ((1-val2) * 255 * mag_scale),                   // grayness
                        (al2 * al2max + ((1-al2) * al2max * mag_scale)) * dcount_recip  // alpha
                        );
             gr.setColorAt(pos2 + ((1-pos2) * pow(mag_scale_inv, 2)), col);
-            
+
             col.setHsv(hue,
                        sat3 * 255 + ((1-sat3) * 155 * mag_scale),                     // saturation white > partial color
                        val3 * 255 + ((1-val3) * 255 * mag_scale),                   // grayness
                        (al3 * al3max + ((1-al3) * al3max * mag_scale)) * dcount_recip  // alpha
                        );
             gr.setColorAt(pos3 + ((1-pos3) * pow(mag_scale_inv, 2)), col);
-            
+
             col.setHsv(hue,
                        125,                                 // saturation, doesn't matter, it's black, clear
                        0,                                   // grayness: black
                        0);                                  // alpha
             gr.setColorAt(1.0, col);
 
-            
+
 //            col.setHsv(hue,
 //                       55 + (200 * mag_scale_inv),                      // saturation white > partial color
 //                       255,                                             // value: "grayness"; 0 = black
 //                       (55 + (90 * mag_scale)) * dcount_recip);         // alpha
 //            gr.setColorAt(0.0, col);
-//            
+//
 //            col.setHsv(hue,
 //                       155 + (100 * mag_scale_inv),                     // saturation white > partial color
 //                       180 + (75  * mag_scale_inv),                     // grayness
 //                       (35 + (40  * mag_scale_inv)) * dcount_recip);    // alpha
 //            gr.setColorAt(0.8 * pow(mag_scale_inv, 2) + 0.2, col);
-//            
+//
 //            col.setHsv(hue,
 //                       255,                                             // saturation
 //                       130 + (125 * mag_scale_inv),                     // grayness
 //                       (25 + (40  * mag_scale_inv)) * dcount_recip);    // alpha
 //            gr.setColorAt(0.6 * pow(mag_scale_inv, 2) + 0.35, col);
-//            
+//
 //            col.setHsv(hue,
 //                       125,                                 // saturation, doesn't matter, it's black, clear
 //                       0,                                   // grayness: black
 //                       0);                                  // alpha
 //            gr.setColorAt(1.0, col);
 ////            gr.setColorAt(1.0, QColor(0, 0, 0, 0)); // black
-            
+
             //        painter.setRenderHint(QPainter::Antialiasing);
             painter.setBrush(gr);
             painter.setPen(Qt::NoPen);
@@ -1288,14 +1288,14 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
     }
     // TODO: correct this measure of max amplitude of a decoded point
     max = sqrt((w * w * 2) + x*x + y*y + z*z) * 0.5;  // local max to this frame
-    
+
 //    float fullNormFac = 1. / max;
         float fullNormFac = 1. / max0; // TEMP... until dif btwn max and max0 is resolved
-    
+
 //    float refDist = peak - max;
     float refDist = 1. - peak;
     float normFac = (peak + (refDist * normScale)) / peak; // this tracks peak ("ref")
-    
+
     for (int i=0; i<storeCnt; ++i) {
         float normVal, shapedVal;
         normVal = summedSamps[i] * fullNormFac;
@@ -1307,7 +1307,7 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
         QPoint pnt = mwPixelPnts[i];
         img.setPixel(pnt.x(), pnt.y(), color.rgba());
     }
-    
+
     // TEMP
     float maxCol = pow(max0* fullNormFac, ampShape) * max * normFac * 255;
 
@@ -1347,20 +1347,20 @@ void QcSpaceScopeShm::paintMollweide(int maxFrames, int availFrames,
     QSize scaleSize(minSize2, minSize); // add 2 px so boarder isn't cut off
     QRect offsetRect(offsetPnt, scaleSize);
 
-    
+
     meterscene.render(&painter, offsetRect);
 
-    painter.setPen(Qt::yellow);
-    painter.drawText(offsetRect, Qt::AlignBottom | Qt::AlignLeft,
-//                     QString::number(floor(max * pow(10., 4) + .5) / pow(10., 4)) + "\n" +
-//                     QString::number(floor(peak * pow(10., 4) + .5) / pow(10., 4))+ "\n" +
-                     "decMax " + QString::number(20* log10(max0)) + "\n" +
-                     "nrgMax " + QString::number(20* log10(max)) + "\n" +
-                     "dec-nrg " + QString::number((20* log10(max0))-(20* log10(max))) + "\n" +
-                     "refMax " + QString::number(20* log10(peak))+ "\n" +
-                     "ref-nrg " + QString::number((20* log10(peak))-(20* log10(max)))+ "\n" +
-                     "maxCol "+QString::number(maxCol)+"\t"+ "max0 "+QString::number(max0)+"\t"+ "fullNormFac "+QString::number(fullNormFac)+"\t"+ "ampShape "+QString::number(ampShape)+"\t"+ "max "+QString::number(max)+"\t"+ "normFac "+QString::number(normFac)
-                     );
+//     painter.setPen(Qt::yellow);
+//     painter.drawText(offsetRect, Qt::AlignBottom | Qt::AlignLeft,
+// //                     QString::number(floor(max * pow(10., 4) + .5) / pow(10., 4)) + "\n" +
+// //                     QString::number(floor(peak * pow(10., 4) + .5) / pow(10., 4))+ "\n" +
+//                      "decMax " + QString::number(20* log10(max0)) + "\n" +
+//                      "nrgMax " + QString::number(20* log10(max)) + "\n" +
+//                      "dec-nrg " + QString::number((20* log10(max0))-(20* log10(max))) + "\n" +
+//                      "refMax " + QString::number(20* log10(peak))+ "\n" +
+//                      "ref-nrg " + QString::number((20* log10(peak))-(20* log10(max)))+ "\n" +
+//                      "maxCol "+QString::number(maxCol)+"\t"+ "max0 "+QString::number(max0)+"\t"+ "fullNormFac "+QString::number(fullNormFac)+"\t"+ "ampShape "+QString::number(ampShape)+"\t"+ "max "+QString::number(max)+"\t"+ "normFac "+QString::number(normFac)
+//                      );
     /*end added from init mercator*/
 }
 
