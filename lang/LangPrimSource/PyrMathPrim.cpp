@@ -1,4 +1,4 @@
-/*
+ /*
 	SuperCollider real time audio synthesis system
     Copyright (c) 2002 James McCartney. All rights reserved.
 	http://www.audiosynth.com
@@ -1088,7 +1088,7 @@ int prAsFraction(struct VMGlobals *g, int numArgsPushed)
 
 int prSphericalHarmonic(struct VMGlobals *g, int numArgsPushed)
 {
-	PyrSlot *a = g->sp - 3; // n (SphericalOrder)
+	PyrSlot *a = g->sp - 3; // instance of the receiver (slot[0] is spherical order "n")
 	PyrSlot *b = g->sp - 2; // m (index within the order)
 	PyrSlot *c = g->sp - 1; // theta
 	PyrSlot *d = g->sp;     // phi
@@ -1100,15 +1100,12 @@ int prSphericalHarmonic(struct VMGlobals *g, int numArgsPushed)
 	double theta = 0.0;
 	double phi = 0.0;
 
-	// if ( isKindOfSlot( a, SC_CLASS(SphericalOrder) ) )
-
 	PyrObject *sphOrd = slotRawObject(a);
 
 	err = slotDoubleVal(c, &theta);
 	if (err) return err;
 	err = slotDoubleVal(d, &phi);
 	if (err) return err;
-
 	err = slotIntVal(b, &m);
 	if (err) return err;
 	err = slotIntVal(sphOrd->slots+0, &n); // from the first slot of the object being called (SphericalOrder)
@@ -1126,9 +1123,71 @@ int prSphericalHarmonic(struct VMGlobals *g, int numArgsPushed)
 	return errNone;
 }
 
+int prSphericalHarmonicI(struct VMGlobals *g, int numArgsPushed)
+{
+    PyrSlot *a = g->sp - 3; // instance of the receiver (slot[0] is spherical order "n")
+    PyrSlot *b = g->sp - 2; // m (index within the order)
+    PyrSlot *c = g->sp - 1; // theta
+    PyrSlot *d = g->sp;     // phi
+    
+    int err;
+    
+    int n = 0;
+    int m = 0;
+    double theta = 0.0;
+    double phi = 0.0;
+    
+    PyrObject *sphOrd = slotRawObject(a);
+    
+    err = slotDoubleVal(c, &theta);
+    if (err) return err;
+    err = slotDoubleVal(d, &phi);
+    if (err) return err;
+    err = slotIntVal(b, &m);
+    if (err) return err;
+    err = slotIntVal(sphOrd->slots+0, &n);
+    if (err) return err;
+    
+    double res =  boost::math::spherical_harmonic_i(n, m, theta, phi);
+    SetFloat( a, res );
+ 
+    return errNone;
+}
+
+int prSphericalHarmonicR(struct VMGlobals *g, int numArgsPushed)
+{
+    PyrSlot *a = g->sp - 3; // instance of the receiver (slot[0] is spherical order "n")
+    PyrSlot *b = g->sp - 2; // m (index within the order)
+    PyrSlot *c = g->sp - 1; // theta
+    PyrSlot *d = g->sp;     // phi
+    
+    int err;
+    
+    int n = 0;
+    int m = 0;
+    double theta = 0.0;
+    double phi = 0.0;
+    
+    PyrObject *sphOrd = slotRawObject(a);
+    
+    err = slotDoubleVal(c, &theta);
+    if (err) return err;
+    err = slotDoubleVal(d, &phi);
+    if (err) return err;
+    err = slotIntVal(b, &m);
+    if (err) return err;
+    err = slotIntVal(sphOrd->slots+0, &n);
+    if (err) return err;
+    
+    double res =  boost::math::spherical_harmonic_r(n, m, theta, phi);
+    SetFloat( a, res );
+    
+    return errNone;
+}
+
 int prLegendreP(struct VMGlobals *g, int numArgsPushed)
 {
-	PyrSlot *a = g->sp - 2; // l - Associated Legendre degree (ambisonic 'order')
+	PyrSlot *a = g->sp - 2; // instance of the receiver, (slot[0] is Associated Legendre degree ("l"))
 	PyrSlot *b = g->sp - 1; // m - Associated Legendre order (ambisonic 'index')
 	PyrSlot *c = g->sp;     // x - phi
 
@@ -1138,16 +1197,13 @@ int prLegendreP(struct VMGlobals *g, int numArgsPushed)
 	int m = 0;
 	double x = 0.0;
 
-	// if ( isKindOfSlot( a, SC_CLASS(SphericalOrder) ) )
-
-	PyrObject *sphOrd = slotRawObject(a);
+	PyrObject *alDeg = slotRawObject(a);
 
 	err = slotDoubleVal(c, &x);
 	if (err) return err;
-
 	err = slotIntVal(b, &m);
 	if (err) return err;
-	err = slotIntVal(sphOrd->slots+0, &l);
+	err = slotIntVal(alDeg->slots+0, &l);
 	if (err) return err;
 
 	// TODO: look into Policy
@@ -1156,6 +1212,32 @@ int prLegendreP(struct VMGlobals *g, int numArgsPushed)
 
 	return errNone;
 }
+
+//int prLegendrePZeros(struct VMGlobals *g, int numArgsPushed)
+//{
+//    PyrSlot *a = g->sp; // instance of the receiver, (slot[0] is Associated Legendre degree ("l"))
+//
+//    int err;
+//
+//    int l = 0;
+//
+//    PyrObject *alDeg = slotRawObject(a);
+//
+//    err = slotIntVal(alDeg->slots+0, &l);
+//    if (err) return err;
+//
+//    PyrObject *array = newPyrArray(g->gc, l, 0, true);
+//    // array->size = 0 at creation; max size is 2
+//    SetObject(a, array); // return value
+//
+//    std::vector<double> zeros = boost::math::legendre_p_zeros(l);
+//    SetObject(array->slots, &zeros);
+//
+//
+//    SetFloat( a, res );
+//
+//    return errNone;
+//}
 
 void initMathPrimitives()
 {
@@ -1195,5 +1277,7 @@ void initMathPrimitives()
 
 	// mtm added
 	definePrimitive(base, index++, "_SphHarmComplex", prSphericalHarmonic, 4, 0);
+    definePrimitive(base, index++, "_SphHarmReal", prSphericalHarmonicR, 4, 0);
+    definePrimitive(base, index++, "_SphHarmImag", prSphericalHarmonicI, 4, 0);
 	definePrimitive(base, index++, "_LegendreP", prLegendreP, 3, 0);
 }
