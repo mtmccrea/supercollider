@@ -63,7 +63,7 @@ struct RunningSum : public Unit {
 
 // like RunningSum, but with variable size summing window. - mtmccrea
 struct RunningSum2 : public Unit {
-    int nsamps, maxsamps, head, tail, resetcount;
+    int nsamps, maxsamps, head, tail, resetcount, resetnsamps;
     float msum, msum2;
     bool reset;
     float* msquares;
@@ -453,6 +453,7 @@ void RunningSum2_Ctor( RunningSum2* unit )
     unit->tail      = unit->maxsamps - unit->nsamps;
     unit->reset     = false;
     unit->msquares  = (float*)RTAlloc(unit->mWorld, unit->maxsamps * sizeof(float));
+	unit->resetnsamps = unit->nsamps;
 
     if (unit->msquares == nullptr) {
         SETCALC(*ClearUnitOutputs);
@@ -492,19 +493,30 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
     int nsamps      = (int) ZIN0(1);    // number of samples to average
 
     nsamps = sc_max(1, sc_min(nsamps, maxsamps));   // clamp 1>maxsamp
-
+	
+//	if (nsamps < startnsamps)
+//		resetcount = nsamps - (prevnsamps-resetcount);
+	
+	if (nsamps > startnsamps)
+		unit->resetnsamps = nsamps;
+	if (resetcount < nsamps)
+		unit->resetnsamps = nsamps;
+	
     float dsamp_slope = CALCSLOPE( (float)nsamps, startnsamps );
-
+	
     for (int i=0; i < inNumSamples; ++i) {
         // handle change in summing window size
-        if (dsamp_slope != 0.f) {
+        if (dsamp_slope != 0.0f) {
+//			printf("dsamp_slope %f\n", dsamp_slope);
+			
             int nextnsamps = startnsamps + (int)(dsamp_slope * (i+1));
             int dsamp = nextnsamps - prevnsamps;    // window size delta
-
+			
             if (dsamp != 0) {
-                float sumChange = 0.;
+                float sumChange = 0.0;
 
                 if (dsamp > 0) {                    // window grows
+//					printf("growing window by %d\n", dsamp);
                     for (int j=0; j<dsamp; ++j) {
                         tail--;                     // grow window
                         if (tail < 0)
@@ -514,29 +526,49 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
                     // add accumulated value overtaken by growing window
                     // should be outside loop to avoid accumulating error
                     sum  += sumChange;
-                    sum2 += sumChange;
+//                    sum2 += sumChange; // these will be added in the course of accumulating sum2
+					prevnsamps += dsamp;
                 } else {                            // window shrinks: dsamp < 0
                     int test = abs(dsamp);
+//					printf("shrinking window by %d\n", test);
                     for (int j=0; j < test; ++j) {
-                        sumChange += data[tail];
-                        tail++;                     // shrink window
-                        if (tail == maxsamps)
+						sumChange += data[tail]; // accumulate the amount to remove
+						
+						prevnsamps--;
+//						if (prevnsamps > resetcount)
+//							sum -= data[tail];
+						if (resetcount == prevnsamps) {
+							float maxsum = sc_max(sum, sum2);
+							float minsum = sc_min(sum, sum2);
+							if ((minsum/maxsum) < 0.99) { // within 1% ?
+//							if (sum != sum2) {
+								printf("	MISMATCH IN SWAPPING SUMS ~~~~~~~~~~~~~~~~~~~~~~~~~");
+								printf("swapping while shrinking sum %f and sum2 %f resetcount %d\n", sum, sum2, resetcount);
+							}
+							sum  = sum2;
+							sum2 = 0.0f;
+							sumChange = 0;
+							resetcount = 0;
+							reset = true;
+							unit->resetnsamps = nsamps; // only update resetnsamps if resetcount has been reached
+						}
+						
+						tail++;                     // shrink window
+						if (tail == maxsamps)
                             tail = 0;               // wrap
                     }
                     // remove sum of values accumulated by shrinking window
                     // should be outside loop to avoid accumulating error
-                    sum  -= sumChange;
-                    sum2 -= sumChange;
+					sum  -= sumChange;
+//                    sum2 -= sumChange;
                 }
-
-                prevnsamps += dsamp;
-            }
+//              prevnsamps += dsamp;
+			}
         }
 
         // remove the tail
         float rmv = data[tail];
         sum -= rmv;
-
         // only remove last val from sum2 if sum2 wasn't just reset
         if (!reset) {
             sum2 -= rmv;
@@ -558,15 +590,26 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
         tail++;
         if (tail == maxsamps)
             tail = 0;
+		
         resetcount++;
-
         // swap the sums once window is full to avoid
         // floating point error (tip from RunningSum)
-        if (resetcount == nsamps) {
+		if (resetcount == unit->resetnsamps) {
+		//		if (resetcount == maxsamps) {
+//		if (resetcount == nsamps) {
+			float maxsum = sc_max(sum, sum2);
+			float minsum = sc_min(sum, sum2);
+			if ((minsum/maxsum) < 0.99) { // within 1% ?
+//			if (sum != sum2) {
+				printf("	MISMATCH IN SWAPPING SUMS ~~~~~~~~~~~~~~~~~~~~~~~~~");
+				printf("swapping sum %f and sum2 %f resetcount %d\n", sum, sum2, resetcount);
+			}
+			
             sum  = sum2;
-            sum2 = 0.;
+            sum2 = 0.0f;
             resetcount = 0;
             reset = true;
+			unit->resetnsamps = nsamps; // only update resetnsamps if resetcount has been reached
         }
     }
 
