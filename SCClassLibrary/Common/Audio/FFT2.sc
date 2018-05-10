@@ -95,13 +95,43 @@ RunningSum2 : UGen {
 		^this.multiNew('control', in, numsamp, maxsamp);
 	}
 
+	// *avg { arg in, numsamp=40, maxsamp=400;
+	// 	var r = UGen.methodSelectorForRate(in.rate);
+	// 	^RunningSum2.perform(r, in, numsamp, maxsamp)*(numsamp.floor.reciprocal)
+	// }
+	//
+	// *rms { arg in, numsamp=40, maxsamp=400;
+	// 	var r = UGen.methodSelectorForRate(in.rate);
+	// 	^(RunningSum2.perform(r, in.squared, numsamp, maxsamp)*(numsamp.floor.reciprocal)).sqrt
+	// }
+
 	*avg { arg in, numsamp=40, maxsamp=400;
-		var r = UGen.methodSelectorForRate(in.rate);
-		^RunningSum2.perform(r, in, numsamp, maxsamp)*(numsamp.floor.reciprocal)
+		var inRate, nsRate, ns;
+		inRate = UGen.methodSelectorForRate(in.rate);
+		nsRate = UGen.methodSelectorForRate(numsamp.rate);
+		// slew numsamp at control rate if rate doesn't match input
+		ns = if ((inRate == \ar) and: (nsRate == \kr)) {
+			VarLag.ar(K2A.ar(numsamp), ControlDur.ir)
+		}{
+			numsamp
+		};
+		^RunningSum2.perform(inRate, in, ns, maxsamp)*(ns.floor.reciprocal)
 	}
 
 	*rms { arg in, numsamp=40, maxsamp=400;
-		var r = UGen.methodSelectorForRate(in.rate);
-		^(RunningSum2.perform(r, in.squared, numsamp, maxsamp)*(numsamp.floor.reciprocal)).sqrt
+		var inRate, nsRate, ns;
+		inRate = UGen.methodSelectorForRate(in.rate);
+		nsRate = UGen.methodSelectorForRate(numsamp.rate);
+		// slew numsamp at control rate if rate doesn't match input
+		ns = if ((inRate == \ar) and: (nsRate == \kr)) {
+			"slewing".postln;
+			VarLag.ar(K2A.ar(numsamp), ControlDur.ir)
+		}{
+			numsamp
+		};
+		^(RunningSum2.perform(inRate, in.squared, ns, maxsamp)*(ns.floor.reciprocal)).sqrt
+		// var r = UGen.methodSelectorForRate(in.rate);
+		// ^(RunningSum2.perform(r, in.squared, numsamp, maxsamp)*(numsamp.floor.reciprocal)).sqrt
 	}
+
 }
