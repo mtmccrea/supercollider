@@ -46,6 +46,7 @@ set(plugin_sources
 	TriggerUGens.cpp
 	UnaryOpUGens.cpp
 	UnpackFFTUGens.cpp
+	MathUGens.cpp
 )
 
 set(plugins "")
