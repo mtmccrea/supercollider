@@ -28,9 +28,6 @@ public:
 	// Constructor function
 	FoldTest2() {
 		Print("FoldTest2_Ctor A\n");
-		
-		m_lo = in0(1);
-		m_hi = in0(2);
 		m_numInputs = numInputs();
 		
 		// store indices of ar inputs and kr inputs
@@ -44,6 +41,7 @@ public:
 				rate = 0;
 			} else if (isControlRateIn(i)) {
 				m_krIdxList.push_back(i);
+				m_interpSlopes.push_back(0.0); // initialize kr interp slopes to 0
 				m_krCount++;
 				rate = 1;
 			} else {
@@ -62,38 +60,30 @@ public:
 		
 		// set calc function.
 		if(bufferSize() == 1) {
-			// _aa? Well, yes - that calc func doesn't interpolate
-			// and interpolation is not needed for kr (1 sample/block)
-			set_calc_function<FoldTest2, &FoldTest2::next_aa>();
+			set_calc_function<FoldTest2, &FoldTest2::next_k>();
 		} else {
-			if(isAudioRateIn(1)) {
-				if(isAudioRateIn(2))
-					set_calc_function<FoldTest2, &FoldTest2::next_aa>();
-				else
-					set_calc_function<FoldTest2, &FoldTest2::next_ak>();
+			if(m_arCount > 0) {
+				set_calc_function<FoldTest2, &FoldTest2::next_a>();
 			} else {
-				if(isAudioRateIn(2))
-					set_calc_function<FoldTest2, &FoldTest2::next_ka>();
-				else
-					set_calc_function<FoldTest2, &FoldTest2::next_kk>();
+				set_calc_function<FoldTest2, &FoldTest2::next_k>();
 			}
 		}
 		
-		
-		// TODO: apppropriate to call next_kk here to calc first sample?
-		next_kk(1);
+		next_k(1);    // TODO: apppropriate to call next_kk here to calc first sample?
 	}
 	
 	// If you want a destructor, you would declare "~FoldTest2() { ... }" here.
 	
 private:
 	// declare state variables here.
-	float m_lo, m_hi;
 	int m_numInputs, m_arCount=0, m_krCount=0;
 	std::vector<int> m_arIdxList;
 	std::vector<int> m_krIdxList;
 	std::vector<int> m_inRates;
 	std::vector<double> m_prevInputs; // TODO: will inputs always be doubles? floats? ints?
+	std::vector<double> m_interpSlopes; // interpSlopes will be of size m_krCount, storing slopes for input(m_krIdxList[i])
+	double m_prevOutput = 0.0;
+	
 	
 	inline int checkInputsChanged (int frame)
 	{
@@ -101,10 +91,10 @@ private:
 		for (int i =0; i < m_numInputs; i++) {
 			double newVal;
 			// get rate for this input
-			if (m_inRates[i] == 0) { // kr
-				newVal = in0(i); // frame == 0 for kr
-			} else if (m_inRates[i] == 1) { // ar
-				newVal = in(i)[frame]; // TODO: need proper index in the loop
+			if (m_inRates[i] == 0) {         // kr
+				newVal = in0(i);             // frame == 0 for kr
+			} else if (m_inRates[i] == 1) {  // ar
+				newVal = in(i)[frame];       // TODO: need proper index in the loop
 			} else {
 				// shouldn't get here
 				// TODO: scalar, demand
@@ -112,101 +102,159 @@ private:
 			}
 			
 			if (m_prevInputs[i] != newVal)
-				return i;  // changedAt index i
+				return i;  // changedAt index i, return now, signaling new calc
+		}
+		
+		return -1;	// inputs didn't change
+	}
+	
+	inline int krInputsChanged ()
+	{
+		// iterate over all the inputs, check if their values changed
+		for (int i=0; i<m_krCount; i++) {
+			
+			int inputIdx = m_krIdxList[i];
+			double newVal = in0(inputIdx);
+			
+			if (m_prevInputs[inputIdx] != newVal)
+				return i;  // changedAt index i of krIndxList, return now, signaling new calc
+		}
+		
+		return -1;	// inputs didn't change
+	}
+	
+	inline int arInputsChanged (int frame)
+	{
+		// iterate over all the inputs, check if their values changed
+		for (int i=0; i<m_arCount; i++) {
+			
+			int inputIdx = m_arIdxList[i];
+			double newVal = in(inputIdx)[frame];
+			
+			if (m_prevInputs[inputIdx] != newVal)
+				return i;  // changedAt index i of arIndxList, return now, signaling new calc
 		}
 		
 		return -1;	// inputs didn't change
 	}
 		
 	/* Calc functions */
-	void next_aa(int inNumSamples) {
-		// ins are const float*, not float*.
-		const float* inbuf = in(0); /// get input signal pointer at index
-		const float* lo = in(1);
-		const float* hi = in(2);
-		
+	
+	// calc func for audio-rate output, all audio-rate inputs
+	void next_a(int inNumSamples) {
 		float* outbuf = out(0);
 		
 		// TODO: use consume()
 		
 		for (int i = 0; i < inNumSamples; i++) {
-			float curhi = hi[i];
-			float curlo = lo[i];
-			float range = curhi - curlo;
-			float range2 = range * 2.0;
-			// ZXP(out) = sc_fold(ZXP(in), curlo, curhi, range, range2);
-			outbuf[i] = sc_fold(inbuf[i], curlo, curhi, range, range2);
+			int changedAt = arInputsChanged(i);       // input changed at this index of the m_arIdxList (not input index)
+			
+			if (changedAt > -1) {                     // at least one input has changed, need to call the op with new inputs
+				for (int j=changedAt; j < m_arCount; j++) {
+					int inputIdx = m_arIdxList[j];
+					m_prevInputs[inputIdx] = in(inputIdx)[i];       // new inputs become previous
+				}
+				
+//				sc_fold(inbuf[i], curlo, curhi, range, range2);
+				auto z = primToCall.(*m_prevInputs);  // TODO: how to unroll?, need template for each number of args?
+				outbuf[i] = (double)z;                // TODO: double?
+				m_prevOutput = (double)z;
+			} else {                                  /// inputs haven't changed, no need to call the op
+				outbuf[i] = m_prevOutput;             // TODO: unnecessary to re-write the same value here?
+			}
 		}
 	}
 	
-	void next_kk(int inNumSamples)
-	{
-		const float* inbuf  = in(0);
-		const float next_lo = in0(1); /// get first sample of input signal at index
-		const float next_hi = in0(2);
+	// calc func for control-rate output, all control-rate inputs
+	void next_k(int inNumSamples) {
+		float outbuf = out0(0);  // TODO: output pointer for kr? "reference to first sample of output signal" (?)
 		
-		float* outbuf = out(0);
-		
-		float lo_slope = calcSlope(next_lo, m_lo);
-		float hi_slope = calcSlope(next_hi, m_hi);
-		
-		for (int i = 0; i < inNumSamples; i++) {
-			float range = m_hi - m_lo;
-			float range2 = range * 2.f;
+		for (int i = 0; i < inNumSamples; i++) {     // inNumSamples = 1 for kr
+			int changedAt = krInputsChanged();       // input changed at this index of the m_arIdxList (not input index)
 			
-			outbuf[i] = sc_fold(inbuf[i], m_lo, m_hi, range, range2);
+			// TODO: use consume()
 			
-			// TODO: becase this isn't using LOOP, should this
-			// happen before setting out[i] or/and before calculating range?
-			m_lo += lo_slope;
-			m_hi += hi_slope;
-		};
+			changedAt = checkInputsChanged(0);
+			
+			if (changedAt > -1) {   /// at least one input has changed, need to call the op with new inputs
+				for (int j=changedAt; j < m_krCount; j++) {
+					int inputIdx = m_krIdxList[j];
+					m_prevInputs[inputIdx] = in0(inputIdx);       // new inputs become previous
+				}
+				
+				auto z = primToCall.(*m_prevInputs);  // TODO: how to unroll?, need template for each number of args?
+				outbuf[i] = (double)z;                // TODO: is this properly writing to the "reference" to the out signal? TODO: double?
+				m_prevOutput = (double)z;
+			} else {
+				// inputs haven't changed, no need to call the op
+				outbuf[i] = m_prevOutput;             // TODO: unnecessary to re-write the same value here?
+			}
+		}
 	}
 	
-	void next_ka(int inNumSamples)
-	{
-		const float* inbuf = in(0);
-		const float next_lo = in0(1); /// get first sample of input signal at index
-		const float* hi = in(2); /// get input signal pointer at index
-		
+	// calc func for audio-rate output, mixed control and audio-rate inputs
+	void next_ka(int inNumSamples) {
 		float* outbuf = out(0);
+		int krChangedAt; // index of first changed kr arg
+		int arChangedAt; // index of first changed kr arg
+		bool krChanged;
+		bool recalc = false;
 		
-		float lo_slope = calcSlope(next_lo, m_lo);
+		// TODO: use consume()
+		
+		// zero out interp slopes
+		// NOTE: interp slope for a-rate is always 0
+		for (int i=0; i<m_numInputs; i++) {
+			m_interpSlopes[i] = 0.0;
+		}
+		
+		// check if kr inputs have changed, if so, calc slope
+		krChangedAt = krInputsChanged();
+		krChanged = krChangedAt > -1;
+		if (krChanged) {
+			for (int i=krChangedAt; i<m_krCount; i++) {
+				int inputIdx = m_krIdxList[i];
+				double next = in0(inputIdx);
+				double prev = m_prevInputs[inputIdx];
+				// TODO: we already know that krChangedAt is a changed value,
+				// the following check is really only needed to check for subsequent input values
+				if (next != prev) {
+					// TODO: worth keeping track of only those that have changed?
+					m_interpSlopes[i] = calcSlope(next, prev);
+				}
+			}
+		}
 		
 		for (int i = 0; i < inNumSamples; i++) {
-			float curhi = hi[i];
-			float range = curhi - m_lo;
-			float range2 = range * 2.f;
+			if (krChanged) {
+				// inputs are changing, need to call op
+				//				increment kr by slope
+				for (int j=0; j<m_krCount; j++) {
+					int inputIdx = m_krIdxList[j];
+					m_prevInputs[inputIdx] += m_interpSlopes[j];
+				}
+				recalc = true;
+			}
 			
-			outbuf[i] = sc_fold(inbuf[i], m_lo, curhi, range, range2);
+			if (arChangedAt > -1) {
+				for (int j=0; j<m_arCount; j++) {
+					int inputIdx = m_arIdxList[j];
+					m_prevInputs[inputIdx] += in(inputIdx)[i];
+				}
+				recalc = true;
+			}
 			
-			m_lo += lo_slope; // only need to set previous lo, hi is AR so isn't interpolated
-		};
+			if (recalc) {
+				auto z = primToCall.(*m_prevInputs);  // TODO: how to unroll?, need template for each number of args?
+				outbuf[i] = (double)z;                // TODO: double?
+				m_prevOutput = (double)z;
+			} else {
+				outbuf[i] = m_prevOutput;  			  // TODO: unnecessary?
+			}
+			
+		}
 	}
-	
-	void next_ak(int inNumSamples)
-	{
-		const float* inbuf = in(0);
-		const float* lo = in(1);
-		float next_hi = in0(2);
-		
-		float* outbuf = out(0);
-		
-		float hi_slope = calcSlope(next_hi, m_hi);
-		
-		for (int i = 0; i < inNumSamples; i++) {
-			float curlo = lo[i];
-			float range = m_hi - curlo;
-			float range2 = range * 2.f;
-			
-			outbuf[i] = sc_fold(inbuf[i], curlo, m_hi, range, range2);
-			
-			m_hi += hi_slope;
-		};
-	}
-	
-};
-
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
