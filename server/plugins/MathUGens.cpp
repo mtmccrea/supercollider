@@ -21,14 +21,15 @@ static InterfaceTable *ft;
 
 // Inherits from SCUnit, not Unit.
 // Also note that the constructor, destructor, and calc functions are methods of the SCUnit.
-struct FoldTest2 : public SCUnit {
+struct NAryOpUGen : public SCUnit {
 
 public:
 	
 	// Constructor function
-	FoldTest2() {
-		Print("FoldTest2_Ctor A\n");
+	NAryOpUGen (*primFunc) {
+		Print("NAryOpUGen_Ctor A\n");
 		m_numInputs = numInputs();
+		m_primFuncToCall = primFunc;
 		
 		// store indices of ar inputs and kr inputs
 		// and store input rates
@@ -51,8 +52,9 @@ public:
 			m_inRates.push_back(rate); // add this rate to m_inRates
 		}
 		
-		printf("FoldTest2 numInputs %d\n", m_numInputs);
-		printf("FoldTest2 rates [");
+		// debug: getting proper num inputs and rates?
+		printf("NAryOpUGen numInputs %d\n", m_numInputs);
+		printf("NAryOpUGen rates [");
 		for (int i =0; i < m_numInputs; i++) {
 			printf(" %d ", m_inRates[i]);
 		}
@@ -60,19 +62,19 @@ public:
 		
 		// set calc function.
 		if(bufferSize() == 1) {
-			set_calc_function<FoldTest2, &FoldTest2::next_k>();
+			set_calc_function<NAryOpUGen, &NAryOpUGen::next_k>();
 		} else {
 			if(m_arCount > 0) {
-				set_calc_function<FoldTest2, &FoldTest2::next_a>();
+				set_calc_function<NAryOpUGen, &NAryOpUGen::next_a>();
 			} else {
-				set_calc_function<FoldTest2, &FoldTest2::next_k>();
+				set_calc_function<NAryOpUGen, &NAryOpUGen::next_k>();
 			}
 		}
 		
-		next_k(1);    // TODO: apppropriate to call next_kk here to calc first sample?
+		next_k(1);    // TODO: apppropriate to call next_k here to calc first sample?
 	}
 	
-	// If you want a destructor, you would declare "~FoldTest2() { ... }" here.
+	// If you want a destructor, you would declare "~NAryOpUGen() { ... }" here.
 	
 private:
 	// declare state variables here.
@@ -83,6 +85,7 @@ private:
 	std::vector<double> m_prevInputs; // TODO: will inputs always be doubles? floats? ints?
 	std::vector<double> m_interpSlopes; // interpSlopes will be of size m_krCount, storing slopes for input(m_krIdxList[i])
 	double m_prevOutput = 0.0;
+	NAryOpFunc * m_primFuncToCall;
 	
 	
 	inline int checkInputsChanged (int frame)
@@ -156,7 +159,7 @@ private:
 				}
 				
 //				sc_fold(inbuf[i], curlo, curhi, range, range2);
-				auto z = primToCall.(*m_prevInputs);  // TODO: how to unroll?, need template for each number of args?
+				auto z = primToCall(&m_prevInputs...);  // TODO: how to unpack?, need template for each number of args?
 				outbuf[i] = (double)z;                // TODO: double?
 				m_prevOutput = (double)z;
 			} else {                                  /// inputs haven't changed, no need to call the op
@@ -182,7 +185,7 @@ private:
 					m_prevInputs[inputIdx] = in0(inputIdx);       // new inputs become previous
 				}
 				
-				auto z = primToCall.(*m_prevInputs);  // TODO: how to unroll?, need template for each number of args?
+				auto z = primToCall(&m_prevInputs...);  // TODO: how to unroll?, need template for each number of args?
 				outbuf[i] = (double)z;                // TODO: is this properly writing to the "reference" to the out signal? TODO: double?
 				m_prevOutput = (double)z;
 			} else {
@@ -245,7 +248,7 @@ private:
 			}
 			
 			if (recalc) {
-				auto z = primToCall.(*m_prevInputs);  // TODO: how to unroll?, need template for each number of args?
+				auto z = primToCall(&m_prevInputs...);  // TODO: how to unroll?, need template for each number of args?
 				outbuf[i] = (double)z;                // TODO: double?
 				m_prevOutput = (double)z;
 			} else {
@@ -262,7 +265,7 @@ PluginLoad(Math)
 {
 	ft = inTable;
 	
-	registerUnit<FoldTest2>(ft, "FoldTest2");
+	registerUnit<NAryOpUGen>(ft, "NAryOpUGen");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
