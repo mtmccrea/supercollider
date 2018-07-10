@@ -63,7 +63,7 @@ struct RunningSum : public Unit {
 
 // like RunningSum, but with variable size summing window. - mtmccrea
 struct RunningSum2 : public Unit {
-    int nsamps, maxsamps, head, tail, resetcount, resetnsamps;
+    int nsamps, maxSamps, head, tail, resetCounter, resetSamps;
     float msum, msum2;
     bool reset;
     float* msquares;
@@ -436,7 +436,7 @@ void RunningSum_next_k( RunningSum *unit, int inNumSamples )
 void RunningSum2_Ctor( RunningSum2* unit )
 {
     if ((int) ZIN0(2) == 0) {
-        printf("RunningSum2 Error: maxsamps initialized to 0.\n");
+        printf("RunningSum2 Error: maxSamps initialized to 0.\n");
         SETCALC(*ClearUnitOutputs);
         unit->mDone = true;
         return;
@@ -444,16 +444,16 @@ void RunningSum2_Ctor( RunningSum2* unit )
 
     SETCALC(RunningSum2_next);
 
-    unit->maxsamps  = (int) ZIN0(2);
-    unit->nsamps    = sc_max(1, sc_min( (int) ZIN0(1), unit->maxsamps )); // clip(1,maxsamp)
+    unit->maxSamps  = (int) ZIN0(2);
+    unit->nsamps    = sc_max(1, sc_min((int) ZIN0(1), unit->maxSamps)); // clip(1, maxSamps)
     unit->msum      = 0.0f;
     unit->msum2     = 0.0f;
-    unit->resetcount= 0;
+    unit->resetCounter = 0;
     unit->head      = 0; // first write position
-    unit->tail      = unit->maxsamps - unit->nsamps;
+    unit->tail      = unit->maxSamps - unit->nsamps;
     unit->reset     = false;
-    unit->msquares  = (float*)RTAlloc(unit->mWorld, unit->maxsamps * sizeof(float));
-	unit->resetnsamps = unit->nsamps;
+    unit->msquares  = (float*)RTAlloc(unit->mWorld, unit->maxSamps * sizeof(float));
+	unit->resetSamps = unit->nsamps;
 
     if (unit->msquares == nullptr) {
         SETCALC(*ClearUnitOutputs);
@@ -465,7 +465,7 @@ void RunningSum2_Ctor( RunningSum2* unit )
     }
 
     //initialise to zeroes
-    for (int i=0; i < unit->maxsamps; ++i)
+    for (int i=0; i < unit->maxSamps; ++i)
         unit->msquares[i] = 0.f;
 
     ZOUT0(0) = 0.f;
@@ -478,102 +478,107 @@ void RunningSum2_Dtor(RunningSum2 *unit)
 
 void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
 {
-    float *in       = ZIN(0);
-    float *out      = ZOUT(0);
-    float *data     = unit->msquares;
-    int startnsamps = unit->nsamps;     // keep track of previous block's window size
-    int maxsamps    = unit->maxsamps;
-    int resetcount  = unit->resetcount; // trigger sum<>sum2 swap
-    int head        = unit->head;       // current write index in the rolling buffer
-    int tail        = unit->tail;       // current tail  index in the rolling buffer
-    int prevnsamps  = unit->nsamps;     // keep track of window size as it ramps to new size
-    float sum       = unit->msum;
-    float sum2      = unit->msum2;      // modeled after RunningSum - thanks to Ross Bencina
-    bool reset      = unit->reset;
-    int nsamps      = (int) ZIN0(1);    // number of samples to average
+    float *in   = ZIN(0);
+    float *out  = ZOUT(0);
+    float *data = unit->msquares;
+	
+	int maxWinSize  = unit->maxSamps;
+	int newWinSize  = (int) ZIN0(1);  // number of samples to average
+    int prevWinSize = unit->nsamps;   // keep track of previous block's window size
+	int curWinSize  = unit->nsamps;   // keep track of window size as it ramps to new size
+	
+	int head = unit->head; // current write index in the rolling buffer
+    int tail = unit->tail; // current tail  index in the rolling buffer
+	
+    float sum = unit->msum;
+    float sum2 = unit->msum2; // modeled after RunningSum - thanks to Ross Bencina
+	
+	int resetCounter = unit->resetCounter; // trigger sum<>sum2 swap
+	bool reset = unit->reset;
 
-	bool error		= false; // TEMP
+	bool error = false; // TEMP
 	
-    nsamps = sc_max(1, sc_min(nsamps, maxsamps));   // clamp 1>maxsamp
+    newWinSize = sc_max(1, sc_min(newWinSize, maxWinSize));   // clamp [1, maxWinSize]
 	
-//	if (nsamps < startnsamps)
-//		resetcount = nsamps - (prevnsamps-resetcount);
+	if (newWinSize > prevWinSize)
+		// window grows, grow reset counter to match
+		unit->resetSamps = newWinSize;
+	if (resetCounter < newWinSize)
+		// reset count is less than newWinSize can safely set reset counter to newWinSize
+		unit->resetSamps = newWinSize;
 	
-	if (nsamps > startnsamps)
-		unit->resetnsamps = nsamps;
-	if (resetcount < nsamps)
-		unit->resetnsamps = nsamps;
+    float sampSlope = CALCSLOPE( (float)newWinSize, prevWinSize );
 	
-    float dsamp_slope = CALCSLOPE( (float)nsamps, startnsamps );
-	
-    for (int i=0; i < inNumSamples; ++i) {
-        if (dsamp_slope != 0.0f) {					// handle change in summing window size
-//			printf("dsamp_slope %f\n", dsamp_slope);
+    for (int i = 0; i < inNumSamples; ++i) {
+        if (sampSlope != 0.0f) {					// handle change in summing window size
+			// step this many samples for this output samples
+            int steps = prevWinSize + (int)(sampSlope * (i+1)) - curWinSize;
 			
-            int nextnsamps = startnsamps + (int)(dsamp_slope * (i+1));
-            int dsamp = nextnsamps - prevnsamps;    // window size delta
-			
-            if (dsamp != 0) {
+            if (steps != 0) {
                 float sumChange = 0.0;
 
-                if (dsamp > 0) {                    // window grows
-//					printf("growing window by %d\n", dsamp);
-                    for (int j=0; j<dsamp; ++j) {
-                        tail--;                     // grow window
+                if (steps > 0) {                    // window grows
+					// printf("growing window by %d\n", step);
+                    for (int j = 0; j < steps; ++j) {
+						// grow window
+                        tail--;
+						
                         if (tail < 0)
-                            tail += maxsamps;       // wrap
+							// wrap
+							tail += maxWinSize;
+						
+						// add tail values back into sum
                         sumChange += data[tail];
                     }
-                    // add accumulated value overtaken by growing window
+					
+                    // add all accumulated values from growing tail
                     // should be outside loop to avoid accumulating error
-                    sum  += sumChange;
-//                    sum2 += sumChange; // these will be added in the course of accumulating sum2
-					prevnsamps += dsamp;
-                } else {                            // window shrinks: dsamp < 0
-                    int test = abs(dsamp);
+                    sum += sumChange;
+					// sum2 += sumChange; // these will be added in the course of accumulating sum2
+					curWinSize += steps;
+                } else {                            // window shrinks: step < 0
+                    steps = abs(steps);
 					float sumPreCopy = 0.0;
-//					printf("shrinking window by %d\n", test);
-                    for (int j=0; j < test; ++j) {
-						sumChange += data[tail]; // accumulate the amount to remove from the tail
-						prevnsamps--;            // shrink the size of the current window
+					
+//					printf("shrinking window by %d\n", steps);
+                    for (int j=0; j < steps; ++j) {
+					
+						// accumulate the amount to remove from the tail
+						sumChange += data[tail];
 						
-						if (resetcount == prevnsamps) { // window shrinks to size equal to resetcount, trigger sum2 copy
-							float maxsum = sc_max(sum, sum2);
-							float minsum = sc_min(sum, sum2);
-							if ((minsum/maxsum) < 0.99) { // within 1% ?
-//							if (sum != sum2) {
-								printf("~~~~ MISMATCH IN SWAPPING SUMS : ");
-								printf("swapping while shrinking sum %f and sum2 %f resetcount %d\n", sum, sum2, resetcount);
-								error = true;
-								sumPreCopy = sum;
-							} else {
-								error = false;
-							}
-							sum  = sum2;
+						// shrink the size of the sum window
+						curWinSize--;
+						
+						if (curWinSize == resetCounter) { // window shrinks to size equal to resetCounter, trigger sum2 copy
+//							/* ERROR CHECKING */
+//							/* END ERROR CHECKING */
+							
+							sum = sum2;
 							sum2 = 0.0f;
 							sumChange = 0;
-							resetcount = 0;
+							resetCounter = 0;
 							reset = true;
-							// only update resetnsamps if window size reached resetcount
-							unit->resetnsamps = nsamps;
+							// only update resetSamps if window size crossed resetCounter
+							unit->resetSamps = newWinSize;
 						}
 						
-						tail++;                     // move tail to end of new smaller window
-						if (tail == maxsamps)
+						tail++;                     // move tail
+						if (tail == maxWinSize)
                             tail = 0;               // wrap
                     }
 
 					// remove sum of values accumulated by shrinking window
                     // should be outside loop to avoid accumulating error
-					sum  -= sumChange;
-//                    sum2 -= sumChange;
+					sum -= sumChange;
+                    // sum2 -= sumChange;
+					
 					if (sumPreCopy != 0.0f) {
 						sumPreCopy -= sumChange;
-						printf("resolves to [sum from sum2],[manual sum] %f  %f \n", sum, sumPreCopy);
+						// printf("resolves to [sum from sum2],[manual sum] %f  %f \n", sum, sumPreCopy);
 					}
 
 				}
-//              prevnsamps += dsamp;
+//              curWinSize += steps;
 			}
         }
 
@@ -589,49 +594,53 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
         // write the new sample to the data buffer and add it to the sums
         float next= ZXP(in);
         data[head]= next;
-        sum  += next;
+        sum += next;
         sum2 += next;
 
         ZXP(out) = sum;
 
         // increment and wrap the head and tail indices
         head++;
-        if (head == maxsamps)
+        if (head == maxWinSize)
             head = 0;
         tail++;
-        if (tail == maxsamps)
+        if (tail == maxWinSize)
             tail = 0;
 		
-        resetcount++;
+        resetCounter++;
 		
 		// swap the sums once window is full to avoid
         // floating point error (tip from RunningSum)
-		if (resetcount == unit->resetnsamps) {
-			//		if (resetcount == nsamps) {
+		if (resetCounter == unit->resetSamps) {
+			//		if (resetCounter == newWinSize) {
 			float maxsum = sc_max(sum, sum2);
 			float minsum = sc_min(sum, sum2);
 			if ((minsum/maxsum) < 0.99) { // within 1% ?
 				//			if (sum != sum2) {
-				printf("	MISMATCH IN SWAPPING SUMS ~~~~~~~~~~~~~~~~~~~~~~~~~");
-				printf("swapping sum %f and sum2 %f resetcount %d\n", sum, sum2, resetcount);
+				printf("~~~~ MISMATCH IN SWAPPING SUMS : ");
+				printf("swapping sum %f and sum2 %f resetCounter %d\n", sum, sum2, resetCounter);
 				error = true;
 			} else {
 				error = false;
 			}
 			
-            sum  = sum2;
+            sum = sum2;
             sum2 = 0.0f;
-            resetcount = 0;
+            resetCounter = 0;
             reset = true;
-			unit->resetnsamps = nsamps; // only update resetnsamps if resetcount has been reached
+			unit->resetSamps = newWinSize; // only update resetSamps if resetCounter has been reached
         }
     }
 
-	if (error)
-		printf("out %f should be %d \n", sum, nsamps);
+	if (error) {
+		if (fabs(sum - newWinSize) > 1) {
+			printf("	MISMATCH IN SWAPPING SUMS ~~~~~~~~~~~~~~~~~~~~~~~~~");
+			printf("out %f should be %d \n", sum, newWinSize);
+		}
+	}
 	
-    unit->nsamps = nsamps;
-    unit->resetcount= resetcount;
+    unit->nsamps = newWinSize;
+    unit->resetCounter = resetCounter;
     unit->head  = head;
     unit->msum  = sum;
     unit->msum2 = sum2;
@@ -639,6 +648,23 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
     unit->reset = reset;
 }
 
+
+//
+//							/* ERROR CHECKING */
+//							float maxsum = sc_max(sum, sum2);
+//							float minsum = sc_min(sum, sum2);
+//
+//							if ((minsum/maxsum) < 0.99) { // within 1% ?
+//							// if (sum != sum2) {
+//
+//								// printf("~~~~ MISMATCH IN SWAPPING SUMS : ");
+//								// printf("swapping while shrinking sum %f and sum2 %f resetCounter %d\n", sum, sum2, resetCounter);
+//								error = true;
+//								sumPreCopy = sum;
+//							} else {
+//								error = false;
+//							}
+//							/* END ERROR CHECKING */
 
 void initFeatureDetectors(InterfaceTable *it)
 {
