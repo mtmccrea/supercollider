@@ -496,6 +496,8 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
 	bool winSizeChanged = false;
 	float sampSlope = 0.0;
 	
+	bool avg = ZIN0(3) > 0.0; // average the summed samples?
+	
     newWinSize = sc_max(1, sc_min(newWinSize, maxWinSize));   // clamp [1, maxWinSize]
 	
 	if (newWinSize != prevWinSize) {
@@ -554,7 +556,11 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
 		sum2 += next;
 		
 		// write out
-		ZXP(out) = sum;
+		if (avg) {
+			ZXP(out) = sum / curWinSize;
+		} else {
+			ZXP(out) = sum;
+		}
 		
 		// increment and wrap the head and tail indices
 		head++;
