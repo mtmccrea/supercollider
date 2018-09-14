@@ -495,8 +495,7 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
 	int resetCounter = unit->resetCounter; // trigger sum<>sum2 swap
 	bool winSizeChanged = false;
 	float sampSlope = 0.0;
-	
-	bool avg = ZIN0(3) > 0.0; // average the summed samples?
+	bool avg = ZIN0(3) > 0.0; // output average flag
 	
     newWinSize = sc_max(1, sc_min(newWinSize, maxWinSize));   // clamp [1, maxWinSize]
 	
@@ -584,136 +583,7 @@ void RunningSum2_next( RunningSum2 *unit, int inNumSamples )
 		unit->tail  = tail;
 		unit->msum  = sum;
 		unit->msum2 = sum2;
-		// unit->reset = reset;
 	}
-		
-//	if (newWinSize > prevWinSize)
-//		// window grows, grow reset counter to match
-//		unit->resetSamps = newWinSize;
-//	if (resetCounter < newWinSize)
-//		// reset count is less than newWinSize can safely set reset counter to newWinSize
-//		unit->resetSamps = newWinSize;
-//
-//    float sampSlope = CALCSLOPE( (float)newWinSize, prevWinSize );
-//
-//    for (int i = 0; i < inNumSamples; ++i) {
-//        if (sampSlope != 0.0f) {					// handle change in summing window size
-//			// step this many samples for this output samples
-//            int steps = prevWinSize + (int)(sampSlope * (i+1)) - curWinSize;
-//
-//            if (steps != 0) {
-//                float sumChange = 0.0;
-//
-//                if (steps > 0) {                    // window grows
-//					// printf("growing window by %d\n", step);
-//                    for (int j = 0; j < steps; ++j) {
-//						// grow window
-//                        tail--;
-//
-//                        if (tail < 0)
-//							// wrap
-//							tail += maxWinSize;
-//
-//						// add tail values back into sum
-//                        sumChange += data[tail];
-//                    }
-//
-//                    // add all accumulated values from growing tail
-//                    // should be outside loop to avoid accumulating error
-//                    sum += sumChange;
-//					// sum2 += sumChange; // these will be added in the course of accumulating sum2
-//					curWinSize += steps;
-//                } else {                            // window shrinks: step < 0
-//                    steps = abs(steps);
-//
-////					printf("shrinking window by %d\n", steps);
-//                    for (int j=0; j < steps; ++j) {
-//
-//						// shrink the sum window
-//						curWinSize--;
-//
-//						if (curWinSize == resetCounter) {
-//							// window size crosses resetCounter: trigger sum2 copy
-//							sum = sum2;
-//							sum2 = 0.0f;
-//							sumChange = 0;
-//							// resetCounter = 0;
-//							reset = true;
-//							 unit->resetSamps = newWinSize;
-//							 printf("reset when shrinking window %d\n", curWinSize);
-//						} else {
-//							// accumulate the amount to remove from the tail
-//							sumChange += data[tail];
-//						}
-//
-//						tail++;                   // move tail
-//						if (tail == maxWinSize)   // wrap if needed
-//                            tail = 0;
-//                    }
-//
-//					// remove sum of values accumulated by shrinking window
-//                    // should be outside loop to avoid accumulating error
-//					sum -= sumChange;
-//
-////					if (reset) {
-////						printf("in reset condition %f %f %d %d\n", sum, sum2, curWinSize, newWinSize);
-////						sum2 -= sumChange;
-////						resetCounter = resetCounter - curWinSize; // resetCounter goes to 0 or negative
-////						unit->resetSamps = newWinSize;
-////						reset = false; // ??
-////					}
-//
-//				}
-////              curWinSize += steps;
-//			}
-//        }
-//
-//        // remove the tail value from the sum
-//        float rmv = data[tail];
-//        sum -= rmv;
-//        // don't remove last val from sum2 if sum2 was just reset to 0
-//        if (!reset) {
-//            sum2 -= rmv;
-//            // reset = false; // redundant
-//        }
-//
-//        // write the new sample to the data buffer and add it to the sums
-//        float next= ZXP(in);
-//        data[head]= next;
-//        sum += next;
-//        sum2 += next;
-//
-//        ZXP(out) = sum;
-//
-//        // increment and wrap the head and tail indices
-//        head++;
-//        if (head == maxWinSize)
-//            head = 0;
-//        tail++;
-//        if (tail == maxWinSize)
-//            tail = 0;
-//
-//        resetCounter++;
-//
-//		// swap the sums once window is full to avoid
-//        // floating point error (tip from RunningSum)
-//		if (resetCounter == unit->resetSamps) {
-//			printf("normal reset %d\n", resetCounter);
-//            sum = sum2;
-//            sum2 = 0.0f;
-//            resetCounter = 0;
-//            reset = true;
-//			unit->resetSamps = newWinSize; // only update resetSamps if resetCounter has been reached
-//        }
-//    }
-//
-//    unit->nsamps = newWinSize;
-//    unit->resetCounter = resetCounter;
-//    unit->head  = head;
-//    unit->msum  = sum;
-//    unit->msum2 = sum2;
-//    unit->tail  = tail;
-//    unit->reset = reset;
 }
 
 void initFeatureDetectors(InterfaceTable *it)
