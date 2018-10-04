@@ -26,6 +26,7 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LFS_CFLAGS}")
 
 set(plugin_sources
+	AtkHoaUgens.cpp
 	BinaryOpUGens.cpp
 	ChaosUGens.cpp
 	DelayUGens.cpp
