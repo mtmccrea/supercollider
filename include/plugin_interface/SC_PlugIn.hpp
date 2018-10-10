@@ -60,7 +60,8 @@ public:
 		{
 			FloatType ret = value;
 			value += slope;
-			return ret;
+//			return ret;
+			return value;
 		}
 
 		FloatType value, slope;
