@@ -1008,6 +1008,54 @@ void Impulse_next_k(Impulse *unit, int inNumSamples)
 	unit->mPhase = phase;
 }
 
+//void Impulse_Ctor(Impulse* unit)
+//{
+//	// MTM fix 2
+//
+//	unit->mPhase = ZIN0(1);
+////	unit->mPhaseOffset = 0.f;
+//	unit->mPhaseOffset = ZIN0(1);
+//	unit->mFreqMul = unit->mRate->mSampleDur;
+//
+//	// capture init state
+//	double initPhase = unit->mPhase;
+//	double initPhaseOffset = unit->mPhaseOffset;
+//
+//	if (INRATE(0) == calc_FullRate) {
+//		if(INRATE(1) != calc_ScalarRate) {
+//			printf("Impulse_next_ak\n");
+//			SETCALC(Impulse_next_ak);
+//			unit->mPhase = 1.f;
+//			Impulse_next_ak(unit, 1);
+//		} else {
+//			printf("Impulse_next_a\n");
+//			SETCALC(Impulse_next_a);
+//			Impulse_next_a(unit, 1);
+//		}
+//	} else {
+//		if(INRATE(1) != calc_ScalarRate) {
+//			printf("Impulse_next_kk\n");
+//			SETCALC(Impulse_next_kk);
+//			unit->mPhase = 1.f;
+//			Impulse_next_kk(unit, 1);
+//		} else {
+//			printf("Impulse_next_k\n");
+//			SETCALC(Impulse_next_k);
+//			Impulse_next_k(unit, 1);
+//		}
+//	}
+
+//	unit->mPhaseOffset = 0.f;
+//	unit->mFreqMul = unit->mRate->mSampleDur;
+//	if (unit->mPhase == 0.f) unit->mPhase = 1.f;
+//
+//	ZOUT0(0) = 0.f;
+//
+//	// calculating 1 sample advanced phase. restore the initial phase
+//	unit->mPhase = initPhase;
+//	unit->mPhaseOffset = initPhaseOffset;
+//}
+
 void Impulse_Ctor(Impulse* unit)
 {
 
@@ -1029,13 +1077,62 @@ void Impulse_Ctor(Impulse* unit)
 		}
 	}
 
-
 	unit->mPhaseOffset = 0.f;
 	unit->mFreqMul = unit->mRate->mSampleDur;
 	if (unit->mPhase == 0.f) unit->mPhase = 1.f;
 
-	ZOUT0(0) = 0.f;
+//	ZOUT0(0) = 0.f;
+
+	// MTM fix 1
+	double initPhase = unit->mPhase;
+	double initPhaseOffset = unit->mPhaseOffset;
+
+	if (INRATE(0) == calc_FullRate) {
+		if(INRATE(1) != calc_ScalarRate) {
+			Impulse_next_ak(unit, 1);
+		} else {
+			Impulse_next_a(unit, 1);
+		}
+	} else {
+		if(INRATE(1) != calc_ScalarRate) {
+			Impulse_next_kk(unit, 1);
+		} else {
+			Impulse_next_k(unit, 1);
+		}
+	}
+
+	// calculating 1 sample advanced phase. restore the initial phase
+	unit->mPhase = initPhase;
+	unit->mPhaseOffset = initPhaseOffset;
 }
+
+//// ORIGINAL
+//void Impulse_Ctor(Impulse* unit)
+//{
+//	unit->mPhase = ZIN0(1);
+//
+//	if (INRATE(0) == calc_FullRate) {
+//		if(INRATE(1) != calc_ScalarRate) {
+//			SETCALC(Impulse_next_ak);
+//			unit->mPhase = 1.f;
+//		} else {
+//			SETCALC(Impulse_next_a);
+//		}
+//	} else {
+//		if(INRATE(1) != calc_ScalarRate) {
+//			SETCALC(Impulse_next_kk);
+//			unit->mPhase = 1.f;
+//		} else {
+//			SETCALC(Impulse_next_k);
+//		}
+//	}
+//
+//	unit->mPhaseOffset = 0.f;
+//	unit->mFreqMul = unit->mRate->mSampleDur;
+//	if (unit->mPhase == 0.f) unit->mPhase = 1.f;
+//
+//	ZOUT0(0) = 0.f;
+//}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
