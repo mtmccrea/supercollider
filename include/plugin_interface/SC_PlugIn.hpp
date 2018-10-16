@@ -258,7 +258,10 @@ public:
 	FloatType calcSlope(FloatType next, FloatType prev) const
 	{
 		const Unit * unit = this;
-		return CALCSLOPE(next, prev);
+		FloatType slope = CALCSLOPE(next, prev);//mtm
+		printf("slope: %f\n", slope);
+		return slope;
+//		return CALCSLOPE(next, prev);
 	}
 
 	template <typename UnitType, void (UnitType::*PointerToMember)(int)>
