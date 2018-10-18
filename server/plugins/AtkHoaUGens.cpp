@@ -142,7 +142,6 @@ private:
 			if (!inputsChanged(newTheta, newPhi)) {
 				outBuf[i] = mPrevBlockOut;
 			} else {
-
 				// unsigned n, int m, T theta, T phi
 				float sphHarmR = boost::math::spherical_harmonic_r<float>(mDeg, mIdx, newTheta, newPhi);
 
@@ -157,66 +156,42 @@ private:
 	
 	void next_aa(int inNumSamples)
 	{
-		AudioSignal<float> theta = makeSignal(2);
-		AudioSignal<float> phi = makeSignal(3);
-
-		generateOutput<AudioSignal<float>, AudioSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeSignal(2), makeSignal(3));
 	}
 
 	void next_kk(int inNumSamples)
 	{
-		SlopeSignal<float> theta = makeSlope<float>(in0(2), mPrevTheta);
-		SlopeSignal<float> phi = makeSlope<float>(in0(3), mPrevPhi);
-
-		generateOutput<SlopeSignal<float>, SlopeSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeSlope(in0(2), mPrevTheta), makeSlope(in0(3), mPrevPhi));
 	}
 
 	void next_ka(int inNumSamples)
 	{
-		SlopeSignal<float> theta = makeSlope<float>(in0(2), mPrevTheta);
-		AudioSignal<float> phi = makeSignal(3);
-
-		generateOutput<SlopeSignal<float>, AudioSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeSlope(in0(2), mPrevTheta), makeSignal(3));
 	}
 
 	void next_ak(int inNumSamples)
 	{
-		AudioSignal<float> theta = makeSignal(2);
-		SlopeSignal<float> phi = makeSlope<float>(in0(3), mPrevPhi);
-
-		generateOutput<AudioSignal<float>, SlopeSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeSignal(2), makeSlope(in0(3), mPrevPhi));
 	}
 
 	void next_as(int inNumSamples)
 	{
-		AudioSignal<float> theta = makeSignal(2);
-		ScalarSignal<float> phi = makeScalar<float>(in0(3));
-
-		generateOutput<AudioSignal<float>, ScalarSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeSignal(2), makeScalar(in0(3)));
 	}
 
 	void next_sa(int inNumSamples)
 	{
-		ScalarSignal<float> theta = makeScalar<float>(in0(2));
-		AudioSignal<float> phi = makeSignal(3);
-
-		generateOutput<ScalarSignal<float>, AudioSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeScalar(in0(2)), makeSignal(3));
 	}
 
-		void next_ks(int inNumSamples)
+	void next_ks(int inNumSamples)
 	{
-		SlopeSignal<float> theta = makeSlope<float>(in0(2), mPrevTheta);
-		ScalarSignal<float> phi = makeScalar<float>(in0(3));
-
-		generateOutput<SlopeSignal<float>, ScalarSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeSlope(in0(2), mPrevTheta), makeScalar(in0(3)));
 	}
 
 	void next_sk(int inNumSamples)
 	{
-		ScalarSignal<float> theta = makeScalar<float>(in0(2));
-		SlopeSignal<float> phi = makeSlope<float>(in0(3), mPrevPhi);
-
-		generateOutput<ScalarSignal<float>, SlopeSignal<float>>(inNumSamples, theta, phi);
+		generateOutput(inNumSamples, makeScalar(in0(2)), makeSlope(in0(3), mPrevPhi));
 	}
 
 	// special case: output value is constant
@@ -230,18 +205,14 @@ private:
 		}
 	}
 	
-	// currently not used:
-	template <typename FloatType>
-	void updateAudioSignal(AudioSignal<FloatType> audioSignal, FloatType * pointer)
-	{
-		audioSignal.pointer = pointer;
-	}
-	template <typename FloatType>
-	void updateSlopeSignal(SlopeSignal<FloatType> slopeSignal, FloatType next, FloatType prev)
-	{
-		slopeSignal.slope = calcSlope<FloatType>(next, prev);
-		slopeSignal.value = prev;
-	}
+	// previous version before refactor
+	//	void next_kk(int inNumSamples)
+	//	{
+	//		SlopeSignal<float> theta = makeSlope<float>(in0(2), mPrevTheta);
+	//		SlopeSignal<float> phi = makeSlope<float>(in0(3), mPrevPhi);
+	//
+	//		generateOutput<SlopeSignal<float>, SlopeSignal<float>>(inNumSamples, theta, phi);
+	//	}
 
 };
 
