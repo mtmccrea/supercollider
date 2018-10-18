@@ -25,12 +25,6 @@ struct HoaSphCoeff : public SCUnit{
 	// 3. calculate one sample of output.
 public:
 	HoaSphCoeff() {
-//		mPrevTheta = 0.0;
-//		mPrevPhi = in0(3);
-//		mCnt = 0;
-//		mPrevBlockOut = 0.0;
-//		set_calc_function<HoaSphCoeff,&HoaSphCoeff::next_ks>();
-		
 		// 2. initialize the unit generator state variables.
 		mDeg = in0(0); // scalar, non-modulatable, could be ints
 		mIdx = in0(1);
@@ -151,7 +145,6 @@ private:
 		}
 	}
 
-	
 	/* calculation functions: next_thetaRatephiRate */
 	
 	void next_aa(int inNumSamples)
@@ -221,10 +214,7 @@ PluginLoad(AtkHoaUGens)
 {
     // InterfaceTable *inTable implicitly given as argument to the load function
     ft = inTable; // store pointer to InterfaceTable
-    
     // registerUnit takes the place of the Define*Unit functions.
-    // It automatically checks for the presence of a destructor function.
-    // However, it does not seem to be possible to disable buffer aliasing with the C++ header.
     registerUnit<HoaSphCoeff>(ft, "HoaSphCoeff");
 }
 
