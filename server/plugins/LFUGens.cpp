@@ -1119,22 +1119,24 @@ void Impulse_next_kk(Impulse *unit, int inNumSamples)
 	float *out      = ZOUT(0);
 	double phase    = unit->mPhase;
 	float  phaseInc = ZIN0(0) * unit->mFreqMul;
-	double phaseIncSlope    = CALCSLOPE(phaseInc, unit->mPhaseInc);
-	double phaseOffset   = ZIN0(1);
-	double phaseOffsetSlope = CALCSLOPE(phaseOffset, unit->mPhaseOffset);
+	double phaseIncSlope = CALCSLOPE(phaseInc, unit->mPhaseInc);
 	
-	// TODO: be sure phase offset is added to phase in the Ctor
-	//	phase += prevPhaseOffset;
+	double prevPhaseOffset = unit->mPhaseOffset;
+	double thisPhaseOffset = sc_wrap((double)ZIN0(1), 0.0, 1.0);
+	double phaseOffsetSlope = CALCSLOPE(thisPhaseOffset, prevPhaseOffset);
+
+	phase += prevPhaseOffset;
 	LOOP1(inNumSamples,
 		  float z;
 		  // check phasor state for cycle crossing
-		  if (phase >= 1.f) {
+		  if (phase >= 1.f) { // crossed above 1
 			  phase -= 1.f;
 			  if (phase >= 1.f) {
 				  phase -= sc_floor(phase);
 			  }
 			  z = 1.f;
-		  } else if (phase <= 0.f) {
+		  } else if (phase < 0.f) { // crossed below 0, // NOTE: 0-crossing check isn't <=
+			                        // if it were, a freq of 0 and phaseOfset of 0 would mean continuous output of 1 (maybe it should?)
 			  phase += 1.f;
 			  if (phase <= 0.f) {
 				  phase -= sc_ceil(phase);
@@ -1149,29 +1151,31 @@ void Impulse_next_kk(Impulse *unit, int inNumSamples)
 		  phaseInc += phaseIncSlope;
 		  phase += phaseInc + phaseOffsetSlope;
 		  );
-	//	phase -= newPhaseOffset; // remove phase offset to be added again next cycle
+	phase -= thisPhaseOffset; // remove phase offset to be added again next cycle
 	
 	unit->mPhase = phase;
 	unit->mPhaseInc = phaseInc;
-	unit->mPhaseOffset = phaseOffset;
+	unit->mPhaseOffset = thisPhaseOffset;
 }
 
 // MTM fix 1
 void Impulse_Ctor(Impulse* unit)
 {
-	unit->mPhaseOffset = sc_wrap((double)ZIN0(1), 0.0, 1.0); // mtm add
+	unit->mPhaseOffset = sc_wrap((double)ZIN0(1), 0.0, 1.0);
 	unit->mFreqMul = unit->mRate->mSampleDur;
 	unit->mPhaseInc = ZIN0(0) * unit->mFreqMul;
-	unit->mPhase = unit->mPhaseOffset;
 	
 	// phaseOffset of 0 means output of 1 on first sample,
 	// set mPhase to wrap point to trigger impulse in next()
 	if (unit->mPhaseOffset == 0.f) {
 		unit->mPhase = 1.f;
-		printf("MANUALLY UPDATING PRE=PHASE\n");
+		printf("MANUALLY UPDATING  starting PHASE\n");
+	} else {
+		unit->mPhase = 0.f;
 	}
 	
 	printf("mPhase %f, mPhaseInc %f, mPhaseOffset %f\n", unit->mPhase, unit->mPhaseInc, unit->mPhaseOffset);
+	
 	// capture state of the Unit before calculating
 	// the initialization sample
 	double initPhase = unit->mPhase;
