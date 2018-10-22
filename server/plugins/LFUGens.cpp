@@ -78,6 +78,7 @@ struct Impulse : public Unit
 	double mPhase, mPhaseOffset;
 	float mFreqMul;
 	double mPhaseInc;
+	int mCnt; // temp
 };
 
 struct VarSaw : public Unit
@@ -1118,39 +1119,77 @@ void Impulse_next_kk(Impulse *unit, int inNumSamples)
 {
 	float *out      = ZOUT(0);
 	double phase    = unit->mPhase;
-	float  phaseInc = ZIN0(0) * unit->mFreqMul;
-	double phaseIncSlope = CALCSLOPE(phaseInc, unit->mPhaseInc);
+	
+	double phaseInc = unit->mPhaseInc;
+	double newPhaseInc = ZIN0(0) * unit->mFreqMul;
+	double phaseIncSlope = CALCSLOPE(newPhaseInc, phaseInc);
 	
 	double prevPhaseOffset = unit->mPhaseOffset;
 	double thisPhaseOffset = sc_wrap((double)ZIN0(1), 0.0, 1.0);
 	double phaseOffsetSlope = CALCSLOPE(thisPhaseOffset, prevPhaseOffset);
 
 	phase += prevPhaseOffset;
+	printf("%i:\tadd prev phase offset %f\n", unit->mCnt, prevPhaseOffset);
 	LOOP1(inNumSamples,
 		  float z;
-		  // check phasor state for cycle crossing
-		  if (phase >= 1.f) { // crossed above 1
-			  phase -= 1.f;
-			  if (phase >= 1.f) {
-				  phase -= sc_floor(phase);
+		  if (phaseInc < 0.f) { // neg freq
+			  if (phase <= 0.f) { // crossed below 0
+//				  printf("%i:\tthis phase %f, nextfreq %f\n", unit->mCnt, phase, ZIN0(0));
+				  phase += 1.f;
+				  if (phase <= 0.f) {
+					  phase -= sc_ceil(phase);
+				  }
+//				  printf("%i:\twrapping hi phase to %f\n", unit->mCnt, phase);
+				  z = 1.f;
+			  } else if (phase > 1.f) { // phase offset put it beyond upper range
+//				  printf("%i:\tthis phase %f, nextfreq %f\n", unit->mCnt, phase, ZIN0(0));
+				  phase -= 1.f;
+				  if (phase > 1.f) {
+					  phase -= sc_floor(phase);
+				  }
+//				  printf("%i:\twrapping lo phase to %f\n", unit->mCnt, phase);
+//				  z = 1.f;
+				  z = 0.f; // wrap in range but don't fire impulse
+			  } else {
+				  z = 0.f;
 			  }
-			  z = 1.f;
-		  } else if (phase < 0.f) { // crossed below 0, // NOTE: 0-crossing check isn't <=
-			                        // if it were, a freq of 0 and phaseOfset of 0 would mean continuous output of 1 (maybe it should?)
-			  phase += 1.f;
-			  if (phase <= 0.f) {
-				  phase -= sc_ceil(phase);
+		  } else { // positive freqs
+			  // check phasor state for cycle crossing
+			  if (phase >= 1.f) { // crossed above 1
+				  printf("%i:\tthis phase %f, nextfreq %f\n", unit->mCnt, phase, ZIN0(0));
+				  phase -= 1.f;
+				  if (phase >= 1.f) {
+					  phase -= sc_floor(phase);
+				  }
+				  printf("%i:\twrapping hi phase to %f\n", unit->mCnt, phase);
+				  z = 1.f;
+			  } else if (phase < 0.f) { // phase offset put it below lower range
+				  
+				  // if it were, a freq of 0 and phaseOfset of 0 would mean continuous output of 1 (maybe it should?)
+				  // also initial phase setting for negative freqs fires twice at start and if phase offset happens on impulse
+				  
+				  printf("%i:\tthis phase %f, nextfreq %f\n", unit->mCnt, phase, ZIN0(0));
+				  phase += 1.f;
+				  if (phase < 0.f) {
+					  phase -= sc_ceil(phase);
+				  }
+				  printf("%i:\twrapping lo phase to %f\n", unit->mCnt, phase);
+//				  z = 1.f;
+				  z = 0.f; // wrap in range but don't fire impulse
+			  } else {
+				  z = 0.f;
 			  }
-			  z = 1.f;
-		  } else {
-			  z = 0.f;
 		  }
 		  // output
 		  ZXP(out) = z;
 		  // advance phasor state
+//		  printf("%i:\tincrementing phase by phaseInc %f, phaseIncSlope %f\n", unit->mCnt, phaseInc, phaseIncSlope);
 		  phaseInc += phaseIncSlope;
+//		  printf("%i:\tnew phaseInc %f\n", unit->mCnt, phaseInc);
 		  phase += phaseInc + phaseOffsetSlope;
+		  unit->mCnt++
 		  );
+	printf("%i:\tremove this phase offset %f\n", unit->mCnt, prevPhaseOffset);
 	phase -= thisPhaseOffset; // remove phase offset to be added again next cycle
 	
 	unit->mPhase = phase;
@@ -1164,11 +1203,16 @@ void Impulse_Ctor(Impulse* unit)
 	unit->mPhaseOffset = sc_wrap((double)ZIN0(1), 0.0, 1.0);
 	unit->mFreqMul = unit->mRate->mSampleDur;
 	unit->mPhaseInc = ZIN0(0) * unit->mFreqMul;
+	unit->mCnt = 0; // temp
 	
 	// phaseOffset of 0 means output of 1 on first sample,
 	// set mPhase to wrap point to trigger impulse in next()
 	if (unit->mPhaseOffset == 0.f) {
-		unit->mPhase = 1.f;
+		if (unit->mPhaseInc < 0.f) { // neg freq
+			unit->mPhase = 0.f;
+		} else {
+			unit->mPhase = 1.f;
+		}
 		printf("MANUALLY UPDATING  starting PHASE\n");
 	} else {
 		unit->mPhase = 0.f;
@@ -1190,7 +1234,7 @@ void Impulse_Ctor(Impulse* unit)
 			SETCALC(Impulse_next_ak);
 			Impulse_next_ak(unit, 1);
 		} else {
-			printf("Impulse_next_a\n");
+			printf("Impulse_next_as\n");
 			SETCALC(Impulse_next_as);
 			Impulse_next_as(unit, 1);
 		}
@@ -1200,7 +1244,7 @@ void Impulse_Ctor(Impulse* unit)
 			SETCALC(Impulse_next_kk);
 			Impulse_next_kk(unit, 1);
 		} else {
-			printf("Impulse_next_k\n");
+			printf("Impulse_next_ks\n");
 			// Scalar rate phase arg: constant offset to phase.
 			// Impulse_next_k doesn't use mPhaseOffset
 			SETCALC(Impulse_next_ks);
@@ -1213,6 +1257,7 @@ void Impulse_Ctor(Impulse* unit)
 	unit->mPhase = initPhase;
 	unit->mPhaseInc = initPhaseInc;
 	unit->mPhaseOffset = initPhaseOffset;
+	unit->mCnt = 0; // temp
 }
 
 //// ORIGINAL
