@@ -152,6 +152,7 @@ struct Phasor : public Unit
 {
 	double mLevel;
 	float m_previn;
+	double m_prevrate; // mtm
 };
 
 struct Peak : public Unit
@@ -1036,7 +1037,7 @@ void ToggleFF_Ctor(ToggleFF *unit)
 	unit->mLevel = 0.f;
 
 //	ZOUT0(0) = 0.f; // MTM
-	printf("ToggleFF ctor");
+	printf("ToggleFF ctor\n");
 	ToggleFF_next(unit, 1);
 }
 
@@ -1788,46 +1789,101 @@ void Sweep_next_aa(Sweep *unit, int inNumSamples)
 
 void Phasor_Ctor(Phasor *unit)
 {
+	float  initPrevIn = unit->m_previn = 0.f;    // properly ready the trigger for trigger on y(0)
+	double initLevel  = unit->mLevel   = ZIN0(2);
+
 	if (unit->mCalcRate == calc_FullRate) {
 		if (INRATE(0) == calc_FullRate) {
 			if (INRATE(1) == calc_FullRate) {
 				SETCALC(Phasor_next_aa);
+				Phasor_next_aa(unit, 1);
 			} else {
 				SETCALC(Phasor_next_ak);
+				Phasor_next_ak(unit, 1);
 			}
 		} else {
 			SETCALC(Phasor_next_kk);
+			Phasor_next_kk(unit, 1);
 		}
 	} else {
-		SETCALC(Phasor_next_ak);
+		printf("setting calc func for not audio rate calculation\n");
+//		SETCALC(Phasor_next_ak);
+		SETCALC(Phasor_next_kk); // force kr rate to use this for test
+		Phasor_next_kk(unit, 1);
 	}
 
-	unit->m_previn = ZIN0(0);
-	ZOUT0(0) = unit->mLevel = ZIN0(2);
+//	unit->m_previn = ZIN0(0);          // removed
+//	ZOUT0(0) = unit->mLevel = ZIN0(2); // removed
+	
+	// restore the unit to its state before calculating initialization sample
+	unit->m_previn = initPrevIn;
+	unit->mLevel   = initLevel;
+	
+	
+//	ZOUT0(0) = ZIN0(2);               // first sample will be start
+//	unit->mLevel = ZIN0(2) - ZIN0(1); // start - rate, y(0) will be start + rate
+	
 }
 
+//// version 1 - pre - increment
+//void Phasor_next_kk(Phasor *unit, int inNumSamples)
+//{
+//	float *out = ZOUT(0);
+//
+//	float  in       = ZIN0(0);
+//	double rate     = ZIN0(1);
+//	double start    = ZIN0(2);
+//	double end      = ZIN0(3);
+//	float  resetPos = ZIN0(4);
+//
+//	float  previn = unit->m_previn;
+//	double level  = unit->mLevel;
+//
+////	printf("phasor_next_kk\n");
+//
+//	if (previn <= 0.f && in > 0.f) {
+//		level = resetPos;            // trigger takes precedence to reset level to resetPos
+//	} else {
+//		level = unit->mLevel + rate; // add current rate to previous level
+//	}
+//	LOOP1(inNumSamples,
+//		level = sc_wrap(level, start, end);
+//		ZXP(out) = level;
+//		level += rate;
+//	);
+//
+//	unit->m_previn = in;
+//	unit->mLevel = level - rate; // remove late rate increment of the block,
+//	                             //        new rate will be added next block
+////	unit->mLevel = level;        // removed
+//}
+
+// version 2 - post increment
 void Phasor_next_kk(Phasor *unit, int inNumSamples)
 {
 	float *out = ZOUT(0);
-
-	float in        = ZIN0(0);
-	double rate      = ZIN0(1);
-	double start     = ZIN0(2);
-	double end       = ZIN0(3);
-	float resetPos  = ZIN0(4);
-
-	float previn = unit->m_previn;
+	
+	float  in       = ZIN0(0); // trigger in
+	double rate     = ZIN0(1);
+	double start    = ZIN0(2);
+	double end      = ZIN0(3);
+	float  resetPos = ZIN0(4);
+	
+	float  previn = unit->m_previn;
 	double level  = unit->mLevel;
-
+	
+//		printf("phasor_next_kk\n");
+	
 	if (previn <= 0.f && in > 0.f) {
 		level = resetPos;
 	}
-	LOOP1(inNumSamples,
-		level = sc_wrap(level, start, end);
-		ZXP(out) = level;
-		level += rate;
-	);
 
+	LOOP1(inNumSamples,
+		  level = sc_wrap(level, start, end);
+		  ZXP(out) = level;
+		  level += rate;
+		  );
+	
 	unit->m_previn = in;
 	unit->mLevel = level;
 }
@@ -1835,32 +1891,67 @@ void Phasor_next_kk(Phasor *unit, int inNumSamples)
 void Phasor_next_ak(Phasor *unit, int inNumSamples)
 {
 	float *out = ZOUT(0);
-
+	
 	float *in       = ZIN(0);
-	double rate      = ZIN0(1);
-	double start     = ZIN0(2);
-	double end       = ZIN0(3);
-	float resetPos  = ZIN0(4);
-
-	float previn = unit->m_previn;
+	double rate     = ZIN0(1);
+	double start    = ZIN0(2);
+	double end      = ZIN0(3);
+	float  resetPos = ZIN0(4);
+	
+	float  previn = unit->m_previn;
 	double level  = unit->mLevel;
-
+	
+	//	printf("phasor_next_ak");
+	
 	LOOP1(inNumSamples,
-		float curin = ZXP(in);
-		if (previn <= 0.f && curin > 0.f) {
-			float frac = 1.f - previn/(curin-previn);
-			level = resetPos + frac * rate;
-		}
-		ZXP(out) = level;
-		level += rate;
-		level = sc_wrap(level, start, end);
-
-		previn = curin;
-	);
-
+		  float curin = ZXP(in);
+		  if (previn <= 0.f && curin > 0.f) {
+			  float frac = 1.f - previn/(curin-previn);
+			  level = resetPos + frac * rate;
+		  }
+		  ZXP(out) = level;
+		  level += rate;
+		  level = sc_wrap(level, start, end);
+		  
+		  previn = curin;
+		  );
+	
 	unit->m_previn = previn;
 	unit->mLevel = level;
 }
+
+////orig
+//void Phasor_next_ak(Phasor *unit, int inNumSamples)
+//{
+//	float *out = ZOUT(0);
+//
+//	float *in       = ZIN(0);
+//	double rate      = ZIN0(1);
+//	double start     = ZIN0(2);
+//	double end       = ZIN0(3);
+//	float resetPos  = ZIN0(4);
+//
+//	float previn = unit->m_previn;
+//	double level  = unit->mLevel;
+//
+////	printf("phasor_next_ak");
+//
+//	LOOP1(inNumSamples,
+//		float curin = ZXP(in);
+//		if (previn <= 0.f && curin > 0.f) {
+//			float frac = 1.f - previn/(curin-previn);
+//			level = resetPos + frac * rate;
+//		}
+//		ZXP(out) = level;
+//		level += rate;
+//		level = sc_wrap(level, start, end);
+//
+//		previn = curin;
+//	);
+//
+//	unit->m_previn = previn;
+//	unit->mLevel = level;
+//}
 
 void Phasor_next_aa(Phasor *unit, int inNumSamples)
 {
