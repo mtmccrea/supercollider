@@ -1566,8 +1566,12 @@ void SinOsc_Ctor(SinOsc *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-
+	
+	int32 initPhase = unit->m_phase; // mtm
+	
 	SinOsc_next_ikk(unit, 1);
+	// restore initial state
+	unit->m_phase = initPhase; //mtm
 }
 
 
