@@ -983,19 +983,17 @@ void Impulse_next_sa(Impulse *unit, int inNumSamples)
 	float *phaseOffset =  ZIN(1);
 	
 	LOOP1(inNumSamples,
-		  float pOffset;
-		  float pOffsetInc;
+		  float z = checkAndWrapPhase(freq, phase);
 		  
-		  ZXP(out) = checkAndWrapPhase(freq, phase);
-		  
-		  pOffset = ZXP(phaseOffset);
-		  pOffsetInc = pOffset - prev_phaseOffset;
+		  float pOffset = ZXP(phaseOffset);
+		  float pOffsetInc = pOffset - prev_phaseOffset;
 		  phase += pOffsetInc;
 //		  phase = sc_wrap(phase, 0.0, 1.0);
 		  checkAndWrapPhase(freq, phase);
 		  
 		  phase += freq;
 		  prev_phaseOffset = pOffset;
+		  ZXP(out) = z;
 		  );
 	
 	unit->mPhase = phase;
@@ -1068,13 +1066,10 @@ void Impulse_next_ka(Impulse *unit, int inNumSamples)
 	float *phaseOffset =  ZIN(1);
 	
 	LOOP1(inNumSamples,
-		  float pOffset;
-		  float pOffsetInc;
+		  float z = checkAndWrapPhase(prev_freq, phase);
 		  
-		  ZXP(out) = checkAndWrapPhase(prev_freq, phase);
-		  
-		  pOffset = ZXP(phaseOffset);
-		  pOffsetInc = pOffset - prev_phaseOffset;
+		  float pOffset = ZXP(phaseOffset);
+		  float pOffsetInc = pOffset - prev_phaseOffset;
 		  phase += pOffsetInc;
 //		  phase = sc_wrap(phase, 0.0, 1.0);
 		  checkAndWrapPhase(prev_freq, phase);
@@ -1082,6 +1077,8 @@ void Impulse_next_ka(Impulse *unit, int inNumSamples)
 		  prev_freq += freqSlope;
 		  phase += prev_freq;
 		  prev_phaseOffset = pOffset;
+		  
+		  ZXP(out) = z;
 		  );
 	
 	unit->mPhase = phase;
@@ -1105,7 +1102,8 @@ void Impulse_next_ak(Impulse *unit, int inNumSamples)
 	bool   phOffChanged = phaseSlope != 0.f;
 	
 	LOOP1(inNumSamples,
-		  ZXP(out) = checkAndWrapPhase(freq, phase);
+		  float z = checkAndWrapPhase(freq, phase);
+		  
 		  if (phOffChanged) {
 			  phase += phaseSlope;
 //			  phase = sc_wrap(phase, 0.0, 1.0);
@@ -1114,6 +1112,8 @@ void Impulse_next_ak(Impulse *unit, int inNumSamples)
 		  
 		  freq = ZXP(freqin) * freqmul;
 		  phase += freq;
+		  
+		  ZXP(out) = z;
 		  );
 	
 	unit->mPhase = phase;
@@ -1135,13 +1135,10 @@ void Impulse_next_aa(Impulse *unit, int inNumSamples)
 	float *phaseOffset =  ZIN(1);
 	
 	LOOP1(inNumSamples,
-		  float pOffset;
-		  float pOffsetInc;
+		  float z = checkAndWrapPhase(freq, phase);
 		  
-		  ZXP(out) = checkAndWrapPhase(freq, phase);
-		  
-		  pOffset = ZXP(phaseOffset);
-		  pOffsetInc = pOffset - prev_phaseOffset;
+		  float pOffset = ZXP(phaseOffset);
+		  float pOffsetInc = pOffset - prev_phaseOffset;
 		  phase += pOffsetInc;
 //		  phase = sc_wrap(phase, 0.0, 1.0);
 		  checkAndWrapPhase(freq, phase);
@@ -1149,6 +1146,8 @@ void Impulse_next_aa(Impulse *unit, int inNumSamples)
 		  freq = ZXP(freqin) * freqmul;
 		  phase += freq;
 		  prev_phaseOffset = pOffset;
+		  
+		  ZXP(out) = z;
 		  );
 	
 	unit->mPhase = phase;
@@ -1156,7 +1155,7 @@ void Impulse_next_aa(Impulse *unit, int inNumSamples)
 	unit->mFreq = freq;
 }
 
-// mtm mod 85 - freq fires impulses, freq doesn't
+// mtm mod 85
 void Impulse_next_as(Impulse *unit, int inNumSamples)
 {
 	float *out   = ZOUT(0);
@@ -1165,12 +1164,12 @@ void Impulse_next_as(Impulse *unit, int inNumSamples)
 	double freq    = unit->mFreq;
 	float *freqin  = ZIN(0);
 	float  freqmul = unit->mFreqMul;
-	
+//	printf("freqmul %f\n", IN(0)[0]);
 	LOOP1(inNumSamples,
-		  ZXP(out) = checkAndWrapPhase(freq, phase);
-		  
-		  freq = ZXP(freqin) * freqmul;
-		  phase += freq;
+		  float z = checkAndWrapPhase(freq, phase);
+		  freq = ZXP(freqin) * freqmul;             // GOTCHYA: Input and output buffers are shared, so you must read
+		  phase += freq;                            //          and store input BEFORE writing to output buffer!
+		  ZXP(out) = z;
 		  );
 	
 	unit->mPhase = phase;
