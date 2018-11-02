@@ -2310,7 +2310,21 @@ void RLPF_Ctor(RLPF* unit)
 	unit->m_y2 = 0.f;
 	unit->m_freq = uninitializedControl;
 	unit->m_reson = uninitializedControl;
-	RLPF_next_1(unit, 1);
+//	RLPF_next_1(unit, 1);
+
+	// mtm
+	// restore variables y1 and y2 after calculating the
+	// initialization sample.
+	// other member variables need not be reset because they
+	// are calculated as a product of the freq and reson args,
+	// which will not change between the init sample and first sample
+	 printf("m_y1, m_y2 before init [%f, %f]\n", unit->m_y1, unit->m_y2);
+	RLPF_next_1(unit, 1); // generate initialization sample
+	 printf("m_y1, m_y2 after init [%f, %f]\n", unit->m_y1, unit->m_y2);
+	// restore pre-init sample state
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
+	 printf("m_y1, m_y2 restored [%f, %f]\n", unit->m_y1, unit->m_y2);
 }
 
 
@@ -2329,6 +2343,8 @@ void RLPF_next(RLPF* unit, int inNumSamples)
 	double a0 = unit->m_a0;
 	double b1 = unit->m_b1;
 	double b2 = unit->m_b2;
+	
+	bool print = true;
 
 	if (freq != unit->m_freq || reson != unit->m_reson) {
 
@@ -2376,6 +2392,8 @@ void RLPF_next(RLPF* unit, int inNumSamples)
 	} else {
 		LOOP(unit->mRate->mFilterLoops,
 			y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+			if (print) printf("writing out %f [next, first out]\n", y0 + 2.0 * y1 + y2);
+			print = false;
 			ZXP(out) = y0 + 2.0 * y1 + y2;
 
 			y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1;
@@ -2424,6 +2442,7 @@ void RLPF_next_1(RLPF* unit, int inNumSamples)
 		a0 = (1.0 + C - b1) * .25;
 
 		y0 = a0 * in + b1 * y1 + b2 * y2;
+		printf("writing out %f [next_1.1]\n", y0 + 2.0 * y1 + y2);
 		ZOUT0(0) = y0 + 2.0 * y1 + y2;
 		y2 = y1;
 		y1 = y0;
@@ -2435,6 +2454,7 @@ void RLPF_next_1(RLPF* unit, int inNumSamples)
 		unit->m_b2 = b2;
 	} else {
 		y0 = a0 * in + b1 * y1 + b2 * y2;
+		printf("writing out %f [next_1.2]\n", y0 + 2.0 * y1 + y2);
 		ZOUT0(0) = y0 + 2.0 * y1 + y2;
 		y2 = y1;
 		y1 = y0;
