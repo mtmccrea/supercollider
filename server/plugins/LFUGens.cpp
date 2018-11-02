@@ -907,8 +907,8 @@ void LFGauss_Ctor(LFGauss* unit)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 // detect phasor out of bounds, trigger and wrap [0, 1], pos or neg freq
-float checkAndWrapPhase(double prev_freq, double &phase) {
-	if (prev_freq < 0.f) { // neg freq
+static inline float checkAndWrapPhase(double prev_freq, double &phase) {
+	if (prev_freq < 0.f) { // negative freqs
 		if (phase <= 0.f) {
 			phase += 1.f;
 			if (phase <= 0.f) { // handle large phase jumps
@@ -1167,8 +1167,8 @@ void Impulse_next_as(Impulse *unit, int inNumSamples)
 //	printf("freqmul %f\n", IN(0)[0]);
 	LOOP1(inNumSamples,
 		  float z = checkAndWrapPhase(freq, phase);
-		  freq = ZXP(freqin) * freqmul;             // GOTCHYA: Input and output buffers are shared, so you must read
-		  phase += freq;                            //          and store input BEFORE writing to output buffer!
+		  freq = ZXP(freqin) * freqmul;           // GOTCHYA: Input and output buffers are shared, so you must read
+		  phase += freq;                          //          and store input BEFORE writing to output buffer!
 		  ZXP(out) = z;
 		  );
 	
@@ -1199,8 +1199,8 @@ void Impulse_Ctor(Impulse* unit)
 	}
 	unit->mPhase = initPhase;
 	
-	printf("mPhase %f, initFreq %f, mPhaseOffset %f\n",
-		   unit->mPhase, initFreq, unit->mPhaseOffset);
+//	printf("mPhase %f, initFreq %f, mPhaseOffset %f\n",
+//		   unit->mPhase, initFreq, unit->mPhaseOffset);
 	
 	// set calculation function, calc initialization sample
 	// TODO: demand rate inputs?
