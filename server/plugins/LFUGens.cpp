@@ -2257,10 +2257,11 @@ void Unwrap_next(Unwrap* unit, int inNumSamples)
 void Unwrap_Ctor(Unwrap* unit)
 {
 	SETCALC(Unwrap_next);
-	float in   = ZIN0(0);
+	float in = ZIN0(0);
 	float lo = ZIN0(1);
 	float hi = ZIN0(2);
-
+	float offset;
+	
 	if (lo > hi) {
 		float temp = lo;
 		lo = hi;
@@ -2269,10 +2270,16 @@ void Unwrap_Ctor(Unwrap* unit)
 	unit->m_range = fabs(hi - lo);
 	unit->m_half = unit->m_range * 0.5f;
 
-	if (in < lo || in >= hi) unit->m_offset = floor((lo - in)/unit->m_range) * unit->m_range;
-	else unit->m_offset = 0.f;
-
+	if (in < lo || in >= hi) offset = floor((lo - in)/unit->m_range) * unit->m_range;
+	else offset = 0.f;
+	
+	unit->m_offset = offset;
+	unit->m_prev = in;
+	
 	Unwrap_next(unit, 1);
+	
+	unit->m_offset = offset;
+	unit->m_prev = in;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
