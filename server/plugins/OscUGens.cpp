@@ -412,7 +412,8 @@ void DegreeToKey_Ctor(DegreeToKey *unit)
 	unit->m_fbufnum = std::numeric_limits<float>::quiet_NaN();
 	if (BUFLENGTH == 1) {
 		SETCALC(DegreeToKey_next_1);
-	} else if (INRATE(0) == calc_FullRate) {
+//	} else if (INRATE(0) == calc_FullRate) {
+	} else if (INRATE(1) == calc_FullRate) { // mtm fix: check index input, not bufnum (bufnum wouldn't be fullRate)
 		SETCALC(DegreeToKey_next_a);
 	} else {
 		SETCALC(DegreeToKey_next_k);
@@ -420,7 +421,9 @@ void DegreeToKey_Ctor(DegreeToKey *unit)
 	unit->mOctave = (int32)ZIN0(2);
 	unit->mPrevIndex = std::numeric_limits<int32>::max();
 	unit->mPrevKey = 0.;
+	printf("[DegreeToKey] init sample:\n\t");
 	DegreeToKey_next_1(unit, 1);
+	printf("[DegreeToKey] first sample:\n\t");
 }
 
 void DegreeToKey_next_1(DegreeToKey *unit, int inNumSamples)
@@ -452,6 +455,7 @@ void DegreeToKey_next_1(DegreeToKey *unit, int inNumSamples)
 		unit->mPrevIndex = index;
 		val = unit->mPrevKey = table[index];
 	}
+	printf("\t[DegreeToKey_next_1] %f\n", val);
 	ZOUT0(0) = val;
 }
 
@@ -485,6 +489,7 @@ void DegreeToKey_next_k(DegreeToKey *unit, int inNumSamples)
 		unit->mPrevIndex = index;
 		val = unit->mPrevKey = table[index];
 	}
+	printf("\t[DegreeToKey_next_k] %f\n", val);
 	LOOP1(inNumSamples,
 		ZXP(out) = val;
 	);
@@ -509,19 +514,23 @@ void DegreeToKey_next_a(DegreeToKey *unit, int inNumSamples)
 	LOOP1(inNumSamples,
 		int32 index = (int32)floor(ZXP(in));
 		if (index == previndex) {
+			printf("\t[DegreeToKey_next_a (index == previndex)] %f\n", prevkey);
 			ZXP(out) = prevkey;
 		} else if (index < 0) {
 			previndex = index;
 			key = tableSize + index % tableSize;
 			oct = (index + 1) / tableSize - 1;
+			printf("\t[DegreeToKey_next_a (index < 0)] %f\n", table[key] + octave * oct);
 			ZXP(out) = prevkey = table[key] + octave * oct;
 		} else if (index > maxindex) {
 			previndex = index;
 			key = index % tableSize;
 			oct = index / tableSize;
+			printf("\t[DegreeToKey_next_a (index > maxindex)] %f\n", table[key] + octave * oct);
 			ZXP(out) = prevkey = table[key] + octave * oct;
 		} else {
 			previndex = index;
+			printf("\t[DegreeToKey_next_a else] %f\n", table[index]);
 			ZXP(out) = prevkey = table[index];
 		}
 	);
@@ -540,7 +549,9 @@ void Select_Ctor(Select *unit)
 	} else {
 		SETCALC(Select_next_k);
 	}
+	printf("[Select] init sample:\n\t");
 	Select_next_1(unit, 1);
+	printf("[Select] first sample:\n\t");
 }
 
 void Select_next_1(Select *unit, int inNumSamples)
@@ -548,7 +559,10 @@ void Select_next_1(Select *unit, int inNumSamples)
 	int32 maxindex = unit->mNumInputs - 1;
 	int32 index = (int32)ZIN0(0) + 1;
 	index = sc_clip(index, 1, maxindex);
-	ZOUT0(0) = ZIN0(index);
+float val = ZIN0(index);
+printf("[Select_next_1] \t%f\n", val);
+ZOUT0(0) = val;
+//	ZOUT0(0) = ZIN0(index);
 }
 
 void Select_next_k(Select *unit, int inNumSamples)
@@ -574,7 +588,10 @@ void Select_next_a(Select *unit, int inNumSamples)
 	for (int i=0; i<inNumSamples; ++i) {
 		int32 index = (int32)ZXP(in0) + 1;
 		index = sc_clip(index, 1, maxindex);
-		ZXP(out) = in[index][i];
+float val = in[index][i];
+printf("[Select_next_a] \t%f\n", val);
+ZXP(out) = val;
+//		ZXP(out) = in[index][i];
 	}
 }
 ////////////////////////////////////////////////////////////////////////////////////
@@ -587,8 +604,15 @@ void TWindex_Ctor(TWindex *unit)
 		SETCALC(TWindex_next_k);
 	}
 	unit->m_prevIndex = 0;
-	unit->m_trig = -1.f; // make it trigger the first time
-	TWindex_next_k(unit, 1);
+	unit->m_trig = -1.f; // make it trigger the first time << mtm: this won't ensure it triggers the first time, if input <= 0
+	// Need to generate a random value here,
+	// val = rand val;
+	// OUT(0) = val;
+	// prev_index = val;
+	// unit->m_trig = 1.f; // ensure first sample doesn't trigger another rand val, so init samp will equal first samp
+//	printf("[TWindex] init sample %f:\n", val);
+//	TWindex_next_k(unit, 1); // don't call this
+	printf("[TWindex] first sample:\n\t");
 }
 
 
@@ -625,6 +649,7 @@ void TWindex_next_k(TWindex *unit, int inNumSamples)
 	}
 
 	LOOP1(inNumSamples,
+printf("[TWindex_next_k] \t%d\n", index); //mtm
 			ZXP(out) = index;
 	)
 	unit->m_trig = trig;
@@ -663,6 +688,7 @@ void TWindex_next_ak(TWindex *unit, int inNumSamples)
 		} else
 			index = unit->m_prevIndex;
 
+printf("[TWindex_next_ak] \t%d\n", index); //mtm
 		ZXP(out) = index;
 		unit->m_trig = curtrig;
 	)
@@ -680,7 +706,9 @@ void Index_Ctor(Index *unit)
 	} else {
 		SETCALC(Index_next_k);
 	}
+	printf("[Index] init sample:\n\t");
 	Index_next_1(unit, 1);
+	printf("[Index] first sample:\n\t");
 }
 
 void Index_next_1(Index *unit, int inNumSamples)
@@ -744,7 +772,9 @@ void IndexL_Ctor(IndexL *unit)
 	} else {
 		SETCALC(IndexL_next_k);
 	}
+	printf("[IndexL] init sample:\n\t");
 	IndexL_next_1(unit, 1);
+	printf("[IndexL] first sample:\n\t");
 }
 
 void IndexL_next_1(IndexL *unit, int inNumSamples)
@@ -827,7 +857,9 @@ void FoldIndex_Ctor(FoldIndex *unit)
 	} else {
 		SETCALC(FoldIndex_next_k);
 	}
+	printf("[FoldIndex] init sample:\n\t");
 	FoldIndex_next_1(unit, 1);
+	printf("[FoldIndex] first sample:\n\t");
 }
 
 void FoldIndex_next_1(FoldIndex *unit, int inNumSamples)
@@ -890,7 +922,9 @@ void WrapIndex_Ctor(WrapIndex *unit)
 	} else {
 		SETCALC(WrapIndex_next_k);
 	}
+	printf("[WrapIndex] init sample:\n\t");
 	WrapIndex_next_1(unit, 1);
+	printf("[WrapIndex] first sample:\n\t");
 }
 
 void WrapIndex_next_1(WrapIndex *unit, int inNumSamples)
@@ -966,7 +1000,9 @@ void IndexInBetween_Ctor(IndexInBetween *unit)
 	} else {
 		SETCALC(IndexInBetween_next_k);
 	}
+	printf("[IndexInBetween] init sample:\n\t");
 	IndexInBetween_next_1(unit, 1);
+	printf("[IndexInBetween] first sample:\n\t");
 }
 
 void IndexInBetween_next_1(IndexInBetween *unit, int inNumSamples)
@@ -1037,7 +1073,9 @@ void DetectIndex_Ctor(DetectIndex *unit)
 		SETCALC(DetectIndex_next_k);
 	}
 	unit->mPrev = -1.f;
+	printf("[DetectIndex] init sample:\n\t");
 	DetectIndex_next_1(unit, 1);
+	printf("[DetectIndex] first sample:\n\t");
 }
 
 void DetectIndex_next_1(DetectIndex *unit, int inNumSamples)
@@ -1124,7 +1162,9 @@ void Shaper_Ctor(Shaper *unit)
 		SETCALC(Shaper_next_k);
 	}
 	unit->mPrevIn = ZIN0(0);
+	printf("[Shaper] init sample:\n\t");
 	Shaper_next_1(unit, 1);
+	printf("[Shaper] first sample:\n\t");
 }
 
 float force_inline ShaperPerform(const float * table0, const float * table1, float in, float offset, float fmaxindex)
@@ -1211,8 +1251,9 @@ void FSinOsc_Ctor(FSinOsc *unit)
 	unit->m_b1 = 2. * cos(w);
 	unit->m_y1 = sin(iphase);
 	unit->m_y2 = sin(iphase - w);
-
+	printf("[FSinOsc] init sample:\n\t%f\n", unit->m_y1);
 	ZOUT0(0) = unit->m_y1;
+	printf("[FSinOsc] first sample:\n\t");
 }
 
 void FSinOsc_next(FSinOsc *unit, int inNumSamples)
@@ -1299,7 +1340,9 @@ void PSinGrain_Ctor(PSinGrain *unit)
 	unit->m_b1 = 2. * cos(w);
 	unit->m_y1 = 0.f;
 	unit->m_y2 = -sin(w) * amp;
+	printf("[PSinGrain] init sample:\n\t%f\n", 0.f);
 	ZOUT0(0) = 0.f;
+	printf("[PSinGrain] first sample:\n\t");
 }
 
 
@@ -1566,8 +1609,9 @@ void SinOsc_Ctor(SinOsc *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-
+	printf("[SinOsc] init sample:\n\t");
 	SinOsc_next_ikk(unit, 1);
+	printf("[SinOsc] first sample:\n\t");
 }
 
 
@@ -1618,8 +1662,9 @@ void SinOscFB_Ctor(SinOscFB *unit)
 	unit->m_feedback = ZIN0(1) * unit->m_radtoinc;
 
 	unit->m_phase = 0;
-
+	printf("[SinOscFB] init sample:\n\t");
 	SinOscFB_next_kk(unit, 1);
+	printf("[SinOscFB] first sample:\n\t");
 }
 
 
@@ -1674,8 +1719,10 @@ void Osc_Ctor(Osc *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-
+	
+	printf("[Osc] init sample:\n\t");
 	Osc_next_ikk(unit, 1);
+	printf("[Osc] first sample:\n\t");
 }
 
 force_inline bool Osc_get_table(Osc *unit, const float *& table0, const float *& table1, int inNumSamples)
@@ -1791,8 +1838,10 @@ void OscN_Ctor(OscN *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-
+	
+	printf("[OscN] init sample:\n\t");
 	OscN_next_nkk(unit, 1);
+	printf("[OscN] first sample:\n\t");
 }
 
 
@@ -1940,7 +1989,9 @@ void COsc_Ctor(COsc *unit)
 	unit->m_phase1 = 0;
 	unit->m_phase2 = 0;
 	unit->mTableSize = -1;
+	printf("[COsc] init sample:\n\t");
 	COsc_next(unit, 1);
+	printf("[COsc] first sample:\n\t");
 }
 
 
@@ -2034,8 +2085,9 @@ void VOsc_Ctor(VOsc *unit)
 		SETCALC(VOsc_next_ikk);
 		unit->m_phase = unit->m_phaseoffset;
 	}
-
+	printf("[VOsc] init sample:\n\t");
 	VOsc_next_ikk(unit, 1);
+	printf("[VOsc] first sample:\n\t");
 }
 
 void VOsc_next_ikk(VOsc *unit, int inNumSamples)
@@ -2280,7 +2332,9 @@ void VOsc3_Ctor(VOsc3 *unit)
 	unit->m_phase2 = 0;
 	unit->m_phase3 = 0;
 
+	printf("[VOsc3] init sample:\n\t");
 	VOsc3_next_ik(unit, 1);
+	printf("[VOsc3] first sample:\n\t");
 }
 
 void VOsc3_next_ik(VOsc3 *unit, int inNumSamples)
@@ -2458,7 +2512,9 @@ void Formant_Ctor(Formant *unit)
 	unit->m_phase1 = 0;
 	unit->m_phase2 = 0;
 	unit->m_phase3 = 0;
+	printf("[Formant] init sample:\n\t");
 	Formant_next(unit, 1);
+	printf("[Formant] first sample:\n\t");
 }
 
 #define tqcyc13 0x18000000
@@ -2525,7 +2581,9 @@ void Blip_Ctor(Blip *unit)
 	unit->m_scale = 0.5/N;
 	unit->m_phase = 0;
 
+	printf("[Blip] init sample:\n\t");
 	Blip_next(unit, 1);
+	printf("[Blip] first sample:\n\t");
 }
 
 void Blip_next(Blip *unit, int inNumSamples)
@@ -2674,7 +2732,9 @@ void Saw_Ctor(Saw *unit)
 	unit->m_phase = 0;
 	unit->m_y1 = -0.46f;
 
+	printf("[Saw] init sample:\n\t%f\n", 0.f);
 	ZOUT0(0) = 0.f;
+	printf("[Saw] first sample:\n\t");
 }
 
 void Saw_next(Saw *unit, int inNumSamples)
@@ -2822,7 +2882,9 @@ void Pulse_Ctor(Pulse *unit)
 	unit->m_phase = 0;
 	unit->m_phaseoff = 0;
 	unit->m_y1 = 0.f;
+	printf("[Pulse] init sample:\n\t%f\n", 0.f);
 	ZOUT0(0) = 0.f;
+	printf("[Pulse] first sample:\n\t");
 }
 
 void Pulse_next(Pulse *unit, int inNumSamples)
@@ -3084,7 +3146,9 @@ static float Klang_SetCoefs(Klang *unit)
 void Klang_Ctor(Klang *unit)
 {
 	SETCALC(Klang_next);
+	printf("[Klang] init sample:\n\t%f\n", Klang_SetCoefs(unit));
 	ZOUT0(0) = Klang_SetCoefs(unit);
+	printf("[Klang] first sample:\n\t");
 }
 
 void Klang_Dtor(Klang *unit)
@@ -3295,7 +3359,9 @@ void Klank_Ctor(Klank *unit)
 	SETCALC(Klank_next);
 	unit->m_x1 = unit->m_x2 = 0.f;
 	Klank_SetCoefs(unit);
+	printf("[Klank] init sample:\n\t%f\n", 0.f);
 	ZOUT0(0) = 0.f;
+	printf("[Klank] first sample:\n\t");
 }
 
 void Klank_Dtor(Klank *unit)
