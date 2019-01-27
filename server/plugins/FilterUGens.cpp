@@ -1948,8 +1948,10 @@ void Delay1_Ctor(Delay1* unit)
 {
 	//printf("Delay1_Reset\n");
 	SETCALC(Delay1_next);
-	unit->m_x1 = ZIN0(0);
+//	unit->m_x1 = ZIN0(0); // mtm temp fix for testing
+	unit->m_x1 = 0.f; // mtm
 	Delay1_next(unit, 1);
+	unit->m_x1 = 0.f; // mtm
 }
 
 
@@ -2032,7 +2034,10 @@ void Flip_next_odd(Flip* unit, int inNumSamples)
 void Delay2_Ctor(Delay2* unit)
 {
 	SETCALC(Delay2_next);
-	unit->m_x1 = ZIN0(0);
+	//	unit->m_x1 = ZIN0(0); // mtm temp fix for testing
+unit->m_x1 = 0.f;
+unit->m_x2 = 0.f;
+
 	ZOUT0(0) = 0.f;
 }
 
