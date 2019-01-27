@@ -1719,7 +1719,7 @@ void Osc_Ctor(Osc *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-	
+
 	printf("[Osc] init sample:\n\t");
 	Osc_next_ikk(unit, 1);
 	printf("[Osc] first sample:\n\t");
@@ -1838,7 +1838,7 @@ void OscN_Ctor(OscN *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-	
+
 	printf("[OscN] init sample:\n\t");
 	OscN_next_nkk(unit, 1);
 	printf("[OscN] first sample:\n\t");
