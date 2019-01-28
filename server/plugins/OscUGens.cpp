@@ -611,7 +611,7 @@ void TWindex_Ctor(TWindex *unit)
 	float sum = 0.f;
 	float maxSum = 0.f;
 	float normalize = ZIN0(1);
-	
+
 	if(normalize == 1) {
 		for (int32 k=2; k<maxindex; ++k) { maxSum += ZIN0(k); }
 	} else {
@@ -619,7 +619,7 @@ void TWindex_Ctor(TWindex *unit)
 	}
 	RGen& rgen = *unit->mParent->mRGen;
 	float max = maxSum * rgen.frand();
-	
+
 	for (int32 k=2; k<maxindex; ++k) {
 		sum += ZIN0(k);
 		if(sum >= max) {
@@ -627,10 +627,10 @@ void TWindex_Ctor(TWindex *unit)
 			break;
 		}
 	}
-	
+
 	printf("[TWindex] init sample %d:\n", index);
 	OUT0(0) = index;
-	
+
 	// ensure a first-sample trigger doesn't cause another rand val,
 	// so initialization sample will equal first output sample
 	// (from user's perspective, the first sample is random either way)
@@ -639,39 +639,41 @@ void TWindex_Ctor(TWindex *unit)
 
 //	unit->m_prevIndex = 0; // mtm
 //	unit->m_trig = -1.f;   // mtm: make it trigger the first time << mtm: this won't ensure it triggers the first time, if input <= 0
-//	TWindex_next_k(unit, 1); // don't call this
+	TWindex_next_k(unit, 1); // don't call this
 	printf("[TWindex] first sample:\n\t");
 }
 
 
 void TWindex_next_k(TWindex *unit, int inNumSamples)
 {
-
-	int maxindex = unit->mNumInputs;
-	int32 index = maxindex;
-	float sum = 0.f;
-	float maxSum = 0.f;
-	float normalize = ZIN0(1); // switch normalisation on or off
 	float trig = ZIN0(0);
 	float *out = ZOUT(0);
+	int maxindex = unit->mNumInputs;
+	int32 index = maxindex;
+	
 	if (trig > 0.f && unit->m_trig <= 0.f) {
-			if(normalize == 1) {
-				for (int32 k=2; k<maxindex; ++k) { maxSum += ZIN0(k); }
-			} else {
-				maxSum = 1.f;
-			}
-			RGen& rgen = *unit->mParent->mRGen;
-			float max = maxSum * rgen.frand();
-
+		float maxSum = 0.f;
+		float normalize = ZIN0(1); // switch normalisation on or off
+		
+		if(normalize == 1) {
 			for (int32 k=2; k<maxindex; ++k) {
-				sum += ZIN0(k);
-				if(sum >= max) {
-					index = k - 2;
-					break;
-				}
+				maxSum += ZIN0(k);
 			}
+		} else {
+			maxSum = 1.f;
+		}
+		RGen& rgen = *unit->mParent->mRGen;
+		float max = maxSum * rgen.frand();
+		float sum = 0.f;
+		for (int32 k=2; k<maxindex; ++k) {
+			sum += ZIN0(k);
+			if(sum >= max) {
+				index = k - 2;
+				break;
+			}
+		}
 
-			unit->m_prevIndex = index;
+		unit->m_prevIndex = index;
 	} else {
 		index = unit->m_prevIndex;
 	}
@@ -688,33 +690,40 @@ void TWindex_next_ak(TWindex *unit, int inNumSamples)
 	int maxindex = unit->mNumInputs;
 	int32 index = maxindex;
 
-	float sum = 0.f;
-	float maxSum = 0.f;
+//	float sum = 0.f; // mtm
+	float maxSum = -1.f;
 	float normalize = ZIN0(1);//switch normalisation on or off
 	float *trig = ZIN(0);
 	float *out = ZOUT(0);
 	float curtrig;
-	if(normalize == 1) {
-		for (int32 k=2; k<maxindex; ++k) { maxSum += ZIN0(k); }
-	} else
-		maxSum = 1.f;
 	RGen& rgen = *unit->mParent->mRGen;
 
 	LOOP1(inNumSamples,
 		curtrig = ZXP(trig);
 		if (curtrig > 0.f && unit->m_trig <= 0.f) {
+			if (maxSum < 0.f) { // maxSum not yet set
+				if (normalize == 1) {
+					for (int32 k=2; k<maxindex; ++k) {
+						maxSum += ZIN0(k);
+					}
+				} else {
+					maxSum = 1.f;
+				}
+			}
+			float sum = 0.f;
 			float max = maxSum * rgen.frand();
 			for (int32 k=2; k<maxindex; ++k) {
 				sum += ZIN0(k);
-							if(sum >= max) {
-								index = k - 2;
-								break;
-							}
+				if(sum >= max) {
+					index = k - 2;
+					break;
+				}
 			}
 
 			unit->m_prevIndex = index;
-		} else
+		} else {
 			index = unit->m_prevIndex;
+		}
 
 printf("[TWindex_next_ak] \t%d\n", index); //mtm
 		ZXP(out) = index;
