@@ -603,14 +603,42 @@ void TWindex_Ctor(TWindex *unit)
 	} else {
 		SETCALC(TWindex_next_k);
 	}
-	unit->m_prevIndex = 0;
-	unit->m_trig = -1.f; // make it trigger the first time << mtm: this won't ensure it triggers the first time, if input <= 0
-	// Need to generate a random value here,
-	// val = rand val;
-	// OUT(0) = val;
-	// prev_index = val;
-	// unit->m_trig = 1.f; // ensure first sample doesn't trigger another rand val, so init samp will equal first samp
-//	printf("[TWindex] init sample %f:\n", val);
+	
+	// Generate a random value here for the initialization sample
+	// and to manage the trigger state of the first output frame
+	int maxindex = unit->mNumInputs;
+	int32 index = maxindex;
+	float sum = 0.f;
+	float maxSum = 0.f;
+	float normalize = ZIN0(1);
+	
+	if(normalize == 1) {
+		for (int32 k=2; k<maxindex; ++k) { maxSum += ZIN0(k); }
+	} else {
+		maxSum = 1.f;
+	}
+	RGen& rgen = *unit->mParent->mRGen;
+	float max = maxSum * rgen.frand();
+	
+	for (int32 k=2; k<maxindex; ++k) {
+		sum += ZIN0(k);
+		if(sum >= max) {
+			index = k - 2;
+			break;
+		}
+	}
+	
+	printf("[TWindex] init sample %d:\n", index);
+	OUT0(0) = index;
+	
+	// ensure a first-sample trigger doesn't cause another rand val,
+	// so initialization sample will equal first output sample
+	// (from user's perspective, the first sample is random either way)
+	unit->m_trig = 1.f;
+	unit->m_prevIndex = index;
+
+//	unit->m_prevIndex = 0; // mtm
+//	unit->m_trig = -1.f;   // mtm: make it trigger the first time << mtm: this won't ensure it triggers the first time, if input <= 0
 //	TWindex_next_k(unit, 1); // don't call this
 	printf("[TWindex] first sample:\n\t");
 }
