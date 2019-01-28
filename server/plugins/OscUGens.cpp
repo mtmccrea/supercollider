@@ -412,7 +412,8 @@ void DegreeToKey_Ctor(DegreeToKey *unit)
 	unit->m_fbufnum = std::numeric_limits<float>::quiet_NaN();
 	if (BUFLENGTH == 1) {
 		SETCALC(DegreeToKey_next_1);
-	} else if (INRATE(0) == calc_FullRate) {
+//	} else if (INRATE(0) == calc_FullRate) {
+	} else if (INRATE(1) == calc_FullRate) { // mtm fix: check index input, not bufnum (bufnum wouldn't be fullRate)
 		SETCALC(DegreeToKey_next_a);
 	} else {
 		SETCALC(DegreeToKey_next_k);
@@ -454,6 +455,7 @@ void DegreeToKey_next_1(DegreeToKey *unit, int inNumSamples)
 		unit->mPrevIndex = index;
 		val = unit->mPrevKey = table[index];
 	}
+	printf("\t[DegreeToKey_next_1] %f\n", val);
 	ZOUT0(0) = val;
 }
 
@@ -487,6 +489,7 @@ void DegreeToKey_next_k(DegreeToKey *unit, int inNumSamples)
 		unit->mPrevIndex = index;
 		val = unit->mPrevKey = table[index];
 	}
+	printf("\t[DegreeToKey_next_k] %f\n", val);
 	LOOP1(inNumSamples,
 		ZXP(out) = val;
 	);
@@ -511,19 +514,23 @@ void DegreeToKey_next_a(DegreeToKey *unit, int inNumSamples)
 	LOOP1(inNumSamples,
 		int32 index = (int32)floor(ZXP(in));
 		if (index == previndex) {
+			printf("\t[DegreeToKey_next_a (index == previndex)] %f\n", prevkey);
 			ZXP(out) = prevkey;
 		} else if (index < 0) {
 			previndex = index;
 			key = tableSize + index % tableSize;
 			oct = (index + 1) / tableSize - 1;
+			printf("\t[DegreeToKey_next_a (index < 0)] %f\n", table[key] + octave * oct);
 			ZXP(out) = prevkey = table[key] + octave * oct;
 		} else if (index > maxindex) {
 			previndex = index;
 			key = index % tableSize;
 			oct = index / tableSize;
+			printf("\t[DegreeToKey_next_a (index > maxindex)] %f\n", table[key] + octave * oct);
 			ZXP(out) = prevkey = table[key] + octave * oct;
 		} else {
 			previndex = index;
+			printf("\t[DegreeToKey_next_a else] %f\n", table[index]);
 			ZXP(out) = prevkey = table[index];
 		}
 	);
@@ -552,7 +559,10 @@ void Select_next_1(Select *unit, int inNumSamples)
 	int32 maxindex = unit->mNumInputs - 1;
 	int32 index = (int32)ZIN0(0) + 1;
 	index = sc_clip(index, 1, maxindex);
-	ZOUT0(0) = ZIN0(index);
+float val = ZIN0(index);
+printf("[Select_next_1] \t%f\n", val);
+ZOUT0(0) = val;
+//	ZOUT0(0) = ZIN0(index);
 }
 
 void Select_next_k(Select *unit, int inNumSamples)
@@ -578,7 +588,10 @@ void Select_next_a(Select *unit, int inNumSamples)
 	for (int i=0; i<inNumSamples; ++i) {
 		int32 index = (int32)ZXP(in0) + 1;
 		index = sc_clip(index, 1, maxindex);
-		ZXP(out) = in[index][i];
+float val = in[index][i];
+printf("[Select_next_a] \t%f\n", val);
+ZXP(out) = val;
+//		ZXP(out) = in[index][i];
 	}
 }
 ////////////////////////////////////////////////////////////////////////////////////
@@ -590,10 +603,43 @@ void TWindex_Ctor(TWindex *unit)
 	} else {
 		SETCALC(TWindex_next_k);
 	}
-	unit->m_prevIndex = 0;
-	unit->m_trig = -1.f; // make it trigger the first time
-	printf("[TWindex] init sample:\n\t");
-	TWindex_next_k(unit, 1);
+	
+	// Generate a random value here for the initialization sample
+	// and to manage the trigger state of the first output frame
+	int maxindex = unit->mNumInputs;
+	int32 index = maxindex;
+	float sum = 0.f;
+	float maxSum = 0.f;
+	float normalize = ZIN0(1);
+	
+	if(normalize == 1) {
+		for (int32 k=2; k<maxindex; ++k) { maxSum += ZIN0(k); }
+	} else {
+		maxSum = 1.f;
+	}
+	RGen& rgen = *unit->mParent->mRGen;
+	float max = maxSum * rgen.frand();
+	
+	for (int32 k=2; k<maxindex; ++k) {
+		sum += ZIN0(k);
+		if(sum >= max) {
+			index = k - 2;
+			break;
+		}
+	}
+	
+	printf("[TWindex] init sample %d:\n", index);
+	OUT0(0) = index;
+	
+	// ensure a first-sample trigger doesn't cause another rand val,
+	// so initialization sample will equal first output sample
+	// (from user's perspective, the first sample is random either way)
+	unit->m_trig = 1.f;
+	unit->m_prevIndex = index;
+
+//	unit->m_prevIndex = 0; // mtm
+//	unit->m_trig = -1.f;   // mtm: make it trigger the first time << mtm: this won't ensure it triggers the first time, if input <= 0
+//	TWindex_next_k(unit, 1); // don't call this
 	printf("[TWindex] first sample:\n\t");
 }
 
@@ -631,6 +677,7 @@ void TWindex_next_k(TWindex *unit, int inNumSamples)
 	}
 
 	LOOP1(inNumSamples,
+printf("[TWindex_next_k] \t%d\n", index); //mtm
 			ZXP(out) = index;
 	)
 	unit->m_trig = trig;
@@ -669,6 +716,7 @@ void TWindex_next_ak(TWindex *unit, int inNumSamples)
 		} else
 			index = unit->m_prevIndex;
 
+printf("[TWindex_next_ak] \t%d\n", index); //mtm
 		ZXP(out) = index;
 		unit->m_trig = curtrig;
 	)
@@ -1699,7 +1747,7 @@ void Osc_Ctor(Osc *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-	
+
 	printf("[Osc] init sample:\n\t");
 	Osc_next_ikk(unit, 1);
 	printf("[Osc] first sample:\n\t");
@@ -1818,7 +1866,7 @@ void OscN_Ctor(OscN *unit)
 			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
 		}
 	}
-	
+
 	printf("[OscN] init sample:\n\t");
 	OscN_next_nkk(unit, 1);
 	printf("[OscN] first sample:\n\t");
