@@ -1839,11 +1839,12 @@ void Line_Ctor(Line* unit)
 	SETCALC(Line_next);
 	double start = ZIN0(0);
 	double end = ZIN0(1);
-	double dur = ZIN0(2);
+	float dur = ZIN0(2);
 
 	int counter = (int)(dur * unit->mRate->mSampleRate + .5f);
 	unit->mCounter = sc_max(1, counter);
-	if(counter == 0){
+	//	if(counter == 0){
+	if(dur <= 0.f){            // mtm edit
 		unit->mLevel = end;
 		unit->mSlope = 0.;
 	} else {
