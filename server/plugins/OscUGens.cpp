@@ -757,6 +757,7 @@ void Index_next_1(Index *unit, int inNumSamples)
 
 	int32 index = (int32)ZIN0(1);
 	index = sc_clip(index, 0, maxindex);
+	printf("[Index_next_1] \t%f\n", table[index]); //mtm
 	ZOUT0(0) = table[index];
 }
 
@@ -773,6 +774,7 @@ void Index_next_k(Index *unit, int inNumSamples)
 
 	index = sc_clip(index, 0, maxindex);
 	float val = table[index];
+	printf("[Index_next_k] \t%f\n", val); //mtm
 	LOOP1(inNumSamples,
 		ZXP(out) = val;
 	);
@@ -792,6 +794,7 @@ void Index_next_a(Index *unit, int inNumSamples)
 	LOOP1(inNumSamples,
 		int32 index = (int32)ZXP(in);
 		index = sc_clip(index, 0, maxindex);
+		printf("[Index_next_a] \t%f\n", table[index]); //mtm
 		ZXP(out) = table[index];
 	);
 }
@@ -829,6 +832,7 @@ void IndexL_next_1(IndexL *unit, int inNumSamples)
 
 	float a = table[index];
 	float b = table[sc_clip(index + 1, 0, maxindex)];
+	printf("[IndexL_next_1] \t%f\n", lininterp(frac, a, b)); //mtm
 	ZOUT0(0) = lininterp(frac, a, b);
 }
 
@@ -853,6 +857,7 @@ void IndexL_next_k(IndexL *unit, int inNumSamples)
 	float val = lininterp(frac, a, b);
 
 	LOOP1(inNumSamples,
+		  printf("[IndexL_next_k] \t%f\n", val); //mtm
 		ZXP(out) = val;
 	);
 }
@@ -875,6 +880,7 @@ void IndexL_next_a(IndexL *unit, int inNumSamples)
 		int32 i2 = sc_clip(i1 + 1, 0, maxindex);
 		float a = table[i1];
 		float b = table[i2];
+		  printf("[IndexL_next_a] \t%f\n", lininterp(frac, a, b)); //mtm
 		ZXP(out) =  lininterp(frac, a, b);
 	);
 
@@ -908,6 +914,7 @@ void FoldIndex_next_1(FoldIndex *unit, int inNumSamples)
 
 	int32 index = (int32)ZIN0(1);
 	index = sc_fold(index, 0, maxindex);
+	printf("[FoldIndex_next_1] \t%f\n", table[index]); //mtm
 	ZOUT0(0) = table[index];
 }
 
@@ -924,6 +931,7 @@ void FoldIndex_next_k(FoldIndex *unit, int inNumSamples)
 	index = sc_fold(index, 0, maxindex);
 	float val = table[index];
 	LOOP1(inNumSamples,
+		  printf("[FoldIndex_next_k] \t%f\n", val); //mtm
 		ZXP(out) = val;
 	);
 }
@@ -942,6 +950,7 @@ void FoldIndex_next_a(FoldIndex *unit, int inNumSamples)
 	LOOP1(inNumSamples,
 		int32 index = (int32)ZXP(in);
 		index = sc_fold(index, 0, maxindex);
+		  printf("[FoldIndex_next_a] \t%f\n", table[index]); //mtm
 		ZXP(out) = table[index];
 	);
 }
@@ -973,6 +982,7 @@ void WrapIndex_next_1(WrapIndex *unit, int inNumSamples)
 
 	int32 index = (int32)floor(ZIN0(1));
 	index = sc_wrap(index, 0, maxindex);
+	printf("[WrapIndex_next_1] \t%f\n", table[index]); //mtm
 	ZOUT0(0) = table[index];
 }
 
@@ -989,6 +999,7 @@ void WrapIndex_next_k(WrapIndex *unit, int inNumSamples)
 	index = sc_wrap(index, 0, maxindex);
 	float val = table[index];
 	LOOP1(inNumSamples,
+		  printf("[WrapIndex_next_k] \t%f\n", val); //mtm
 		ZXP(out) = val;
 	);
 }
@@ -1007,6 +1018,7 @@ void WrapIndex_next_a(WrapIndex *unit, int inNumSamples)
 	LOOP1(inNumSamples,
 		int32 index = (int32)ZXP(in);
 		index = sc_wrap(index, 0, maxindex);
+		  printf("[WrapIndex_next_a] \t%f\n", table[index]); //mtm
 		ZXP(out) = table[index];
 	);
 }
