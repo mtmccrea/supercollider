@@ -1062,7 +1062,10 @@ void IndexInBetween_next_1(IndexInBetween *unit, int inNumSamples)
 		int32 maxindex = tableSize - 1;
 
 	float in = ZIN0(1);
-	ZOUT0(0) = IndexInBetween_FindIndex(table, in, maxindex);
+	  float val = IndexInBetween_FindIndex(table, in, maxindex); // mtm
+	  printf("[IndexInBetween_next_1] \t%f\n", val); //mtm
+	ZOUT0(0) = val; // mtm
+//	ZOUT0(0) = IndexInBetween_FindIndex(table, in, maxindex);
 }
 
 void IndexInBetween_next_k(IndexInBetween *unit, int inNumSamples)
@@ -1077,6 +1080,7 @@ void IndexInBetween_next_k(IndexInBetween *unit, int inNumSamples)
 
 	float val = IndexInBetween_FindIndex(table, in, maxindex);
 	LOOP1(inNumSamples,
+		    printf("[IndexInBetween_next_k] \t%f\n", val); //mtm
 		ZXP(out) = val;
 	);
 }
@@ -1093,7 +1097,10 @@ void IndexInBetween_next_a(IndexInBetween *unit, int inNumSamples)
 	float *in = ZIN(1);
 
 	LOOP1(inNumSamples,
-		ZXP(out) = IndexInBetween_FindIndex(table, ZXP(in), maxindex);
+		  float val = IndexInBetween_FindIndex(table, ZXP(in), maxindex); // mtm
+		  printf("[IndexInBetween_next_a] \t%f\n", val); //mtm
+		  ZXP(out) = val; // mtm
+//		ZXP(out) = IndexInBetween_FindIndex(table, ZXP(in), maxindex);
 	);
 }
 
@@ -1146,6 +1153,7 @@ void DetectIndex_next_1(DetectIndex *unit, int inNumSamples)
 		unit->mPrev = index;
 		unit->mPrevIn = in;
 	}
+	    printf("[DetectIndex_next_1] \t%f\n", (float)index); //mtm
 	ZOUT0(0) = (float)index;
 }
 
@@ -1169,6 +1177,7 @@ void DetectIndex_next_k(DetectIndex *unit, int inNumSamples)
 	};
 	val = (float)index;
 	LOOP1(inNumSamples,
+		  printf("[DetectIndex_next_k] \t%f\n", val); //mtm
 		ZXP(out) = val;
 	);
 }
@@ -1193,6 +1202,7 @@ void DetectIndex_next_a(DetectIndex *unit, int inNumSamples)
 			prevIndex = DetectIndex_FindIndex(table, inval, maxindex);
 		}
 		prev = inval;
+		    printf("[DetectIndex_next_a] \t%f\n", (float)prevIndex); //mtm
 		ZXP(out) = (float)prevIndex;
 	);
 
