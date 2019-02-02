@@ -1223,10 +1223,11 @@ void Shaper_Ctor(Shaper *unit)
 	} else {
 		SETCALC(Shaper_next_k);
 	}
-	unit->mPrevIn = ZIN0(0);
-	printf("[Shaper] init sample:\n\t");
+//	unit->mPrevIn = ZIN0(0); // mtm
+	unit->mPrevIn = ZIN0(1); // mtm -- FIXed
+	printf("[Shaper] init sample:\n\t"); //mtm
 	Shaper_next_1(unit, 1);
-	printf("[Shaper] first sample:\n\t");
+	printf("[Shaper] first sample:\n\t");  //mtm
 }
 
 float force_inline ShaperPerform(const float * table0, const float * table1, float in, float offset, float fmaxindex)
@@ -1250,8 +1251,10 @@ void Shaper_next_1(Shaper *unit, int inNumSamples)
 		const float *table1 = table0 + 1;
 		float fmaxindex = (float)(tableSize>>1) - 0.001;
 		float offset = tableSize * 0.25;
-
-	ZOUT0(0) = ShaperPerform(table0, table1, ZIN0(1), offset, fmaxindex);
+	float val = ShaperPerform(table0, table1, ZIN0(1), offset, fmaxindex); // mtm
+	printf("\t[Shaper_next_1] %f\n", val); //mtm
+	ZOUT0(0) = val; //mtm
+//	ZOUT0(0) = ShaperPerform(table0, table1, ZIN0(1), offset, fmaxindex); //mtm
 }
 
 void Shaper_next_k(Shaper *unit, int inNumSamples)
@@ -1271,13 +1274,21 @@ void Shaper_next_k(Shaper *unit, int inNumSamples)
 			ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex);
 		);
 	} else {
-		float phaseinc = (fin - unit->mPrevIn) * offset;
-		unit->mPrevIn = fin;
+//		float phaseinc = (fin - unit->mPrevIn) * offset; //mtm
+//		unit->mPrevIn = fin; //mtm
+		
+		float prevIn = unit->mPrevIn; //mtm
+		float phaseinc = CALCSLOPE(fin, prevIn); //mtm
+		fin = prevIn; //mtm
 
 		LOOP1(inNumSamples,
-			ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex);
+			  float val = ShaperPerform(table0, table1, fin, offset, fmaxindex); // mtm
+			  printf("\t[Shaper_next_k] %f\n", val); //mtm
+			  ZXP(out) = val; //mtm
+//			ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex); // mtm
 			fin += phaseinc;
 		);
+		unit->mPrevIn = fin; //mtm
 	}
 }
 
@@ -1295,7 +1306,10 @@ void Shaper_next_a(Shaper *unit, int inNumSamples)
 
 	LOOP1(inNumSamples,
 		float fin = ZXP(in);
-		ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex);
+		  float val = ShaperPerform(table0, table1, fin, offset, fmaxindex); // mtm
+		  printf("\t[Shaper_next_a] %f\n", val); //mtm
+		  ZXP(out) = val; //mtm
+//		ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex);
 	);
 }
 
@@ -1672,7 +1686,9 @@ void SinOsc_Ctor(SinOsc *unit)
 		}
 	}
 	printf("[SinOsc] init sample:\n\t");
+	int32 initPhase = unit->m_phase; // store init state mtm
 	SinOsc_next_ikk(unit, 1);
+	unit->m_phase = initPhase; // restore initial state mtm
 	printf("[SinOsc] first sample:\n\t");
 }
 
