@@ -1432,12 +1432,20 @@ void PSinGrain_Ctor(PSinGrain *unit)
 	unit->mCounter = (int32)(sdur + .5);
 
 	/* calc feedback param and initial conditions */
-	unit->m_b1 = 2. * cos(w);
-	unit->m_y1 = 0.f;
-	unit->m_y2 = -sin(w) * amp;
-	printf("[PSinGrain] init sample:\n\t%f\n", 0.f);
-	ZOUT0(0) = 0.f;
-	printf("[PSinGrain] first sample:\n\t");
+//	unit->m_b1 = 2. * cos(w);
+//	unit->m_y1 = 0.f;
+//	unit->m_y2 = -sin(w) * amp;
+//	ZOUT0(0) = 0.f;
+	
+	double b1, y1, y2;
+	unit->m_b1 = b1 = 2. * cos(w);
+	unit->m_y1 = y1 = -sin(w) * amp;;
+	unit->m_y2 = y2 = -sin(w + w) * amp;
+	
+	float outn = b1 * y1 - y2; //mtm
+	printf("[PSinGrain] init sample:\n\t%f\n", outn);//mtm
+	ZOUT0(0) = outn;//mtm
+	printf("[PSinGrain] first sample:\n\t"); //mtm
 }
 
 
@@ -1458,6 +1466,7 @@ void PSinGrain_next(PSinGrain *unit, int inNumSamples)
 		if (counter<=0) {
 			nsmps = remain;
 			remain = 0;
+				printf("[PSinGrain_next_clear] %f\n", 0.f);//mtm
 			LOOP(nsmps, ZXP(out) = 0.f;); // can't use Clear bcs might not be aligned
 		} else {
 			nsmps = sc_min(remain, counter);
@@ -1467,14 +1476,17 @@ void PSinGrain_next(PSinGrain *unit, int inNumSamples)
 				nsmps = unit->mRate->mFilterLoops;
 				LOOP(nsmps,
 					y0 = b1 * y1 - y2;
+					 printf("[PSinGrain_next_mFilterLoops] %f\n", y0 * level);//mtm
 					ZXP(out) = y0 * level;
 					level += slope;
 					slope += curve;
 					y2 = b1 * y0 - y1;
+					 printf("[PSinGrain_next_mFilterLoops] %f\n", y2 * level);//mtm
 					ZXP(out) = y2 * level;
 					level += slope;
 					slope += curve;
 					y1 = b1 * y2 - y0;
+					 printf("[PSinGrain_next_mFilterLoops] %f\n", y1 * level);//mtm
 					ZXP(out) = y1 * level;
 					level += slope;
 					slope += curve;
@@ -1484,6 +1496,7 @@ void PSinGrain_next(PSinGrain *unit, int inNumSamples)
 					y0 = b1 * y1 - y2;
 					y2 = y1;
 					y1 = y0;
+					 printf("[PSinGrain_next_mFilterRemain] %f\n", y0 * level);//mtm
 					ZXP(out) = y0 * level;
 					level += slope;
 					slope += curve;
@@ -1493,6 +1506,7 @@ void PSinGrain_next(PSinGrain *unit, int inNumSamples)
 					y0 = b1 * y1 - y2;
 					y2 = y1;
 					y1 = y0;
+					 printf("[PSinGrain_next_else2] %f\n", y0 * level);//mtm
 					ZXP(out) = y0 * level;
 					level += slope;
 					slope += curve;
