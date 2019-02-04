@@ -1772,6 +1772,7 @@ void SinOscFB_next_kk(SinOscFB *unit, int inNumSamples)
 
 	LooP(inNumSamples) {
 		prevout = lookupi1(table0, table1, phase + (int32)(feedback * prevout), lomask);
+		  printf("[SinOscFB_next_kk] %f\n", prevout);//mtm
 		ZXP(out) = prevout;
 		phase += freq;
 		feedback += feedback_slope;
@@ -1793,10 +1794,17 @@ void SinOscFB_Ctor(SinOscFB *unit)
 	unit->m_prevout = 0.;
 	unit->m_feedback = ZIN0(1) * unit->m_radtoinc;
 
+//	float *table0 = ft->mSineWavetable;//mtm
+//	float *table1 = table0 + 1;//mtm
+//	int32 lomask = unit->m_lomask;//mtm
+//	int32 prevphase = -(int32)(unit->m_cpstoinc * ZIN0(0));//mtm
+//	unit->m_prevout = lookupi1(table0, table1, prevphase, lomask);//mtm
+
 	unit->m_phase = 0;
 	printf("[SinOscFB] init sample:\n\t");
 	SinOscFB_next_kk(unit, 1);
 	printf("[SinOscFB] first sample:\n\t");
+	unit->m_phase = 0;
 }
 
 
@@ -1829,32 +1837,38 @@ void Osc_Ctor(Osc *unit)
 	unit->m_radtoinc = tableSize2 * (rtwopi * 65536.); // Osc, OscN, PMOsc
 
 	unit->m_phasein = ZIN0(2);
-
+	int32 initphase;//mtm
+	printf("[Osc] init sample:\n\t");//mtm
+	
 	if (INRATE(1) == calc_FullRate) {
 		if (INRATE(2) == calc_FullRate) {
 			//Print("next_iaa\n");
 			SETCALC(Osc_next_iaa);
-			unit->m_phase = 0;
+//			unit->m_phase = 0;//mtm
 		} else {
 			//Print("next_iak\n");
 			SETCALC(Osc_next_iak);
-			unit->m_phase = 0;
+//			unit->m_phase = 0; //mtm
 		}
+		unit->m_phase = initphase = 0;
+		Osc_next_iaa(unit, 1);
 	} else {
 		if (INRATE(2) == calc_FullRate) {
 			//Print("next_ika\n");
 			SETCALC(Osc_next_ika);
-			unit->m_phase = 0;
+			unit->m_phase = initphase = 0;
+			Osc_next_iaa(unit, 1);
 		} else {
 			//Print("next_ikk\n");
 			SETCALC(Osc_next_ikk);
-			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
+			unit->m_phase = initphase = (int32)(unit->m_phasein * unit->m_radtoinc);
+			Osc_next_ikk(unit, 1);
 		}
 	}
 
-	printf("[Osc] init sample:\n\t");
-	Osc_next_ikk(unit, 1);
-	printf("[Osc] first sample:\n\t");
+//	Osc_next_ikk(unit, 1);//mtm
+	printf("[Osc] first sample:\n\t");//mtm
+	unit->m_phase = initphase;
 }
 
 force_inline bool Osc_get_table(Osc *unit, const float *& table0, const float *& table1, int inNumSamples)
@@ -1946,34 +1960,33 @@ void OscN_Ctor(OscN *unit)
 
 	int tableSize = buf->samples;
 	unit->m_radtoinc = tableSize * (rtwopi * 65536.);
-
+	
 	unit->m_phasein = ZIN0(2);
-	//Print("OscN_Ctor\n");
+	int32 initphase;
 	if (INRATE(1) == calc_FullRate) {
 		if (INRATE(2) == calc_FullRate) {
-			//Print("next_naa\n");
 			SETCALC(OscN_next_naa);
-			unit->m_phase = 0;
 		} else {
-			//Print("next_nak\n");
 			SETCALC(OscN_next_nak);
-			unit->m_phase = 0;
 		}
+		unit->m_phase = initphase = 0;//mtm
+		OscN_next_naa(unit, 1);//mtm
 	} else {
 		if (INRATE(2) == calc_FullRate) {
-			//Print("next_nka\n");
 			SETCALC(OscN_next_nka);
-			unit->m_phase = 0;
+			unit->m_phase = initphase = 0;//mtm
+			OscN_next_naa(unit, 1);//mtm
 		} else {
-			//Print("next_nkk\n");
 			SETCALC(OscN_next_nkk);
-			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
+			unit->m_phase = initphase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
+			OscN_next_nkk(unit, 1);//mtm
 		}
 	}
 
 	printf("[OscN] init sample:\n\t");
-	OscN_next_nkk(unit, 1);
+//	OscN_next_nkk(unit, 1);
 	printf("[OscN] first sample:\n\t");
+	unit->m_phase = initphase;//mtm
 }
 
 
@@ -2003,7 +2016,10 @@ void OscN_next_nkk(OscN *unit, int inNumSamples)
 	unit->m_phasein = phasein;
 
 	LOOP1(inNumSamples,
-		ZXP(out) = *(float*)((char*)table + ((phase >> xlobits) & lomask));
+		  float val = *(float*)((char*)table + ((phase >> xlobits) & lomask));
+		  printf("[OscN_next_nkk] %f\n", val);//mtm
+		  ZXP(out) = val;
+//		ZXP(out) = *(float*)((char*)table + ((phase >> xlobits) & lomask));//mtm
 		phase += phaseinc;
 	);
 	unit->m_phase = phase;
@@ -2036,6 +2052,7 @@ void OscN_next_nka(OscN *unit, int inNumSamples)
 	float radtoinc = unit->m_radtoinc;
 	LOOP1(inNumSamples,
 		int32 pphase = phase + (int32)(radtoinc * ZXP(phasein));
+		  printf("[OscN_next_nka] %f\n", *(float*)((char*)table + ((pphase >> xlobits) & lomask)));//mtm
 		ZXP(out) = *(float*)((char*)table + ((pphase >> xlobits) & lomask));
 		phase += freq;
 	);
@@ -2069,6 +2086,7 @@ void OscN_next_naa(OscN *unit, int inNumSamples)
 		int32 pphase = phase + (int32)(radtoinc * ZXP(phasein));
 		float z = *(float*)((char*)table + ((pphase >> xlobits) & lomask));
 		phase += (int32)(cpstoinc * ZXP(freqin));
+		  printf("[OscN_next_naa] %f\n", z);//mtm
 		ZXP(out) = z;
 	);
 	unit->m_phase = phase;
@@ -2106,6 +2124,7 @@ void OscN_next_nak(OscN *unit, int inNumSamples)
 		phasemod += phaseslope;
 		float z = *(float*)((char*)table + ((pphase >> xlobits) & lomask));
 		phase += (int32)(cpstoinc * ZXP(freqin));
+		    printf("[OscN_next_nak] %f\n", z);//mtm
 		ZXP(out) = z;
 	);
 	unit->m_phase = phase;
