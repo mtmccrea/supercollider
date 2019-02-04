@@ -1541,7 +1541,10 @@ force_inline void Osc_ikk_perform(OscType *unit, const float * table0, const flo
 	unit->m_phasein = phasein;
 
 	LOOP1(inNumSamples,
-		ZXP(out) = lookupi1(table0, table1, phase, lomask);
+		  float val = lookupi1(table0, table1, phase, lomask);//mtm
+		  printf("[Osc_ikk_perform] %f\n", val);//mtm
+		  ZXP(out) = val;//mtm
+//		ZXP(out) = lookupi1(table0, table1, phase, lomask);
 		phase += phaseinc;
 	);
 	unit->m_phase = phase;
@@ -1570,7 +1573,10 @@ force_inline void Osc_ika_perform(OscType *unit, const float * table0, const flo
 	float radtoinc = unit->m_radtoinc;
 	LOOP1(inNumSamples,
 		int32 phaseoffset = phase + (int32)(radtoinc * ZXP(phasein));
-		ZXP(out) = lookupi1(table0, table1, phaseoffset, lomask);
+		  float val = lookupi1(table0, table1, phaseoffset, lomask);//mtm
+		  printf("[Osc_ika_perform] %f\n", val);//mtm
+		  ZXP(out) = val;//mtm
+//		ZXP(out) = lookupi1(table0, table1, phaseoffset, lomask);//mtm
 		phase += freq;
 	);
 	unit->m_phase = phase;
@@ -1602,6 +1608,7 @@ force_inline void Osc_iaa_perform(OscType * unit, const float * table0, const fl
 		int32 phaseoffset = phase + (int32)(radtoinc * phaseIn);
 		float z = lookupi1(table0, table1, phaseoffset, lomask);
 		phase += (int32)(cpstoinc * freqIn);
+		  printf("[Osc_iaa_perform] %f\n", z);//mtm
 		ZXP(out) = z;
 	);
 	unit->m_phase = phase;
@@ -1638,12 +1645,14 @@ force_inline void Osc_iak_perform(OscType *unit, const float * table0, const flo
 			phasemod += phaseslope;
 			float z = lookupi1(table0, table1, pphase, lomask);
 			phase += (int32)(cpstoinc * ZXP(freqin));
+			  printf("[Osc_iak_perform-phasemod] %f\n", z);//mtm
 			ZXP(out) = z;
 		);
 	} else {
 		LOOP1(inNumSamples,
 			int32 pphase = phase + (int32)(radtoinc * phasemod);
 			float z = lookupi1(table0, table1, pphase, lomask);
+			  printf("[Osc_iak_perform-staticphase] %f\n", z);//mtm
 			phase += (int32)(cpstoinc * ZXP(freqin));
 			ZXP(out) = z;
 		);
@@ -1678,6 +1687,7 @@ force_inline void Osc_iai_perform(OscType *unit, const float * table0, const flo
 		  int32 pphase = phase + (int32)(radtoinc * phasemod);
 		  float z = lookupi1(table0, table1, pphase, lomask);
 		  phase += (int32)(cpstoinc * ZXP(freqin));
+			  printf("[Osc_iai_perform] %f\n", z);//mtm
 		  ZXP(out) = z;
 	);
 	unit->m_phase = phase;
@@ -1698,7 +1708,10 @@ void SinOsc_Ctor(SinOsc *unit)
 	unit->m_radtoinc = tableSize2 * (rtwopi * 65536.);
 	unit->m_cpstoinc = tableSize2 * SAMPLEDUR * 65536.;
 	unit->m_lomask = (tableSize2 - 1) << 3;
-
+	
+	int32 initPhase;//mtm
+	printf("[SinOsc] init sample:\n\t");//mtm
+	
 	if (INRATE(0) == calc_FullRate) {
 		if (INRATE(1) == calc_FullRate)
 			SETCALC(SinOsc_next_iaa);
@@ -1707,20 +1720,28 @@ void SinOsc_Ctor(SinOsc *unit)
 		else
 			SETCALC(SinOsc_next_iai);
 
-		unit->m_phase = 0;
+//		unit->m_phase = 0;//mtm
+		unit->m_phase = initPhase = 0;//mtm
+		SinOsc_next_iaa(unit, 1);//mtm
 	} else {
 		if (INRATE(1) == calc_FullRate) {
 			//Print("next_ika\n");
 			SETCALC(SinOsc_next_ika);
-			unit->m_phase = 0;
+//			unit->m_phase = 0;//mtm
+			unit->m_phase = initPhase = 0;//mtm
+			SinOsc_next_iaa(unit, 1);//mtm
 		} else {
 			SETCALC(SinOsc_next_ikk);
-			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);
+//			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
+			unit->m_phase = initPhase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
+			SinOsc_next_ikk(unit, 1);//mtm
 		}
 	}
-	printf("[SinOsc] init sample:\n\t");
-	int32 initPhase = unit->m_phase; // store init state mtm
-	SinOsc_next_ikk(unit, 1);
+	
+//	int32 initPhase;
+//	unit->m_phase = initPhase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
+//	int32 initPhase = unit->m_phase;
+//	SinOsc_next_ikk(unit, 1);
 	unit->m_phase = initPhase; // restore initial state mtm
 	printf("[SinOsc] first sample:\n\t");
 }
