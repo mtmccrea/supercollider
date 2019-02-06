@@ -2143,6 +2143,8 @@ void COsc_Ctor(COsc *unit)
 	printf("[COsc] init sample:\n\t");
 	COsc_next(unit, 1);
 	printf("[COsc] first sample:\n\t");
+	unit->m_phase1 = 0;//mtm
+	unit->m_phase2 = 0;//mtm
 }
 
 
@@ -2176,6 +2178,7 @@ void COsc_next(COsc *unit, int inNumSamples)
 	LOOP1(inNumSamples,
 		float a = lookupi1(table0, table1, phase1, lomask);
 		float b = lookupi1(table0, table1, phase2, lomask);
+		   printf("[COsc_next] %f\n", a + b);//mtm
 		ZXP(out) = a + b;
 		phase1 += freq1;
 		phase2 += freq2;
