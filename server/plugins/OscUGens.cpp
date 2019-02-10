@@ -2195,6 +2195,7 @@ static inline const SndBuf * VOscGetBuf(int & bufnum, World * world, Unit * unit
 		bufnum = 0;
 
 	const SndBuf * bufs;
+//	 printf("[VOsc] bufnum %d\n", bufnum);//mtm
 	if (bufnum+1 >= world->mNumSndBufs) {
 		int localBufNum = bufnum - world->mNumSndBufs;
 		Graph *parent = unit->mParent;
@@ -2231,17 +2232,22 @@ void VOsc_Ctor(VOsc *unit)
 
 	unit->m_phasein = ZIN0(2);
 	unit->m_phaseoffset = (int32)(unit->m_phasein * unit->m_radtoinc);
-
+	
+	double initphase; //mtm
+	printf("[VOsc] init sample:\n\t");//mtm
 	if (INRATE(2) == calc_FullRate) {
 		SETCALC(VOsc_next_ika);
-		unit->m_phase = 0;
+		unit->m_phase = initphase = 0;//mtm
+		VOsc_next_ika(unit, 1);//mtm
 	} else {
 		SETCALC(VOsc_next_ikk);
-		unit->m_phase = unit->m_phaseoffset;
+		unit->m_phase = initphase =unit->m_phaseoffset;//mtm
+		VOsc_next_ikk(unit, 1);//mtm
 	}
-	printf("[VOsc] init sample:\n\t");
-	VOsc_next_ikk(unit, 1);
-	printf("[VOsc] first sample:\n\t");
+	
+	unit->m_phase = initphase;
+//	VOsc_next_ikk(unit, 1);//mtm
+	printf("[VOsc] first sample:\n\t");//mtm
 }
 
 void VOsc_next_ikk(VOsc *unit, int inNumSamples)
@@ -2267,10 +2273,11 @@ void VOsc_next_ikk(VOsc *unit, int inNumSamples)
 	if (bufdiff == 0.f) {
 		float level = cur - sc_floor(cur);
 		int32 bufnum = (int)sc_floor(cur);
-
+		
+//		printf("[VOsc] level %f, bufnum %d\n", level, bufnum);//mtm
 		const SndBuf *bufs = VOscGetBuf(bufnum, world, unit);
-		if (!verify_wavetable(unit, "VOsc", tableSize, inNumSamples)) return;
-
+		if (!verify_wavetable(unit, "VOsc", tableSize, inNumSamples)) return;//mtm
+		
 		const float *table0  = bufs[0].data;
 		const float *table2  = bufs[1].data;
 		if (!table0 || !table2 || tableSize != bufs[0].samples|| tableSize != bufs[1].samples) {
@@ -2290,6 +2297,7 @@ void VOsc_next_ikk(VOsc *unit, int inNumSamples)
 			float val3 = *(float*)((char*)table3 + index);
 			float a = val0 + val1 * pfrac;
 			float b = val2 + val3 * pfrac;
+			  printf("[VOsc_next_ikk] %f\n", a + level * (b - a));//mtm
 			ZXP(out) = a + level * (b - a);
 			phase += phaseinc;
 		);
@@ -2340,6 +2348,7 @@ void VOsc_next_ikk(VOsc *unit, int inNumSamples)
 				float val3 = *(float*)((char*)table3 + index);
 				float a = val0 + val1 * pfrac;
 				float b = val2 + val3 * pfrac;
+				 printf("[VOsc_next_ikk2] %f\n", a + level * (b - a));//mtm
 				ZXP(out) = a + level * (b - a);
 				phase += phaseinc;
 				level += slope;
@@ -2399,6 +2408,7 @@ void VOsc_next_ika(VOsc *unit, int inNumSamples)
 			float val3 = *(float*)((char*)table3 + index);
 			float a = val0 + val1 * pfrac;
 			float b = val2 + val3 * pfrac;
+			  printf("[VOsc_next_ika] %f\n", a + level * (b - a));//mtm
 			ZXP(out) = a + level * (b - a);
 			phase += phaseinc;
 		);
@@ -2450,6 +2460,7 @@ void VOsc_next_ika(VOsc *unit, int inNumSamples)
 				float val3 = *(float*)((char*)table3 + index);
 				float a = val0 + val1 * pfrac;
 				float b = val2 + val3 * pfrac;
+				 printf("[VOsc_next_ika2] %f\n", a + level * (b - a));//mtm
 				ZXP(out) = a + level * (b - a);
 				phase += phaseinc;
 				level += slope;
@@ -2486,9 +2497,13 @@ void VOsc3_Ctor(VOsc3 *unit)
 	unit->m_phase2 = 0;
 	unit->m_phase3 = 0;
 
-	printf("[VOsc3] init sample:\n\t");
+	printf("[VOsc3] init sample:\n\t");//mtm
 	VOsc3_next_ik(unit, 1);
-	printf("[VOsc3] first sample:\n\t");
+	printf("[VOsc3] first sample:\n\t");//mtm
+	
+	unit->m_phase1 = 0;//mtm
+	unit->m_phase2 = 0;//mtm
+	unit->m_phase3 = 0;//mtm
 }
 
 void VOsc3_next_ik(VOsc3 *unit, int inNumSamples)
@@ -2567,7 +2582,7 @@ void VOsc3_next_ik(VOsc3 *unit, int inNumSamples)
 			float val33 = *(float*)((char*)table3 + index3);
 			a += val30 + val31 * pfrac3;
 			b += val32 + val33 * pfrac3;
-
+			  printf("[VOsc3_next_ik1] %f\n", a + level * (b - a));//mtm
 			ZXP(out) = a + level * (b - a);
 		);
 	} else {
@@ -2642,7 +2657,7 @@ void VOsc3_next_ik(VOsc3 *unit, int inNumSamples)
 				float val33 = *(float*)((char*)table3 + index3);
 				a += val30 + val31 * pfrac3;
 				b += val32 + val33 * pfrac3;
-
+				   printf("[VOsc3_next_ik2] %f\n", a + level * (b - a));//mtm
 				ZXP(out) = a + level * (b - a);
 				level += slope;
 			);
@@ -2666,9 +2681,12 @@ void Formant_Ctor(Formant *unit)
 	unit->m_phase1 = 0;
 	unit->m_phase2 = 0;
 	unit->m_phase3 = 0;
-	printf("[Formant] init sample:\n\t");
+	printf("[Formant] init sample:\n\t");//mtm
 	Formant_next(unit, 1);
-	printf("[Formant] first sample:\n\t");
+	printf("[Formant] first sample:\n\t");//mtm
+	unit->m_phase1 = 0;//mtm
+	unit->m_phase2 = 0;//mtm
+	unit->m_phase3 = 0;//mtm
 }
 
 #define tqcyc13 0x18000000
@@ -2691,10 +2709,15 @@ void Formant_next(Formant *unit, int inNumSamples)
 	int32 formfreq = sc_max(freq1, freq3);
 	LOOP1(inNumSamples,
 		if (phase3 < onecyc13) {
-			ZXP(out) = (*(float*)((char*)sine + (((phase3 + tqcyc13) >> xlobits) & xlomask13)) + 1.f)
-			         *  *(float*)((char*)sine + ((phase2 >> xlobits) & xlomask13));
+			 float val = (*(float*)((char*)sine + (((phase3 + tqcyc13) >> xlobits) & xlomask13)) + 1.f)
+			*  *(float*)((char*)sine + ((phase2 >> xlobits) & xlomask13)); //mtm
+			 printf("[Formant_next] %f\n", val);//mtm
+			 ZXP(out) = val;//mtm
+//			ZXP(out) = (*(float*)((char*)sine + (((phase3 + tqcyc13) >> xlobits) & xlomask13)) + 1.f)
+//			         *  *(float*)((char*)sine + ((phase2 >> xlobits) & xlomask13));
 			phase3 += formfreq;
 		} else {
+			printf("[Formant_next else] %f\n", 0.f);//mtm
 			ZXP(out) = 0.f;
 		}
 		phase1 += freq1;
