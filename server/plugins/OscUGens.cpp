@@ -2761,6 +2761,10 @@ void Blip_Ctor(Blip *unit)
 	printf("[Blip] init sample:\n\t");
 	Blip_next(unit, 1);
 	printf("[Blip] first sample:\n\t");
+	
+	unit->m_N = N;//mtm
+	unit->m_scale = 0.5/N;//mtm
+	unit->m_phase = 0;//mtm
 }
 
 void Blip_next(Blip *unit, int inNumSamples)
@@ -2817,6 +2821,7 @@ void Blip_next(Blip *unit, int inNumSamples)
 				float pfrac = PhaseFrac(phase);
 				float denom = t0 + (t1 - t0) * pfrac;
 				if (std::abs(denom) < 0.0005f) {
+					   printf("[Blip_next 1] %f\n", 1.f);//mtm
 					ZXP(out) = 1.f;
 				} else {
 					int32 rphase = phase * prevN2;
@@ -2830,7 +2835,7 @@ void Blip_next(Blip *unit, int inNumSamples)
 					tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 					numer = lininterp(pfrac, tbl[0], tbl[1]);
 					float n2 = (numer / denom - 1.f) * scale;
-
+					   printf("[Blip_next 2] %f\n", lininterp(xfade, n1, n2));//mtm
 					ZXP(out) = lininterp(xfade, n1, n2);
 				}
 			} else {
@@ -2848,7 +2853,7 @@ void Blip_next(Blip *unit, int inNumSamples)
 				tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 				numer = lininterp(pfrac, tbl[0], tbl[1]);
 				float n2 = (numer * denom - 1.f) * scale;
-
+				   printf("[Blip_next 3] %f\n", lininterp(xfade, n1, n2));//mtm
 				ZXP(out) = lininterp(xfade, n1, n2);
 			}
 			phase += freq;
@@ -2868,12 +2873,14 @@ void Blip_next(Blip *unit, int inNumSamples)
 				float pfrac = PhaseFrac(phase);
 				float denom = t0 + (t1 - t0) * pfrac;
 				if (std::abs(denom) < 0.0005f) {
+					  printf("[Blip_next else 4] %f\n", 1.f);//mtm
 					ZXP(out) = 1.f;
 				} else {
 					int32 rphase = phase * N2;
 					pfrac = PhaseFrac(rphase);
 					tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 					float numer = lininterp(pfrac, tbl[0], tbl[1]);
+					  printf("[Blip_next else 5] %f\n", (numer / denom - 1.f) * scale);//mtm
 					ZXP(out) = (numer / denom - 1.f) * scale;
 				}
 			} else {
@@ -2883,6 +2890,7 @@ void Blip_next(Blip *unit, int inNumSamples)
 				pfrac = PhaseFrac(rphase);
 				tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 				float numer = lininterp(pfrac, tbl[0], tbl[1]);
+				 printf("[Blip_next else 6] %f\n", (numer * denom - 1.f) * scale);//mtm
 				ZXP(out) = (numer * denom - 1.f) * scale;
 			}
 			phase += freq;
@@ -2910,8 +2918,12 @@ void Saw_Ctor(Saw *unit)
 	unit->m_y1 = -0.46f;
 
 	printf("[Saw] init sample:\n\t%f\n", 0.f);
-	ZOUT0(0) = 0.f;
+	ZOUT0(0) = 0.f; // <<<<<<<<<<<<< needs to be set properly
 	printf("[Saw] first sample:\n\t");
+	
+	unit->m_scale = 0.5/unit->m_N;//mtm
+	unit->m_phase = 0;//mtm
+	unit->m_y1 = -0.46f;//mtm
 }
 
 void Saw_next(Saw *unit, int inNumSamples)
@@ -2966,6 +2978,7 @@ void Saw_next(Saw *unit, int inNumSamples)
 				float pfrac = PhaseFrac(phase);
 				float denom = t0 + (t1 - t0) * pfrac;
 				if (std::abs(denom) < 0.0005f) {
+					 printf("[Saw_next 1] %f\n", 1.f + 0.999f * y1);//mtm
 					ZXP(out) = y1 = 1.f + 0.999f * y1;
 				} else {
 					int32 rphase = phase * prevN2;
@@ -2979,7 +2992,7 @@ void Saw_next(Saw *unit, int inNumSamples)
 					tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 					numer = lininterp(pfrac, tbl[0], tbl[1]);
 					float n2 = (numer / denom - 1.f) * scale;
-
+					 printf("[Saw_next 2] %f\n", n1 + xfade * (n2 - n1) + 0.999f * y1);//mtm
 					ZXP(out) = y1 = n1 + xfade * (n2 - n1) + 0.999f * y1;
 				}
 
@@ -2998,7 +3011,7 @@ void Saw_next(Saw *unit, int inNumSamples)
 				tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 				numer = lininterp(pfrac, tbl[0], tbl[1]);
 				float n2 = (numer * denom - 1.f) * scale;
-
+ printf("[Saw_next 3] %f\n", n1 + xfade * (n2 - n1) + 0.999f * y1);//mtm
 				ZXP(out) = y1 = n1 + xfade * (n2 - n1) + 0.999f * y1;
 			}
 			phase += freq;
@@ -3018,12 +3031,14 @@ void Saw_next(Saw *unit, int inNumSamples)
 				float pfrac = PhaseFrac(phase);
 				float denom = t0 + (t1 - t0) * pfrac;
 				if (std::abs(denom) < 0.0005f) {
+					 printf("[Saw_next 4] %f\n", 1.f + 0.999f * y1);//mtm
 					ZXP(out) = y1 = 1.f + 0.999f * y1;
 				} else {
 					int32 rphase = phase * N2;
 					pfrac = PhaseFrac(rphase);
 					tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 					float numer = lininterp(pfrac, tbl[0], tbl[1]);
+					 printf("[Saw_next 5] %f\n", (numer / denom - 1.f) * scale + 0.999f * y1);//mtm
 					ZXP(out) = y1 = (numer / denom - 1.f) * scale + 0.999f * y1;
 				}
 			} else {
@@ -3033,6 +3048,7 @@ void Saw_next(Saw *unit, int inNumSamples)
 				pfrac = PhaseFrac(rphase);
 				float* tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
 				float numer = lininterp(pfrac, tbl[0], tbl[1]);
+				 printf("[Saw_next 6] %f\n", (numer * denom - 1.f) * scale + 0.999f * y1);//mtm
 				ZXP(out) = y1 = (numer * denom - 1.f) * scale + 0.999f * y1;
 			}
 			phase += freq;
