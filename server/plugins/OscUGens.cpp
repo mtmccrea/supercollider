@@ -2917,8 +2917,9 @@ void Saw_Ctor(Saw *unit)
 	unit->m_phase = 0;
 	unit->m_y1 = -0.46f;
 
-	printf("[Saw] init sample:\n\t%f\n", 0.f);
-	ZOUT0(0) = 0.f; // <<<<<<<<<<<<< needs to be set properly
+	printf("[Saw] init sample:\n\t");
+//	ZOUT0(0) = 0.f; // <<<<<<<<<<<<< needs to be set properly
+	Saw_next(unit, 1);//mtm
 	printf("[Saw] first sample:\n\t");
 	
 	unit->m_scale = 0.5/unit->m_N;//mtm
