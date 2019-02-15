@@ -3073,12 +3073,29 @@ void Pulse_Ctor(Pulse *unit)
 	unit->m_cpstoinc = ft->mSineSize * SAMPLEDUR * 65536. * 0.5;
 	unit->m_N = (int32)((SAMPLERATE * 0.5) / unit->m_freqin);
 	unit->m_scale = 0.5/unit->m_N;
-	unit->m_phase = 0;
-	unit->m_phaseoff = 0;
-	unit->m_y1 = 0.f;
-	printf("[Pulse] init sample:\n\t%f\n", 0.f);
-	ZOUT0(0) = 0.f;
+//	unit->m_phase = 0;
+//	unit->m_phaseoff = 0;
+//	unit->m_y1 = 0.f;//mtm
+//	ZOUT0(0) = 0.f;//mtm
+	
+	printf("[Pulse] mscale - before: %f\n\t", unit->m_scale);
+	int32 initphaseoff;
+	unit->m_phase = 0.f;
+	unit->m_phaseoff = initphaseoff = (int32)(ZIN0(1) * (1L << 28));
+//	unit->m_y1 = 0.f;//mtm
+	unit->m_y1 = -0.476432;//mtm
+
+	printf("[Pulse] init sample:\n\t");
+	Pulse_next(unit, 1);
 	printf("[Pulse] first sample:\n\t");
+
+	unit->m_phase = 0.f;
+//	unit->m_phaseoff = 0;//mtm
+	unit->m_phaseoff = initphaseoff;
+//	unit->m_y1 = 0.f;//mtm
+	unit->m_y1 = -0.476432;//mtm
+//	unit->m_scale = 0.5/unit->m_N;//mtm
+	printf("[Pulse] mscale - after: %f\n\t", unit->m_scale);
 }
 
 void Pulse_next(Pulse *unit, int inNumSamples)
@@ -3124,6 +3141,7 @@ void Pulse_next(Pulse *unit, int inNumSamples)
 	int32 next_phaseoff = (int32)(duty * (1L << 28));
 	int32 phaseoff_slope = (int32)((next_phaseoff - phaseoff) * unit->mRate->mSlopeFactor);
 	unit->m_phaseoff = next_phaseoff;
+	
 	float rscale = 1.f / scale + 1.f;
 	float pul1, pul2;
 
@@ -3222,8 +3240,10 @@ void Pulse_next(Pulse *unit, int inNumSamples)
 
 				pul2 = lininterp(xfade, n1, n2);
 			}
-
-			ZXP(out) = y1 = pul1 - pul2 + 0.999f * y1;
+			  float val = pul1 - pul2 + 0.999f * y1;
+			  printf("[Pulse_next 5] %f\n", val); //mtm
+			  ZXP(out) = y1 = val;//mtm
+//			ZXP(out) = y1 = pul1 - pul2 + 0.999f * y1;
 			phase += freq;
 			phaseoff += phaseoff_slope;
 			xfade += xfade_slope;
@@ -3259,6 +3279,7 @@ void Pulse_next(Pulse *unit, int inNumSamples)
 			}
 
 			int32 phase2 = phase + phaseoff;
+			  printf("\tphase: %d  offset: %d\n\t", phase, phaseoff);//mtm
 			tbl = (float*)((char*)dentbl + ((phase2 >> xlobits) & xlomask13));
 			t0 = tbl[0];
 			t1 = tbl[1];
@@ -3287,8 +3308,10 @@ void Pulse_next(Pulse *unit, int inNumSamples)
 
 				pul2 = (numer * denom);
 			}
-
-			ZXP(out) = y1 = (pul1 - pul2) * scale + 0.999f * y1;
+			  float val = (pul1 - pul2) * scale + 0.999f * y1;//mtm
+			  printf("[Pulse_next 6] %f\n", val); //mtm
+			  ZXP(out) = y1 = val;//mtm
+//			ZXP(out) = y1 = (pul1 - pul2) * scale + 0.999f * y1;//mtm
 			phase += freq;
 			phaseoff += phaseoff_slope;
 		);
