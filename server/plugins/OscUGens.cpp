@@ -3348,14 +3348,29 @@ static float Klang_SetCoefs(Klang *unit)
 		float level = ZIN0(j+1);
 		float phase = ZIN0(j+2);
 
+//		if (phase != 0.f) {
+//			Print("Klang: br 1\n");//mtm
+//			outf += *++coefs = level * sin(phase);		// y1
+//			        *++coefs = level * sin(phase - w);	// y2
+//		} else {
+//			Print("Klang: br 1\n");//mtm
+//			outf += *++coefs = 0.f;						// y1
+//			        *++coefs = level * -sin(w);	// y2
+//		}
+//		*++coefs = 2. * cos(w);		// b1
+
+		// start mtm
 		if (phase != 0.f) {
-			outf += *++coefs = level * sin(phase);		// y1
-			        *++coefs = level * sin(phase - w);	// y2
+			outf += level * sin(phase);
+			*++coefs = level * sin(phase - w);		// y1
+			*++coefs = level * sin(phase - w - w);	// y2
 		} else {
-			outf += *++coefs = 0.f;						// y1
-			        *++coefs = level * -sin(w);	// y2
+			outf += 0.f;
+			*++coefs = level * -sin(w);		// y1
+			*++coefs = level * -sin(w+w);	// y2
 		}
 		*++coefs = 2. * cos(w);		// b1
+		// end mtm
 	}
 	return outf;
 }
@@ -3363,9 +3378,12 @@ static float Klang_SetCoefs(Klang *unit)
 void Klang_Ctor(Klang *unit)
 {
 	SETCALC(Klang_next);
-	printf("[Klang] init sample:\n\t%f\n", Klang_SetCoefs(unit));
-	ZOUT0(0) = Klang_SetCoefs(unit);
-	printf("[Klang] first sample:\n\t");
+	
+	float val = Klang_SetCoefs(unit);//mtm
+	printf("[Klang] init sample:\n\t%f\n", val);//mtm
+	ZOUT0(0) = val;//mtm
+//	ZOUT0(0) = Klang_SetCoefs(unit);
+	printf("[Klang] first sample:\n\t");//mtm
 }
 
 void Klang_Dtor(Klang *unit)
@@ -3398,16 +3416,19 @@ void Klang_next(Klang *unit, int inNumSamples)
 				outf  = y0_0 = b1_0 * y1_0 - y2_0;
 				outf += y0_1 = b1_1 * y1_1 - y2_1;
 				outf += y0_2 = b1_2 * y1_2 - y2_2;
+				   printf("[Klang_next 1] %f\n", outf); //mtm
 				ZXP(out) = outf;
 
 				outf  = y2_0 = b1_0 * y0_0 - y1_0;
 				outf += y2_1 = b1_1 * y0_1 - y1_1;
 				outf += y2_2 = b1_2 * y0_2 - y1_2;
+				   printf("[Klang_next 2] %f\n", outf); //mtm
 				ZXP(out) = outf;
 
 				outf  = y1_0 = b1_0 * y2_0 - y0_0;
 				outf += y1_1 = b1_1 * y2_1 - y0_1;
 				outf += y1_2 = b1_2 * y2_2 - y0_2;
+				 	  printf("[Klang_next 3] %f\n", outf); //mtm
 				ZXP(out) = outf;
 			);
 			LOOP(unit->mRate->mFilterRemain,
@@ -3417,6 +3438,7 @@ void Klang_next(Klang *unit, int inNumSamples)
 				y2_0 = y1_0;	y1_0 = y0_0;
 				y2_1 = y1_1;	y1_1 = y0_1;
 				y2_2 = y1_2;	y1_2 = y0_2;
+				   printf("[Klang_next 4] %f\n", outf); //mtm
 				ZXP(out) = outf;
 			);
 			coefs -= 9;
@@ -3432,14 +3454,17 @@ void Klang_next(Klang *unit, int inNumSamples)
 			LOOP(unit->mRate->mFilterLoops,
 				outf  = y0_0 = b1_0 * y1_0 - y2_0;
 				outf += y0_1 = b1_1 * y1_1 - y2_1;
+				   printf("[Klang_next 5] %f\n", outf); //mtm
 				ZXP(out) = outf;
 
 				outf  = y2_0 = b1_0 * y0_0 - y1_0;
 				outf += y2_1 = b1_1 * y0_1 - y1_1;
+				   printf("[Klang_next 6] %f\n", outf); //mtm
 				ZXP(out) = outf;
 
 				outf  = y1_0 = b1_0 * y2_0 - y0_0;
 				outf += y1_1 = b1_1 * y2_1 - y0_1;
+				   printf("[Klang_next 7] %f\n", outf); //mtm
 				ZXP(out) = outf;
 			);
 			LOOP(unit->mRate->mFilterRemain,
@@ -3447,6 +3472,7 @@ void Klang_next(Klang *unit, int inNumSamples)
 				outf += y0_1 = b1_1 * y1_1 - y2_1;
 				y2_0 = y1_0;	y1_0 = y0_0;
 				y2_1 = y1_1;	y1_1 = y0_1;
+				   printf("[Klang_next 9] %f\n", outf); //mtm
 				ZXP(out) = outf;
 			);
 
@@ -3459,13 +3485,17 @@ void Klang_next(Klang *unit, int inNumSamples)
 
 			out = out0;
 			LOOP(unit->mRate->mFilterLoops,
+				   printf("[Klang_next 10] %f\n", b1_0 * y1_0 - y2_0); //mtm
 				ZXP(out) = y0_0 = b1_0 * y1_0 - y2_0;
 
+				   printf("[Klang_next 11] %f\n", b1_0 * y0_0 - y1_0); //mtm
 				ZXP(out) = y2_0 = b1_0 * y0_0 - y1_0;
 
+				   printf("[Klang_next 12] %f\n", b1_0 * y2_0 - y0_0); //mtm
 				ZXP(out) = y1_0 = b1_0 * y2_0 - y0_0;
 			);
 			LOOP(unit->mRate->mFilterRemain,
+				 printf("[Klang_next 13] %f\n", b1_0 * y1_0 - y2_0); //mtm
 				ZXP(out) = y0_0 = b1_0 * y1_0 - y2_0;
 				y2_0 = y1_0;	y1_0 = y0_0;
 			);
@@ -3493,18 +3523,21 @@ void Klang_next(Klang *unit, int inNumSamples)
 			outf += y0_1 = b1_1 * y1_1 - y2_1;
 			outf += y0_2 = b1_2 * y1_2 - y2_2;
 			outf += y0_3 = b1_3 * y1_3 - y2_3;
+			  printf("[Klang_next 14] %f\n", outf); //mtm
 			ZXP(out) += outf;
 
 			outf  = y2_0 = b1_0 * y0_0 - y1_0;
 			outf += y2_1 = b1_1 * y0_1 - y1_1;
 			outf += y2_2 = b1_2 * y0_2 - y1_2;
 			outf += y2_3 = b1_3 * y0_3 - y1_3;
+			  printf("[Klang_next 15] %f\n", outf); //mtm
 			ZXP(out) += outf;
 
 			outf  = y1_0 = b1_0 * y2_0 - y0_0;
 			outf += y1_1 = b1_1 * y2_1 - y0_1;
 			outf += y1_2 = b1_2 * y2_2 - y0_2;
 			outf += y1_3 = b1_3 * y2_3 - y0_3;
+			  printf("[Klang_next 16] %f\n", outf); //mtm
 			ZXP(out) += outf;
 		);
 		LOOP(unit->mRate->mFilterRemain,
@@ -3516,6 +3549,7 @@ void Klang_next(Klang *unit, int inNumSamples)
 			y2_1 = y1_1;	y1_1 = y0_1;
 			y2_2 = y1_2;	y1_2 = y0_2;
 			y2_3 = y1_3;	y1_3 = y0_3;
+			  printf("[Klang_next 17] %f\n", outf); //mtm
 			ZXP(out) += outf;
 		);
 		coefs -= 12;
