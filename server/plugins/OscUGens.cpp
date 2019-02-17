@@ -4686,18 +4686,19 @@ void Klang_next(Klang *unit, int inNumSamples)
 
 static void Klank_SetCoefs(Klank *unit)
 {
-	int numpartials = (unit->mNumInputs - 4) / 3;
-	unit->m_numpartials = numpartials;
-
-	int numcoefs = ((unit->m_numpartials + 3) & ~3) * 5;
-	unit->m_coefs = (float*)RTAlloc(unit->mWorld, (numcoefs + unit->mWorld->mBufLength) * sizeof(float));
-	if (!unit->m_coefs) {
-		Print("Klang: RT memory allocation failed\n");
-		SETCALC(ClearUnitOutputs);
-		return;
-	}
-
-	unit->m_buf = unit->m_coefs + numcoefs;
+//// mtm moved to Ctor
+//	int numpartials = (unit->mNumInputs - 4) / 3;
+//	unit->m_numpartials = numpartials;
+//
+//	int numcoefs = ((unit->m_numpartials + 3) & ~3) * 5;
+//	unit->m_coefs = (float*)RTAlloc(unit->mWorld, (numcoefs + unit->mWorld->mBufLength) * sizeof(float));
+//	if (!unit->m_coefs) {
+//		Print("Klank: RT memory allocation failed\n");// mtm Klang/k typo fix
+//		SETCALC(ClearUnitOutputs);
+//		return;
+//	}
+//
+//	unit->m_buf = unit->m_coefs + numcoefs;
 
 	float freqscale = ZIN0(1) * unit->mRate->mRadiansPerSample;
 	float freqoffset = ZIN0(2) * unit->mRate->mRadiansPerSample;
@@ -4706,7 +4707,8 @@ static void Klank_SetCoefs(Klank *unit)
 	float* coefs = unit->m_coefs;
 
 	float sampleRate = SAMPLERATE;
-
+	int numpartials = unit->m_numpartials;//mtm
+	
 	for (int i=0,j=4; i<numpartials; ++i,j+=3) {
 		float w = ZIN0(j) * freqscale + freqoffset;
 		float level = ZIN0(j+1);
@@ -4723,7 +4725,6 @@ static void Klank_SetCoefs(Klank *unit)
 		coefs[k+8] = twoR * cost;			// b1
 		coefs[k+12] = -R2;					// b2
 		coefs[k+16] = level * 0.25;		// a0
-		//Print("coefs %d  %g %g %g\n", i, twoR * cost, -R2, ampf * 0.25);
 	}
 }
 
@@ -4731,9 +4732,39 @@ void Klank_Ctor(Klank *unit)
 {
 	SETCALC(Klank_next);
 	unit->m_x1 = unit->m_x2 = 0.f;
+	
+//	printf("[Klank] init sample: %f\n", 0.f);
+//	Klank_SetCoefs(unit);
+//	ZOUT0(0) = 0.f;//mtm
+//	printf("[Klank] first sample:\n\t");
+	
+	// mtm start
+	int numpartials = (unit->mNumInputs - 4) / 3;
+	unit->m_numpartials = numpartials;
+	int numcoefs = ((numpartials + 3) & ~3) * 5;
+
+	unit->m_coefs = (float*)RTAlloc(unit->mWorld, (numcoefs + unit->mWorld->mBufLength) * sizeof(float));
+	if (!unit->m_coefs) {
+		Print("Klank: RT memory allocation failed\n");// mtm Klang/k typo fix
+		SETCALC(ClearUnitOutputs);
+		return;
+	}
+	unit->m_buf = unit->m_coefs + numcoefs;
+	// mtm end
+	
 	Klank_SetCoefs(unit);
-	printf("[Klank] init sample:\n\t%f\n", 0.f);
-	ZOUT0(0) = 0.f;
+	printf("[Klank] init sample:\n\t");
+	int tempFiltLoops = unit->mRate->mFilterLoops;
+	int tempFiltRemain = unit->mRate->mFilterRemain;
+	unit->mRate->mFilterLoops = 0;				// don't allow to unwrap 3 samples, we don't have that much input
+	unit->mRate->mFilterRemain = 1;				// just go through 1 iteration
+	Klank_next(unit, 1);						// generate the init sample
+	unit->mRate->mFilterLoops = tempFiltLoops;	// reset for normal cycling
+	unit->mRate->mFilterRemain = tempFiltRemain;
+
+	printf("[Klank] RESETTING COEFFS\n");
+	unit->m_x1 = unit->m_x2 = 0.f;              // can't infer x1, x2, so zero
+	Klank_SetCoefs(unit);						// reset coeffs for first sample
 	printf("[Klank] first sample:\n\t");
 }
 
@@ -4772,18 +4803,21 @@ void Klank_next(Klank *unit, int inNumSamples)
 				y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
 				y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
 				y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
+					  printf("[Klank_next 1] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2); //mtm
 				*++out = a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2;
 
 				inf = *++in;
 				y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
 				y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
 				y2_2 = inf + b1_2 * y0_2 + b2_2 * y1_2;
+				 printf("[Klank_next 2] %f\n", a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2); //mtm
 				*++out = a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2;
 
 				inf = *++in;
 				y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
 				y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
 				y1_2 = inf + b1_2 * y2_2 + b2_2 * y0_2;
+				 printf("[Klank_next 3] %f\n", a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2); //mtm
 				*++out = a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2;
 			}
 			LooP(unit->mRate->mFilterRemain) {
@@ -4791,6 +4825,7 @@ void Klank_next(Klank *unit, int inNumSamples)
 				y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
 				y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
 				y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
+				 printf("[Klank_next 4] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2); //mtm
 				*++out = a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2;
 				y2_0 = y1_0;	y1_0 = y0_0;
 				y2_1 = y1_1;	y1_1 = y0_1;
@@ -4810,22 +4845,26 @@ void Klank_next(Klank *unit, int inNumSamples)
 				inf = *++in;
 				y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
 				y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
+				 printf("[Klank_next 15] %f\n", a0_0 * y0_0 + a0_1 * y0_1); //mtm
 				*++out = a0_0 * y0_0 + a0_1 * y0_1;
 
 				inf = *++in;
 				y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
 				y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
+				 printf("[Klank_next 16] %f\n", a0_0 * y2_0 + a0_1 * y2_1); //mtm
 				*++out = a0_0 * y2_0 + a0_1 * y2_1;
 
 				inf = *++in;
 				y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
 				y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
+				 printf("[Klank_next 17] %f\n", a0_0 * y1_0 + a0_1 * y1_1); //mtm
 				*++out = a0_0 * y1_0 + a0_1 * y1_1;
 			}
 			LooP(unit->mRate->mFilterRemain) {
 				inf = *++in;
 				y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
 				y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
+				 printf("[Klank_next 18] %f\n", a0_0 * y0_0 + a0_1 * y0_1); //mtm
 				*++out = a0_0 * y0_0 + a0_1 * y0_1;
 				y2_0 = y1_0;	y1_0 = y0_0;
 				y2_1 = y1_1;	y1_1 = y0_1;
@@ -4836,29 +4875,30 @@ void Klank_next(Klank *unit, int inNumSamples)
 		case 1 :
 			y1_0 = coefs[0];	y2_0 = coefs[4];	b1_0 = coefs[8];	b2_0 = coefs[12];	a0_0 = coefs[16];
 
-			//Print("rcoefs %g %g %g %g %g\n", y1_0, y2_0, b1_0, b2_0, a0_0);
 			in = in0;
 			out = unit->m_buf - 1;
 			LooP(unit->mRate->mFilterLoops) {
 				inf = *++in;
 				y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
+				 printf("[Klank_next 19] %f\n", a0_0 * y0_0); //mtm
 				*++out = a0_0 * y0_0;
 
 				inf = *++in;
 				y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
+				 printf("[Klank_next 100] %f\n", a0_0 * y2_0); //mtm
 				*++out = a0_0 * y2_0;
 
 				inf = *++in;
 				y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
+				 printf("[Klank_next 111] %f\n", a0_0 * y1_0); //mtm
 				*++out = a0_0 * y1_0;
-				//Print("out %g %g %g\n", y0_0, y2_0, y1_0);
 			}
 			LooP(unit->mRate->mFilterRemain) {
 				inf = *++in;
 				y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
+				 printf("[Klank_next 122] %f\n", a0_0 * y0_0); //mtm
 				*++out = a0_0 * y0_0;
 				y2_0 = y1_0;	y1_0 = y0_0;
-				//Print("out %g\n", y0_0);
 			}
 			/*
 			coefs[0] = y1_0;	coefs[4] = y2_0;
@@ -4873,6 +4913,8 @@ void Klank_next(Klank *unit, int inNumSamples)
 
 	coefs = unit->m_coefs;
 
+	printf("[Klank] Second loop\n"); //mtm
+	
 	for (int i=0; i<imax; ++i) {
 		y1_0 = coefs[0];	y2_0 = coefs[4];	b1_0 = coefs[8];	b2_0 = coefs[12];	a0_0 = coefs[16];
 		y1_1 = coefs[1];	y2_1 = coefs[5];	b1_1 = coefs[9];	b2_1 = coefs[13];	a0_1 = coefs[17];
@@ -4887,6 +4929,7 @@ void Klank_next(Klank *unit, int inNumSamples)
 			y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
 			y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
 			y0_3 = inf + b1_3 * y1_3 + b2_3 * y2_3;
+			 printf("[Klank_next 133] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3); //mtm
 			*++out += a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3;
 
 			inf = *++in;
@@ -4894,6 +4937,7 @@ void Klank_next(Klank *unit, int inNumSamples)
 			y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
 			y2_2 = inf + b1_2 * y0_2 + b2_2 * y1_2;
 			y2_3 = inf + b1_3 * y0_3 + b2_3 * y1_3;
+			 printf("[Klank_next 144] %f\n", a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2 + a0_3 * y2_3); //mtm
 			*++out += a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2 + a0_3 * y2_3;
 
 			inf = *++in;
@@ -4901,6 +4945,7 @@ void Klank_next(Klank *unit, int inNumSamples)
 			y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
 			y1_2 = inf + b1_2 * y2_2 + b2_2 * y0_2;
 			y1_3 = inf + b1_3 * y2_3 + b2_3 * y0_3;
+			 printf("[Klank_next 155] %f\n", a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2 + a0_3 * y1_3); //mtm
 			*++out += a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2 + a0_3 * y1_3;
 		}
 		LooP(unit->mRate->mFilterRemain) {
@@ -4909,6 +4954,7 @@ void Klank_next(Klank *unit, int inNumSamples)
 			y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
 			y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
 			y0_3 = inf + b1_3 * y1_3 + b2_3 * y2_3;
+			 printf("[Klank_next 166] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3); //mtm
 			*++out += a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3;
 			y2_0 = y1_0;	y1_0 = y0_0;
 			y2_1 = y1_1;	y1_1 = y0_1;
@@ -4930,14 +4976,18 @@ void Klank_next(Klank *unit, int inNumSamples)
 	out = out0;
 	LooP(unit->mRate->mFilterLoops) {
 		x0 = *++in;
+		 printf("[Klank_next 177] %f\n",  x0 - x2); //mtm
 		*++out = x0 - x2;
 		x2 = *++in;
+		 printf("[Klank_next 188] %f\n", x2 - x1); //mtm
 		*++out = x2 - x1;
 		x1 = *++in;
+		 printf("[Klank_next 199] %f\n", x1 - x0); //mtm
 		*++out = x1 - x0;
 	}
 	LooP(unit->mRate->mFilterRemain) {
 		x0 = *++in;
+		 printf("[Klank_next 1000] %f\n", x0 - x2); //mtm
 		*++out = x0 - x2;
 		x2 = x1;
 		x1 = x0;
