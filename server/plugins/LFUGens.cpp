@@ -467,23 +467,34 @@ doNormal:
 void Vibrato_Ctor(Vibrato* unit)
 {
 	unit->mFreqMul = 4.0 * SAMPLEDUR;
-	unit->mPhase = 4.0 * sc_wrap(ZIN0(7), 0.f, 1.f) - 1.0;
+	double initphase = 4.0 * sc_wrap(ZIN0(7), 0.f, 1.f) - 1.0;
 
 	RGen& rgen = *unit->mParent->mRGen;
 	float rate = ZIN0(1) * unit->mFreqMul;
 	float depth = ZIN0(2);
 	float rateVariation = ZIN0(5);
 	float depthVariation = ZIN0(6);
-	unit->mFreq    = rate  * (1.f + rateVariation  * rgen.frand2());
-	unit->m_scaleA = depth * (1.f + depthVariation * rgen.frand2());
-	unit->m_scaleB = depth * (1.f + depthVariation * rgen.frand2());
+	float initffreq = rate  * (1.f + rateVariation  * rgen.frand2());
+	float initscaleA = depth * (1.f + depthVariation * rgen.frand2());
+	float initscaleB = depth * (1.f + depthVariation * rgen.frand2());
 	unit->m_delay = (int)(ZIN0(3) * SAMPLERATE);
 	unit->m_attack = (int)(ZIN0(4) * SAMPLERATE);
 	unit->m_attackSlope = 1. / (double)(1 + unit->m_attack);
 	unit->m_attackLevel = unit->m_attackSlope;
 	unit->trig = 0.0f;
+	unit->mPhase = initphase;
+	unit->mFreq = initffreq;
+	unit->m_scaleA = initscaleA;
+	unit->m_scaleB = initscaleB;
 	SETCALC(Vibrato_next);
+	
 	Vibrato_next(unit, 1);
+	
+	unit->mPhase = initphase;
+	unit->mFreq = initffreq;
+	unit->m_scaleA = initscaleA;
+	unit->m_scaleB = initscaleB;
+	unit->trig = 0.0f;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -553,6 +564,9 @@ void LFPulse_Ctor(LFPulse* unit)
 	unit->mDuty = ZIN0(2);
 
 	LFPulse_next_k(unit, 1);
+
+	unit->mPhase = ZIN0(1);
+	unit->mDuty = ZIN0(2);
 }
 
 
@@ -610,6 +624,8 @@ void LFSaw_Ctor(LFSaw* unit)
 	unit->mPhase = ZIN0(1);
 
 	LFSaw_next_k(unit, 1);
+
+	unit->mPhase = ZIN0(1);
 }
 
 
@@ -679,6 +695,8 @@ void LFPar_Ctor(LFPar* unit)
 	unit->mPhase = ZIN0(1);
 
 	LFPar_next_k(unit, 1);
+
+	unit->mPhase = ZIN0(1);
 }
 
 
@@ -744,6 +762,8 @@ void LFCub_Ctor(LFCub* unit)
 	unit->mPhase = ZIN0(1) + 0.5;
 
 	LFCub_next_k(unit, 1);
+
+	unit->mPhase = ZIN0(1) + 0.5;
 }
 
 
@@ -795,6 +815,8 @@ void LFTri_Ctor(LFTri* unit)
 	unit->mPhase = ZIN0(1);
 
 	LFTri_next_k(unit, 1);
+
+	unit->mPhase = ZIN0(1);
 }
 
 
@@ -912,9 +934,9 @@ void LFGauss_Ctor(LFGauss* unit)
 		SETCALC(LFGauss_next_k);
 	}
 	unit->mPhase = -1.0;
-
+	
 	LFGauss_next_k(unit, 1);
-	// reset phase
+
 	unit->mPhase = -1.0;
 }
 
@@ -1448,7 +1470,9 @@ void VarSaw_Ctor(VarSaw* unit)
 	unit->mInvDuty = 2.f / duty;
 	unit->mInv1Duty = 2.f / (1.f - duty);
 
-	ZOUT0(0) = 0.f;
+	VarSaw_next_k(unit, 1);
+
+	unit->mPhase = ZIN0(1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1579,6 +1603,9 @@ void SyncSaw_Ctor(SyncSaw* unit)
 	unit->mPhase2 = 0.;
 
 	SyncSaw_next_kk(unit, 1);
+
+	unit->mPhase1 = 0.;
+	unit->mPhase2 = 0.;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1643,6 +1670,11 @@ void T2K_next(T2K *unit, int inNumSamples)
 void T2K_Ctor(T2K* unit)
 {
 	SETCALC(T2K_next);
+	
+	// NOTE: this initialization sample may not be consistent
+	// with the actual first sample output because a larger
+	// value than ZIN0(0) may occur in the remainder of the
+	// block which can't be seen at the time of initialization.
 	ZOUT0(0) = ZIN0(0);
 }
 
@@ -1701,7 +1733,11 @@ void T2A_Ctor(T2A* unit)
 	else
 #endif
 	SETCALC(T2A_next);
+	unit->mLevel = 0.f;
+	
 	T2A_next(unit, 1);
+	
+	unit->mLevel = 0.f;
 }
 
 
@@ -1839,18 +1875,16 @@ void Line_Ctor(Line* unit)
 	SETCALC(Line_next);
 	double start = ZIN0(0);
 	double end = ZIN0(1);
-	float dur = ZIN0(2);
+	double dur = ZIN0(2);
 
 	int counter = (int)(dur * unit->mRate->mSampleRate + .5f);
 	unit->mCounter = sc_max(1, counter);
-	//	if(counter == 0){
-	if(dur <= 0.f){            // mtm edit
+	if(counter == 0){
 		unit->mLevel = end;
 		unit->mSlope = 0.;
 	} else {
 		unit->mLevel = start;
 		unit->mSlope = (end - start) / unit->mCounter;
-//		unit->mLevel += unit->mSlope; // mtm temp removed so it's a valid initial sample to test with the other OscUGens being fixed
 	}
 	unit->mEndLevel = end;
 	ZOUT0(0) = unit->mLevel;
@@ -1973,7 +2007,7 @@ void XLine_Ctor(XLine* unit)
 		ZOUT0(0) = start;
 		unit->mCounter = counter;
 		unit->mGrowth = pow(end / start, 1.0 / counter);
-		unit->mLevel = start * unit->mGrowth;
+		unit->mLevel = start;
 	}
 }
 
@@ -2100,7 +2134,7 @@ void Wrap_Ctor(Wrap* unit)
 
 	unit->m_lo = ZIN0(1);
 	unit->m_hi = ZIN0(2);
-
+	
 	Wrap_next_kk(unit, 1);
 }
 
@@ -2564,10 +2598,11 @@ void Unwrap_next(Unwrap* unit, int inNumSamples)
 void Unwrap_Ctor(Unwrap* unit)
 {
 	SETCALC(Unwrap_next);
-	float in   = ZIN0(0);
+	float in = ZIN0(0);
 	float lo = ZIN0(1);
 	float hi = ZIN0(2);
-
+	float offset;
+	
 	if (lo > hi) {
 		float temp = lo;
 		lo = hi;
@@ -2576,10 +2611,16 @@ void Unwrap_Ctor(Unwrap* unit)
 	unit->m_range = fabs(hi - lo);
 	unit->m_half = unit->m_range * 0.5f;
 
-	if (in < lo || in >= hi) unit->m_offset = floor((lo - in)/unit->m_range) * unit->m_range;
-	else unit->m_offset = 0.f;
-
+	if (in < lo || in >= hi) offset = floor((lo - in)/unit->m_range) * unit->m_range;
+	else offset = 0.f;
+	
+	unit->m_offset = offset;
+	unit->m_prev = in;
+	
 	Unwrap_next(unit, 1);
+	
+	unit->m_offset = offset;
+	unit->m_prev = in;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3011,15 +3052,6 @@ static void LinExp_SetCalc(LinExp* unit)
 
 	if (!allScalar)
 		return;
-
-	float srclo = ZIN0(1);
-	float srchi = ZIN0(2);
-	float dstlo = ZIN0(3);
-	float dsthi = ZIN0(4);
-	unit->m_dstlo = dstlo;
-	unit->m_dstratio = dsthi/dstlo;
-	unit->m_rsrcrange = sc_reciprocal(srchi - srclo);
-	unit->m_rrminuslo = unit->m_rsrcrange * -srclo;
 }
 
 void LinExp_Ctor(LinExp* unit)
@@ -3111,6 +3143,17 @@ void EnvGen_Ctor(EnvGen *unit)
 		unit->m_level = *envPtr[0]; // we start at the end level;
 
 	EnvGen_next_k(unit, 1);
+	
+	// restore initial conditions
+	unit->m_endLevel = unit->m_level = ZIN0(kEnvGen_initLevel) * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias);
+	unit->m_counter = 0;
+	unit->m_stage = ENVGEN_NOT_STARTED;
+	unit->m_shape = shape_Hold;
+	unit->m_prevGate = 0.f;
+	unit->m_released = false;
+	unit->m_releaseNode = (int)ZIN0(kEnvGen_releaseNode);
+	if (initialShape == shape_Hold)
+		unit->m_level = *envPtr[0]; // we start at the end level;
 }
 
 static bool check_gate(EnvGen * unit, float prevGate, float gate, int & counter, double level, int counterOffset = 0)
@@ -3563,7 +3606,13 @@ void Linen_Ctor(Linen *unit)
 	unit->m_stage = 4;
 	unit->m_prevGate = 0.f;
 	if(ZIN0(0) <= -1.f) { unit->m_stage = 1; } // early release
+
 	Linen_next_k(unit, 1);
+
+	unit->m_level = 0.f;
+	unit->m_stage = 4;
+	unit->m_prevGate = 0.f;
+	if(ZIN0(0) <= -1.f) { unit->m_stage = 1; }
 }
 
 void Linen_next_k(Linen *unit, int inNumSamples)
@@ -3901,7 +3950,7 @@ void IEnvGen_Ctor(IEnvGen *unit)
 			float pos = (segpos / seglen);
 
 			GET_ENV_VAL
-				}
+		}
 	}
 	OUT0(0) = level;
 }
