@@ -397,6 +397,10 @@ void Trig1_Ctor(Trig1 *unit)
 	unit->m_prevtrig = 0.f;
 
 	Trig1_next(unit, 1);
+
+	unit->mCounter = 0;//mtm -temp update for successful unit test of OscUGens
+	unit->m_prevtrig = 0.f;//mtm -temp update for successful unit test of OscUGens
+
 }
 
 void Trig1_next(Trig1 *unit, int inNumSamples)
@@ -577,6 +581,11 @@ void Trig_Ctor(Trig *unit)
 	unit->mLevel = 0.f;
 
 	Trig_next(unit, 1);
+	
+	unit->mCounter = 0;//mtm temp added for unit successful testing of OscUGens
+	unit->m_prevtrig = 0.f;//mtm temp added for unit successful testing of OscUGens
+	unit->mLevel = 0.f;//mtm temp added for unit successful testing of OscUGens
+
 }
 
 void Trig_next(Trig *unit, int inNumSamples)
