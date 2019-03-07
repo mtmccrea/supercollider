@@ -621,11 +621,13 @@ void Lag_next_1(Lag *unit, int inNumSamples)
 
 	if (lag == unit->m_lag) {
 		double y0 = *in;
+		 printf("[Lag] next_1: %f\n", y0 + b1 * (y1 - y0));//mtm
 		*out = y1 = y0 + b1 * (y1 - y0);
 	} else {
 		unit->m_b1 = b1 = lag == 0.f ? 0.f : exp(log001 / (lag * unit->mRate->mSampleRate));
 		unit->m_lag = lag;
 		double y0 = *in;
+		  printf("[Lag] next_1: %f\n", y0 + b1 * (y1 - y0));//mtm
 		*out = y1 = y0 + b1 * (y1 - y0);
 	}
 	unit->m_y1 = zapgremlins(y1);
@@ -638,14 +640,17 @@ void Lag_Ctor(Lag* unit)
 	else
 		SETCALC(Lag_next);
 
-	unit->m_lag = uninitializedControl;
-	unit->m_b1 = 0.f;
-	unit->m_y1 = ZIN0(0);
-//	Lag_next(unit, 1);
+//	unit->m_lag = uninitializedControl;
+//	unit->m_b1 = 0.f;
+//	unit->m_y1 = ZIN0(0);//mtm
+//	Lag_next(unit, 1);//mtm
 	
+	unit->m_lag = uninitializedControl; // triggers calculation of m_b1, m_lag
+	unit->m_y1 = 0.f;
 	printf("[Lag] init sample:\n\t");//mtm
-	Lag_next(unit, 1);//mtm
+	Lag_next_1(unit, 1); // initialize m_b1, m_lag //mtm
 	printf("[Lag] first sample:\n\t");//mtm
+	unit->m_y1 = 0.f;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -793,14 +798,20 @@ void Lag2_Ctor(Lag2* unit)
 		break;
 	}
 
-	unit->m_lag = uninitializedControl;
-	unit->m_b1 = 0.f;
-	unit->m_y1a = unit->m_y1b = ZIN0(0);
+//	unit->m_lag = uninitializedControl;
+//	unit->m_b1 = 0.f;
+//	unit->m_y1a = unit->m_y1b = ZIN0(0);
 //	Lag2_next_k(unit, 1);
 	
+	float initlag = ZIN0(1);
+	unit->m_lag = initlag;
+	unit->m_b1 = initlag == 0.f ? 0.f : exp(log001 / (initlag * unit->mRate->mSampleRate));
+	unit->m_y1a = unit->m_y1b = 0.f;
 	printf("[Lag2] init sample:\n\t");//mtm
-	Lag2_next_k(unit, 1);//mtm
+//	Lag2_next_k(unit, 1);//mtm
+	Lag2_next_1_i(unit, 1);//mtm
 	printf("[Lag2] first sample:\n\t");//mtm
+	unit->m_y1a = unit->m_y1b = 0.f;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -953,14 +964,19 @@ void Lag3_Ctor(Lag3* unit)
 		break;
 	}
 
-	unit->m_lag = uninitializedControl;
-	unit->m_b1 = 0.f;
-	unit->m_y1a = unit->m_y1b = unit->m_y1c = ZIN0(0);
+//	unit->m_lag = uninitializedControl;
+//	unit->m_b1 = 0.f;
+//	unit->m_y1a = unit->m_y1b = unit->m_y1c = ZIN0(0);
 //	Lag3_next(unit, 1);
 	
+	float initlag = ZIN0(1);
+	unit->m_lag = initlag;
+	unit->m_b1 = initlag == 0.f ? 0.f : exp(log001 / (initlag * unit->mRate->mSampleRate));
+	unit->m_y1a = unit->m_y1b = unit->m_y1c = 0.f;
 	printf("[Lag3] init sample:\n\t");//mtm
-	Lag3_next(unit, 1);//mtm
+	Lag3_next_1_i(unit, 1);//mtm
 	printf("[Lag3] first sample:\n\t");//mtm
+	unit->m_y1a = unit->m_y1b = unit->m_y1c = 0.f;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
