@@ -364,6 +364,7 @@ extern "C"
 
 	void OnePole_next_a(OnePole *unit, int inNumSamples);
 	void OnePole_next_k(OnePole *unit, int inNumSamples);
+	void OnePole_next_1(OnePole *unit, int inNumSamples);
 	void OnePole_Ctor(OnePole* unit);
 
 	void OneZero_next(OneZero* unit, int inNumSamples);
@@ -1372,41 +1373,71 @@ void OnePole_next_k(OnePole *unit, int inNumSamples)
 	unit->m_y1 = zapgremlins(y1);
 }
 
+void OnePole_next_1(OnePole *unit, int inNumSamples)
+{
+	float y0 = ZIN0(0);
+	float b1 = ZIN0(1);
+	double y1 = unit->m_y1;
+	//		  printf("[OnePole] next_a: %f\n", y0 + b1 * (y1 - y0));//mtm
+	ZOUT0(0) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
+	unit->m_y1 = zapgremlins(y1);
+}
+
+//template <bool b1isPositive>
+void OnePole_next_i(OnePole *unit, int inNumSamples)
+{
+	float *out = ZOUT(0);
+	float *in = ZIN(0);
+	double b1 = unit->m_b1;
+	double y1 = unit->m_y1;
+	
+//	if (b1isPositive) {
+		LOOP1(inNumSamples,
+			  double y0 = ZXP(in);
+//			  ZXP(out) = y1 = y0 + b1 * (y1 - y0);
+			  ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
+			  );
+//	} else {
+//		LOOP1(inNumSamples,
+//			  double y0 = ZXP(in);
+//			  ZXP(out) = y1 = y0 + b1 * (y1 + y0);
+//			  );
+//	}
+	unit->m_y1 = zapgremlins(y1);
+}
+
 
 void OnePole_Ctor(OnePole* unit)
 {
-	if (INRATE(1) == calc_FullRate) {
-		printf("[OnePole] choosing next_a\n");//mtm
-		SETCALC(OnePole_next_a);
+	if (unit->mBufLength == 1) {
+		printf("[OnePole] choosing next_1\n");//mtm
+		SETCALC(OnePole_next_1);
 	} else {
-		SETCALC(OnePole_next_k);
-		printf("[OnePole] choosing next_k\n");//mtm
+		if (INRATE(1) == calc_FullRate) {
+			printf("[OnePole] choosing next_a\n");//mtm
+			SETCALC(OnePole_next_a);
+		} else if (INRATE(1) == calc_ScalarRate) {
+			printf("[OnePole] choosing next_i\n");//mtm
+			SETCALC(OnePole_next_i);
+//			if (ZIN0(1) >= 0.f) {
+//				printf("[OnePole] choosing next_i\n");//mtm
+//				SETCALC(OnePole_next_i<true>);
+//			} else {
+//				printf("[OnePole] choosing next_i\n");//mtm
+//				SETCALC(OnePole_next_i<false>);
+//			}
+		} else {
+			SETCALC(OnePole_next_k);
+			printf("[OnePole] choosing next_k\n");//mtm
+		}
 	}
-	// TODO: set a calc function for kr output
-	// that doesn't test for coeff change and
-	// calc a slope, because no slope necessary.
-	// Could just call next_a (numsamp = 1) // mtm
-	// Also, scalar rate input also calls next_k,
-	// which does unnecessary coeff change checking
-	// Also, there is no dedicated calc func for kr out with ar coeff in
-	//  this is a degenerate case, but currently "allowed"
-	//  so either needs its own calc func or rate mismatch needs to be
-	//  caught in the lang when SynthDef is built
-	float *out = OUT(0);
-	float *in = IN(0);
-	printf("value of\tin: %p out: %p\n", in, out);
-	printf("pointer value of\tin: %p\tout: %p\n", in, out);
-	printf("pointer address of\tin: %p\tout: %p\n", &in, &out);
-	printf("value address of\tin: %p\tout: %p\n", &*in, &*out);
-	printf("value of\tin: %f\tout: %f\n", *in, *out);
-	
 	
 	unit->m_b1 = ZIN0(1);
 	unit->m_y1 = 0.f;
 //	OnePole_next_a(unit, 1);
 	
 	printf("[OnePole] init sample:\n\t");//mtm
-	OnePole_next_a(unit, 1);//mtm
+	OnePole_next_1(unit, 1);//mtm
 	printf("[OnePole] first sample:\n\t");//mtm
 	unit->m_y1 = 0.f;
 }
