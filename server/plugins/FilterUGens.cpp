@@ -1446,15 +1446,19 @@ void OnePole_Ctor(OnePole* unit)
 
 void OneZero_Ctor(OneZero* unit)
 {
+//	SETCALC(OneZero_next);
+//	unit->m_b1 = ZIN0(1);
+//	unit->m_x1 = ZIN0(0);
+//	OneZero_next(unit, 1);
+
 	SETCALC(OneZero_next);
 	unit->m_b1 = ZIN0(1);
-	unit->m_x1 = ZIN0(0);
-//	OneZero_next(unit, 1);
-	
+	unit->m_x1 = 0.f;//mtm
+
 	printf("[OneZero] init sample:\n\t");//mtm
 	OneZero_next(unit, 1);//mtm
 	printf("[OneZero] first sample:\n\t");//mtm
-
+	unit->m_x1 = 0.f;//mtm
 }
 
 
