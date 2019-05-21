@@ -1532,7 +1532,7 @@ void Integrator_Ctor(Integrator* unit)
 	printf("[Integrator] init sample:\n\t");//mtm
 	Integrator_next(unit, 1);//mtm
 	printf("[Integrator] first sample:\n\t");//mtm
-
+	unit->m_y1 = 0.f;//mtm
 }
 
 void Integrator_next_i(Integrator* unit, int inNumSamples)
@@ -1621,7 +1621,7 @@ void Decay_Ctor(Decay* unit)
 	printf("[Decay] init sample:\n\t");//mtm
 	Decay_next(unit, 1);//mtm
 	printf("[Decay] first sample:\n\t");//mtm
-
+	unit->m_y1 = 0.f; //mtm
 }
 
 void Decay_next(Decay* unit, int inNumSamples)
@@ -1675,15 +1675,18 @@ void Decay2_Ctor(Decay2 *unit)
 	unit->m_decayTime = decayTime;
 	unit->m_attackTime = attackTime;
 
-	float y0 = ZIN0(0);
-	unit->m_y1a = y0;
-	unit->m_y1b = y0;
+//	float y0 = ZIN0(0);
+//	unit->m_y1a = y0;
+//	unit->m_y1b = y0;
 //	ZOUT0(0) = 0.f;
 	
 	printf("[Decay2] init sample:\n\t %f\n", 0.f);//mtm
-		ZOUT0(0) = 0.f;//mtm
+	unit->m_y1a = 0.f;
+	unit->m_y1b = 0.f;
+	Decay2_next(unit, 1);
 	printf("[Decay2] first sample:\n\t");//mtm
-
+	unit->m_y1a = 0.f;
+	unit->m_y1b = 0.f;
 }
 
 void Decay2_next(Decay2* unit, int inNumSamples)
