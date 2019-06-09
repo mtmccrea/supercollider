@@ -1845,13 +1845,17 @@ void LeakDC_Ctor(LeakDC *unit)
 		} else
 			SETCALC(LeakDC_next);
 	}
-	unit->m_b1 = 0.0;
-	unit->m_x1 = ZIN0(0);
-	unit->m_y1 = 0.0;
+//	unit->m_b1 = 0.0;
+//	unit->m_x1 = ZIN0(0);
+//	unit->m_y1 = 0.0;
 //	LeakDC_next_1(unit, 1);
 	
 	printf("[LeakDC] init sample:\n\t");//mtm
-	LeakDC_next_1(unit, 1);//mtm
+	unit->m_x1 = 0.0;
+	unit->m_y1 = 0.0;
+	LeakDC_next_1(unit, 1); // initializes m_b1
+	unit->m_x1 = 0.0;
+	unit->m_y1 = 0.0;
 	printf("[LeakDC] first sample:\n\t");//mtm
 
 }
