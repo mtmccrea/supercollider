@@ -1853,7 +1853,7 @@ void LeakDC_Ctor(LeakDC *unit)
 	printf("[LeakDC] init sample:\n\t");//mtm
 	unit->m_x1 = 0.0;
 	unit->m_y1 = 0.0;
-	LeakDC_next_1(unit, 1); // initializes m_b1
+	LeakDC_next_1(unit, 1); // initialized m_b1 //mtm
 	unit->m_x1 = 0.0;
 	unit->m_y1 = 0.0;
 	printf("[LeakDC] first sample:\n\t");//mtm
@@ -1865,22 +1865,34 @@ void LeakDC_Ctor(LeakDC *unit)
 
 void TwoPole_Ctor(TwoPole *unit)
 {
-	SETCALC(TwoPole_next);
-	unit->m_b1 = 0.f;
-	unit->m_b2 = 0.f;
-	unit->m_y1 = 0.f;
-	unit->m_y2 = 0.f;
-	unit->m_freq = uninitializedControl;
-	unit->m_reson = uninitializedControl;
+//	SETCALC(TwoPole_next);
+//	unit->m_b1 = 0.f;
+//	unit->m_b2 = 0.f;
+//	unit->m_y1 = 0.f;
+//	unit->m_y2 = 0.f;
+//	unit->m_freq = uninitializedControl;
+//	unit->m_reson = uninitializedControl;
 //	PUSH_LOOPVALS
 //	TwoPole_next(unit, 1);
 //	POP_LOOPVALS
 	
+	SETCALC(TwoPole_next);
+	float freq = ZIN0(1);
+	float reson = ZIN0(2);
+	unit->m_b1 =  2 * reson * cos(freq * unit->mRate->mRadiansPerSample);
+	unit->m_b2 = -(reson * reson);
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
+	unit->m_freq = freq;
+	unit->m_reson = reson;
+
 	printf("[TwoPole] init sample:\n\t");//mtm
 	PUSH_LOOPVALS
 	TwoPole_next(unit, 1);//mtm
 	POP_LOOPVALS
 	printf("[TwoPole] first sample:\n\t");//mtm
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 
 }
 
@@ -1952,22 +1964,34 @@ void TwoPole_next(TwoPole* unit, int inNumSamples)
 
 void TwoZero_Ctor(TwoZero* unit)
 {
-	SETCALC(TwoZero_next);
-	unit->m_b1 = 0.f;
-	unit->m_b2 = 0.f;
-	unit->m_x1 = 0.f;
-	unit->m_x2 = 0.f;
-	unit->m_freq = uninitializedControl;
-	unit->m_reson = uninitializedControl;
+//	SETCALC(TwoZero_next);
+//	unit->m_b1 = 0.f;
+//	unit->m_b2 = 0.f;
+//	unit->m_x1 = 0.f;
+//	unit->m_x2 = 0.f;
+//	unit->m_freq = uninitializedControl;
+//	unit->m_reson = uninitializedControl;
 //	PUSH_LOOPVALS
 //	TwoZero_next(unit, 1);
 //	POP_LOOPVALS
+
+	SETCALC(TwoZero_next);
+	float freq = ZIN0(1);
+	float reson = ZIN0(2);
+	unit->m_b1 =  -2 * reson * cos(freq * unit->mRate->mRadiansPerSample);
+	unit->m_b2 = reson * reson;
+	unit->m_x1 = 0.f;
+	unit->m_x2 = 0.f;
+	unit->m_freq = freq;
+	unit->m_reson = reson;
 	
 	PUSH_LOOPVALS
 	printf("[TwoZero] init sample:\n\t");//mtm
 	TwoZero_next(unit, 1);	//mtm
 	printf("[TwoZero] first sample:\n\t");//mtm
 	POP_LOOPVALS
+	unit->m_x1 = 0.f;
+	unit->m_x2 = 0.f;
 
 }
 
