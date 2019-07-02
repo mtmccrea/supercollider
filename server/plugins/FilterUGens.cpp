@@ -4396,6 +4396,7 @@ void FOS_Ctor(FOS* unit)
 	
 	printf("[FOS] init sample:\n\t");//mtm
 	FOS_next_1(unit, 1);//mtm
+	unit->m_y1 = 0.f;//mtm
 	printf("[FOS] first sample:\n\t");//mtm
 }
 
@@ -4411,7 +4412,7 @@ void FOS_next_a(FOS* unit, int inNumSamples)
 	LOOP1(inNumSamples,
 		double y0 = ZXP(in) + ZXP(b1) * y1;
 		  float val = ZXP(a0) * y0 + ZXP(a1) * y1;//mtm
-		  printf("[FOS] next_a: %f\n", val);//mtm
+//		  printf("[FOS] next_a: %f\n", val);//mtm
 		  ZXP(out) = val;
 //		ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1;
 		y1 = y0;
@@ -4429,7 +4430,7 @@ void FOS_next_1(FOS* unit, int inNumSamples)
 	double y1 = unit->m_y1;
 
 	double y0 = in + b1 * y1;
-	printf("[FOS] next_1: %f\n", a0 * y0 + a1 * y1);//mtm
+//	printf("[FOS] next_1: %f\n", a0 * y0 + a1 * y1);//mtm
 	ZOUT0(0) = a0 * y0 + a1 * y1;
 	y1 = y0;
 
@@ -4454,7 +4455,7 @@ void FOS_next_k(FOS* unit, int inNumSamples)
 	double b1_slope = CALCSLOPE(next_b1, b1);
 	LOOP1(inNumSamples,
 		double y0 = ZXP(in) + b1 * y1;
-		  printf("[FOS] next_k: %f\n", a0 * y0 + a1 * y1);//mtm
+//          printf("[FOS] next_k: %f\n", a0 * y0 + a1 * y1);//mtm
 		ZXP(out) = a0 * y0 + a1 * y1;
 		y1 = y0;
 
@@ -4504,6 +4505,8 @@ void SOS_Ctor(SOS* unit)
 	
 	printf("[SOS] init sample:\n\t");//mtm
 	SOS_next_1(unit, 1);//mtm
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 	printf("[SOS] first sample:\n\t");//mtm
 
 }
@@ -4526,7 +4529,7 @@ void SOS_next_a(SOS *unit, int inNumSamples)
 		 float val = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
 		 printf("[SOS] next_a: %f\n", val);//mtm
 		 ZXP(out) = val;
-//		ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
+		 //		ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
 
 		y2 = ZXP(in) + ZXP(b1) * y0 + ZXP(b2) * y1;
 		 val = ZXP(a0) * y2 + ZXP(a1) * y0 + ZXP(a2) * y1;
