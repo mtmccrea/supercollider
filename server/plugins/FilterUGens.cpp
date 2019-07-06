@@ -2303,11 +2303,13 @@ void HPZ1_next(HPZ1* unit, int inNumSamples)
 void Slope_Ctor(Slope* unit)
 {
 	SETCALC(Slope_next);
-	unit->m_x1 = ZIN0(0);
+//	unit->m_x1 = ZIN0(0);
 //	Slope_next(unit, 1);
 	
 	printf("[Slope] init sample:\n\t");//mtm
+	unit->m_x1 = 0.f;
 	Slope_next(unit, 1);//mtm
+	unit->m_x1 = 0.f;
 	printf("[Slope] first sample:\n\t");//mtm
 
 }
@@ -2337,12 +2339,11 @@ void Delay1_Ctor(Delay1* unit)
 {
 	//printf("Delay1_Reset\n");
 	SETCALC(Delay1_next);
-	unit->m_x1 = ZIN0(0); // mtm temp fix for testing
-//	unit->m_x1 = 0.f; // mtm
+//	unit->m_x1 = ZIN0(0); // mtm temp fix for testing
 	printf("[Delay1] init sample:\n\t");//mtm
-		Delay1_next(unit, 1);//mtm
+	unit->m_x1 = 0.f; // mtm
+	ZOUT0(0) = 0.f;
 	printf("[Delay1] first sample:\n\t");//mtm
-//	unit->m_x1 = 0.f; // mtm
 }
 
 
@@ -2430,16 +2431,15 @@ void Flip_next_odd(Flip* unit, int inNumSamples)
 void Delay2_Ctor(Delay2* unit)
 {
 	SETCALC(Delay2_next);
-		unit->m_x1 = ZIN0(0);
+//	unit->m_x1 = ZIN0(0);
 //	ZOUT0(0) = 0.f;
 	
-//unit->m_x1 = 0.f;//MTM
-//unit->m_x2 = 0.f;//mtm
+	unit->m_x1 = 0.f;//MTM
+	unit->m_x2 = 0.f;//mtm
 
 	printf("[Delay2] init sample: %f\n\t\n", 0.f);//mtm
 	ZOUT0(0) = 0.f;
 	printf("[Delay2] first sample:\n\t");//mtm
-	//	unit->m_x1 = 0.f; // mtm
 }
 
 
@@ -2706,11 +2706,13 @@ void Slew_Ctor(Slew* unit)
 {
 	//printf("Slew_Reset\n");
 	SETCALC(Slew_next);
-	unit->mLevel = ZIN0(0);
+//	unit->mLevel = ZIN0(0);
 //	Slew_next(unit, 1);
 	
 	printf("[Slew] init sample:\n\t");//mtm
+	unit->mLevel = 0.f;
 	Slew_next(unit, 1);//mtm
+	unit->mLevel = 0.f;
 	printf("[Slew] first sample:\n\t");//mtm
 }
 
@@ -2765,12 +2767,15 @@ void RLPF_Ctor(RLPF* unit)
 	unit->m_b2 = 0.f;
 	unit->m_y1 = 0.f;
 	unit->m_y2 = 0.f;
+	// these unitialized controls will trigger re-initialization of a0, b1, b2
 	unit->m_freq = uninitializedControl;
 	unit->m_reson = uninitializedControl;
 //	RLPF_next_1(unit, 1);
 	
 	printf("[RLPF] init sample:\n\t");//mtm
-	RLPF_next_1(unit, 1);//mtm
+	RLPF_next_1(unit, 1);
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 	printf("[RLPF] first sample:\n\t");//mtm
 }
 
@@ -2921,17 +2926,19 @@ void RHPF_Ctor(RHPF* unit)
 	else
 		SETCALC(RHPF_next);
 
-	unit->m_a0 = 0.;
-	unit->m_b1 = 0.;
-	unit->m_b2 = 0.;
-	unit->m_y1 = 0.;
-	unit->m_y2 = 0.;
+	unit->m_a0 = 0.f;
+	unit->m_b1 = 0.f;
+	unit->m_b2 = 0.f;
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 	unit->m_freq = uninitializedControl;
 	unit->m_reson = uninitializedControl;
 //	RHPF_next_1(unit, 1);
 	
 	printf("[RHPF] init sample:\n\t");//mtm
-		RHPF_next_1(unit, 1);//mtm
+	RHPF_next_1(unit, 1);//mtm
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 	printf("[RHPF] first sample:\n\t");//mtm
 
 }
