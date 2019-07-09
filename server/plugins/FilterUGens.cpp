@@ -3098,6 +3098,8 @@ void LPF_Ctor(LPF* unit)
 	
 	printf("[LPF] init sample:\n\t");//mtm
 	LPF_next_1(unit, 1);//mtm
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 	printf("[LPF] first sample:\n\t");//mtm
 }
 
@@ -3258,6 +3260,8 @@ void HPF_Ctor(HPF* unit)
 	
 	printf("[HPF] init sample:\n\t");//mtm
 	HPF_next_1(unit, 1);//mtm
+	unit->m_y1 = 0.;
+	unit->m_y2 = 0.;
 	printf("[HPF] first sample:\n\t");//mtm
 
 }
@@ -3418,6 +3422,8 @@ void BPF_Ctor(BPF* unit)
 	
 	printf("[BPF] init sample:\n\t");//mtm
 	BPF_next_1(unit, 1);//mtm
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 	printf("[BPF] first sample:\n\t");//mtm
 }
 
@@ -3575,6 +3581,8 @@ void BRF_Ctor(BRF* unit)
 	
 	printf("[BRF] init sample:\n\t");//mtm
 	BRF_next_1(unit, 1);//mtm
+	unit->m_y1 = 0.f;
+	unit->m_y2 = 0.f;
 	printf("[BRF] first sample:\n\t");//mtm
 }
 
