@@ -274,7 +274,7 @@ struct Median : public Unit
 {
 	float m_medianValue[kMAXMEDIANSIZE];
 	long m_medianAge[kMAXMEDIANSIZE];
-	long m_medianSize, m_medianIndex;
+	long m_medianSize;
 };
 
 struct Compander : public Unit
@@ -3869,13 +3869,18 @@ void Median_Ctor(Median* unit)
 	//printf("Median_Reset\n");
 	SETCALC(Median_next);
 	float in = ZIN0(1);
-	unit->m_medianSize = sc_clip((int)ZIN0(0), 0, kMAXMEDIANSIZE);
-	Median_InitMedian(unit, unit->m_medianSize, in);
+//	unit->m_medianSize = sc_clip((int)ZIN0(0), 0, kMAXMEDIANSIZE);
+//	Median_InitMedian(unit, unit->m_medianSize, in);
 //	ZOUT0(0) = Median_InsertMedian(unit, in);
 	
-	float val = Median_InsertMedian(unit, in);
-	printf("[Median] init sample: %f\n\t", val);//mtm
-	ZOUT0(0) = val;//mtm
+	long medianSize = sc_clip((int)ZIN0(0), 1, kMAXMEDIANSIZE);
+	unit->m_medianSize = medianSize;
+	printf("[Median] init sample: %f\n\t", 0.f);//mtm
+	// median is always 0.f because values before n = 0 are 0.f
+	// unless median size is 1, in which case y(0) = x(0)
+	ZOUT0(0) = medianSize > 1 ? 0.f : in; //mtm
+	// initialize
+	Median_InitMedian(unit, unit->m_medianSize, in);
 	printf("[Median] first sample:\n\t");//mtm
 }
 
@@ -3923,7 +3928,8 @@ void Median_InitMedian(Median* unit, long size, float value)
 	// initialize the arrays with the first value
 	unit->m_medianSize = size;
 	for (int i=0; i<size; ++i) {
-		unit->m_medianValue[i] = value;
+//		unit->m_medianValue[i] = value;
+		unit->m_medianValue[i] = 0.f; // fill with history of silence
 		unit->m_medianAge[i] = i;
 	}
 }
