@@ -3088,23 +3088,66 @@ void BRF_next_1(BRF* unit, int inNumSamples) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void MidEQ_Ctor(MidEQ* unit) {
-    SETCALC(MidEQ_next);
-    
-    float freq = ZIN0(1);
-    float bw = ZIN0(2);
-    float db = ZIN0(3);
+//void MidEQ_Ctor(MidEQ* unit) {
+//    SETCALC(MidEQ_next);
+//
+//    float freq = ZIN0(1);
+//    float bw = ZIN0(2);
+//    float db = ZIN0(3);
+//
+//    double amp = sc_dbamp(db) - 1.0f;
+//    double pfreq = freq * unit->mRate->mRadiansPerSample;
+//    double pbw = bw * pfreq * 0.5f;
+//    double C = 1.f / tan(pbw);
+//    double D = 2.f * cos(pfreq);
+//
+//    double init_a0 = 1.f / (1.f + C);
+//    double init_b1 = C * D * init_a0;
+//    double init_b2 = (1.f - C) * init_a0;
+//    init_a0 *= amp;
+//
+//    unit->m_a0 = init_a0;
+//    unit->m_b1 = init_b1;
+//    unit->m_b2 = init_b2;
+//    unit->m_y1 = 0.f;
+//    unit->m_y2 = 0.f;
+//    unit->m_freq = freq;
+//    unit->m_bw = bw;
+//    unit->m_db = db;
+//
+//    printf("[MidEQ] init sample:\n\t"); // mtm
+//    PUSH_LOOPVALS
+//    MidEQ_next(unit, 1);
+//    POP_LOOPVALS
+//    printf("[MidEQ] first sample:\n\t"); // mtm
+//    // roll back advance done in initialization
+//    unit->m_y1 = 0.f;
+//    unit->m_y2 = 0.f;
+//}
+
+static inline void MidEQ_calcCoeffs(MidEQ* unit, double& a0, double& b1, double& b2, float freq, float bw, float db) {
     double amp = sc_dbamp(db) - 1.0f;
     double pfreq = freq * unit->mRate->mRadiansPerSample;
     double pbw = bw * pfreq * 0.5f;
     double C = 1.f / tan(pbw);
     double D = 2.f * cos(pfreq);
     
-    double init_a0 = 1.f / (1.f + C);
-    double init_b1 = C * D * init_a0;
-    double init_b2 = (1.f - C) * init_a0;
+    a0 = 1.f / (1.f + C);
+    b1 = C * D * a0;
+    b2 = (1.f - C) * a0;
+    a0 *= amp;
+}
+
+void MidEQ_Ctor(MidEQ* unit) {
+    SETCALC(MidEQ_next);
     
-    init_a0 *= amp;
+    float freq = ZIN0(1);
+    float bw = ZIN0(2);
+    float db = ZIN0(3);
+    
+    double init_a0, init_b1, init_b2;
+    MidEQ_calcCoeffs(unit, init_a0, init_b1, init_b2, freq, bw, db);
+        
     unit->m_a0 = init_a0;
     unit->m_b1 = init_b1;
     unit->m_b2 = init_b2;
@@ -3113,12 +3156,10 @@ void MidEQ_Ctor(MidEQ* unit) {
     unit->m_freq = freq;
     unit->m_bw = bw;
     unit->m_db = db;
-
-    printf("[MidEQ] init sample:\n\t"); // mtm
-    PUSH_LOOPVALS
-    MidEQ_next(unit, 1);
-    POP_LOOPVALS
-    printf("[MidEQ] first sample:\n\t"); // mtm
+    
+    // NOTE: given y1=y2=0, so first sample out = in + a0*in
+    float out1 = ZIN0(0) * (1 + init_a0); printf("[MidEQ] out1: %f\n", out1);
+    ZOUT0(0) = out1; printf("[MidEQ] first sample:\n\t"); // mtm
     // roll back advance done in initialization
     unit->m_y1 = 0.f;
     unit->m_y2 = 0.f;
@@ -3139,17 +3180,20 @@ void MidEQ_next(MidEQ* unit, int inNumSamples) {
     double b1 = unit->m_b1;
     double b2 = unit->m_b2;
     if (freq != unit->m_freq || bw != unit->m_bw || db != unit->m_db) {
-        double amp = sc_dbamp(db) - 1.0f;
-        double pfreq = freq * unit->mRate->mRadiansPerSample;
-        double pbw = bw * pfreq * 0.5f;
-
-        double C = 1.f / tan(pbw);
-        double D = 2.f * cos(pfreq);
-
-        double next_a0 = 1.f / (1.f + C);
-        double next_b1 = C * D * next_a0;
-        double next_b2 = (1.f - C) * next_a0;
-        next_a0 *= amp;
+//        double amp = sc_dbamp(db) - 1.0f;
+//        double pfreq = freq * unit->mRate->mRadiansPerSample;
+//        double pbw = bw * pfreq * 0.5f;
+//
+//        double C = 1.f / tan(pbw);
+//        double D = 2.f * cos(pfreq);
+//
+//        double next_a0 = 1.f / (1.f + C);
+//        double next_b1 = C * D * next_a0;
+//        double next_b2 = (1.f - C) * next_a0;
+//        next_a0 *= amp;
+        double next_a0, next_b1, next_b2;
+        MidEQ_calcCoeffs(unit, next_a0, next_b1, next_b2, freq, bw, db);
+        
         double a0_slope = (next_a0 - a0) * unit->mRate->mFilterSlope;
         double b1_slope = (next_b1 - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
@@ -3158,15 +3202,17 @@ void MidEQ_next(MidEQ* unit, int inNumSamples) {
              printf("[MidEQ] next_: %f\n", zin + a0 * (y0 - y2)); // mtm
              ZXP(out) = zin + a0 * (y0 - y2);
 
-             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1; printf("[MidEQ] next_: %f\n", zin + a0 * (y2 - y1)); // mtm
+             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1;
+//             printf("[MidEQ] next_: %f\n", zin + a0 * (y2 - y1)); // mtm
              ZXP(out) = zin + a0 * (y2 - y1);
 
-             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0; printf("[MidEQ] next_: %f\n", zin + a0 * (y1 - y0)); // mtm
+             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0;
+//             printf("[MidEQ] next_: %f\n", zin + a0 * (y1 - y0)); // mtm
              ZXP(out) = zin + a0 * (y1 - y0);
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
         LOOP(unit->mRate->mFilterRemain, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;
-             printf("[MidEQ] next_: %f\n", zin + a0 * (y0 - y2)); // mtm
+             printf("[MidEQ] next_remain: %f\n", zin + a0 * (y0 - y2)); // mtm
              ZXP(out) = zin + a0 * (y0 - y2); y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
@@ -3177,18 +3223,23 @@ void MidEQ_next(MidEQ* unit, int inNumSamples) {
         unit->m_b2 = next_b2;
     } else {
         double zin;
-        LOOP(unit->mRate->mFilterLoops, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;
-             printf("[MidEQ] next_nochange: %f\n", zin + a0 * (y0 - y2)); // mtm
+        LOOP(unit->mRate->mFilterLoops,
+             zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;
+             printf("[MidEQ] next_nochangeloop: %f\n", zin + a0 * (y0 - y2)); // mtm
              ZXP(out) = zin + a0 * (y0 - y2);
 
-             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1; printf("[MidEQ] next_: %f\n", zin + a0 * (y2 - y1)); // mtm
+             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1;
+//             printf("[MidEQ] next_nochangeloop: %f\n", zin + a0 * (y2 - y1)); // mtm
              ZXP(out) = zin + a0 * (y2 - y1);
 
-             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0; printf("[MidEQ] next_: %f\n", zin + a0 * (y1 - y0)); // mtm
+             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0;
+//             printf("[MidEQ] next_nochangeloop: %f\n", zin + a0 * (y1 - y0)); // mtm
              ZXP(out) = zin + a0 * (y1 - y0););
-        LOOP(unit->mRate->mFilterRemain, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;
-             printf("[MidEQ] next_nochange: %f\n", zin + a0 * (y0 - y2)); // mtm
-             ZXP(out) = zin + a0 * (y0 - y2); y2 = y1; y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain,
+             zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;  // y0 = in +0+0;
+             printf("[MidEQ] next_nochangeremain: %f\n", zin + a0 * (y0 - y2)); // mtm
+             ZXP(out) = zin + a0 * (y0 - y2); // out = in + a0*(in-0)
+             y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
