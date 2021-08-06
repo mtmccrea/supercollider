@@ -1848,9 +1848,10 @@ void LPZ1_Ctor(LPZ1* unit) {
 
     printf("[LPZ1] init sample:\n\t"); // mtm
     unit->m_x1 = 0.f;
-    LPZ1_next(unit, 1); // mtm
+    ZOUT0(0) = 0.5f * ZIN0(0); // out = 0.5 * (x0 + x1);
+//    LPZ1_next(unit, 1); // mtm
+//    unit->m_x1 = 0.f;
     printf("[LPZ1] first sample:\n\t"); // mtm
-    unit->m_x1 = 0.f;
 }
 
 
@@ -1882,11 +1883,13 @@ void HPZ1_Ctor(HPZ1* unit) {
     //	unit->m_x1 = ZIN0(0);
     //	HPZ1_next(unit, 1);
 
+    unit->m_x1 = 0.f;
     printf("[HPZ1] init sample:\n\t"); // mtm
-    unit->m_x1 = 0.f;
-    HPZ1_next(unit, 1); // mtm
+    printf("[HPZ1] init out: %f\n", 0.5f * ZIN0(0)); // mtm
+    ZOUT0(0) = 0.5f * ZIN0(0); // out = 0.5f * (x0 - x1);
+//    HPZ1_next(unit, 1); // mtm
+//    unit->m_x1 = 0.f;
     printf("[HPZ1] first sample:\n\t"); // mtm
-    unit->m_x1 = 0.f;
 }
 
 
@@ -1904,7 +1907,8 @@ void HPZ1_next(HPZ1* unit, int inNumSamples) {
          printf("[HPZ1] next_: %f\n", out2); // mtm
          printf("[HPZ1] next_: %f\n", out3); // mtm
          ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2; ZXP(out) = out3;);
-    LOOP(inNumSamples & 3, x0 = ZXP(in); printf("[HPZ1] next_: %f\n", 0.5f * (x0 - x1)); // mtm
+    LOOP(inNumSamples & 3, x0 = ZXP(in);
+         printf("[HPZ1] next_: %f\n", 0.5f * (x0 - x1)); // mtm
          ZXP(out) = 0.5f * (x0 - x1); x1 = x0;);
 
     unit->m_x1 = x1;
@@ -1919,8 +1923,9 @@ void Slope_Ctor(Slope* unit) {
 
     printf("[Slope] init sample:\n\t"); // mtm
     unit->m_x1 = 0.f;
-    Slope_next(unit, 1); // mtm
-    unit->m_x1 = 0.f;
+    ZOUT0(0) = SAMPLERATE * ZIN0(0); // out = sr * (x0 - x1);
+//    Slope_next(unit, 1); // mtm
+//    unit->m_x1 = 0.f;
     printf("[Slope] first sample:\n\t"); // mtm
 }
 
