@@ -2055,13 +2055,14 @@ void LPZ2_Ctor(LPZ2* unit) {
     //	LPZ2_next(unit, 1);
     //	POP_LOOPVALS
 
-    printf("[LPZ2] init sample:\n\t"); // mtm
-    PUSH_LOOPVALS
     unit->m_x1 = unit->m_x2 = 0.f;
-    LPZ2_next(unit, 1);
-    POP_LOOPVALS
+    ZOUT0(0) = ZIN0(0) * 0.25; // out = (x0 + 2. * x1 + x2) * 0.25
+    printf("[LPZ2] init sample:\n\t%f\n", ZIN0(0) * 0.25); // mtm
+//    PUSH_LOOPVALS
+//    LPZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
     printf("[LPZ2] first sample:\n\t"); // mtm
-    unit->m_x1 = unit->m_x2 = 0.f;
 }
 
 
@@ -2079,7 +2080,8 @@ void LPZ2_next(LPZ2* unit, int inNumSamples) {
          printf("[LPZ2] next: %f\n", out1); // mtm
          printf("[LPZ2] next: %f\n", out2); // mtm
          ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2;);
-    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); printf("[LPZ2] next: %f\n", (x0 + 2. * x1 + x2) * 0.25); // mtm
+    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in);
+         printf("[LPZ2] next: %f\n", (x0 + 2. * x1 + x2) * 0.25); // mtm
          ZXP(out) = (x0 + 2. * x1 + x2) * 0.25; x2 = x1; x1 = x0;);
 
     unit->m_x1 = x1;
@@ -2095,14 +2097,17 @@ void HPZ2_Ctor(HPZ2* unit) {
     //	PUSH_LOOPVALS
     //	HPZ2_next(unit, 1);
     //	POP_LOOPVALS
-
-    printf("[HPZ2] init sample:\n\t"); // mtm
-    PUSH_LOOPVALS
+    
     unit->m_x1 = unit->m_x2 = 0.f;
-    HPZ2_next(unit, 1);
-    POP_LOOPVALS
+    ZOUT0(0) = ZIN0(0) * 0.25; // out = (x0 - 2.0 * x1 + x2) * 0.25
+    printf("[HPZ2] init sample:\n\t%f\n", ZIN0(0) * 0.25); // mtm
+    
+//    PUSH_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+//    HPZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
     printf("[HPZ2] first sample:\n\t"); // mtm
-    unit->m_x1 = unit->m_x2 = 0.f;
 }
 
 
@@ -2139,13 +2144,16 @@ void BPZ2_Ctor(BPZ2* unit) {
     //	BPZ2_next(unit, 1);
     //	POP_LOOPVALS
 
-    printf("[BPZ2] init sample:\n\t"); // mtm
-    PUSH_LOOPVALS
     unit->m_x1 = unit->m_x2 = 0.f;
-    BPZ2_next(unit, 1);
-    POP_LOOPVALS
+    ZOUT0(0) = ZIN0(0) * 0.5; // out = (x0 - x2) * 0.5
+    printf("[BPZ2] init sample:\n\t%f\n", ZIN0(0) * 0.5); // mtm
+
+//    PUSH_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+//    BPZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
     printf("[BPZ2] first sample:\n\t"); // mtm
-    unit->m_x1 = unit->m_x2 = 0.f;
 }
 
 
@@ -2180,13 +2188,16 @@ void BRZ2_Ctor(BRZ2* unit) {
     //	BRZ2_next(unit, 1);
     //	POP_LOOPVALS
 
-    PUSH_LOOPVALS
-    printf("[BRZ2] init sample:\n\t"); // mtm
     unit->m_x1 = unit->m_x2 = 0.f;
-    BRZ2_next(unit, 1);
+    ZOUT0(0) = ZIN0(0) * 0.5; // out = (x0 + x2) * 0.5
+    printf("[BRZ2] init sample:\n\t%f\n", ZIN0(0) * 0.5); // mtm
+    
+//    unit->m_x1 = unit->m_x2 = 0.f;
+//    PUSH_LOOPVALS
+//    BRZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
     printf("[BRZ2] first sample:\n\t"); // mtm
-    POP_LOOPVALS
-    unit->m_x1 = unit->m_x2 = 0.f;
 }
 
 
@@ -3443,6 +3454,8 @@ void Ringz_Ctor(Ringz* unit) {
     Ringz_next(unit, 1);
     POP_LOOPVALS
     printf("[Ringz] first sample:\n\t"); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
 }
 
 
