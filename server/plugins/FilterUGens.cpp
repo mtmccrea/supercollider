@@ -515,9 +515,7 @@ void Ramp_Ctor(Ramp* unit) {
     unit->m_level = ZIN0(0);
     unit->m_slope = 0.f;
     ZOUT0(0) = unit->m_level;
-
     printf("[Ramp] init sample:\n\t %f", unit->m_level); // mtm
-    ZOUT0(0) = unit->m_level; // mtm
     printf("[Ramp] first sample:\n\t"); // mtm
 }
 
