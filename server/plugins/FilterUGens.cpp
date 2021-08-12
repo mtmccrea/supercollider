@@ -577,11 +577,11 @@ void Lag_Ctor(Lag* unit) {
     //	Lag_next(unit, 1);//mtm
 
     unit->m_lag = uninitializedControl; // triggers calculation of m_b1, m_lag
-    unit->m_y1 = 0.f;
+    double y1 = unit->m_y1 = ZIN0(0);
     printf("[Lag] init sample:\n\t"); // mtm
     Lag_next_1(unit, 1); // initialize m_b1, m_lag //mtm
+    unit->m_y1 = y1;
     printf("[Lag] first sample:\n\t"); // mtm
-    unit->m_y1 = 0.f;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -633,11 +633,11 @@ void LagUD_Ctor(LagUD* unit) {
     //	unit->m_y1 = ZIN0(0);
     //	LagUD_next(unit, 1);
 
-    unit->m_y1 = 0.f;
+    double y1 = unit->m_y1 = ZIN0(0);
     printf("[LagUD] init sample:\n\t"); // mtm
     LagUD_next(unit, 1); // this will initialize m_b1u, m_b1d //mtm
     printf("[LagUD] first sample:\n\t"); // mtm
-    unit->m_y1 = 0.f;
+    unit->m_y1 = y1;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -718,14 +718,14 @@ void Lag2_Ctor(Lag2* unit) {
     //	Lag2_next_k(unit, 1);
 
     float initlag = ZIN0(1);
+    double y1 = unit->m_y1a = unit->m_y1b = ZIN0(0);
     unit->m_lag = initlag;
     unit->m_b1 = initlag == 0.f ? 0.f : exp(log001 / (initlag * unit->mRate->mSampleRate));
-    unit->m_y1a = unit->m_y1b = 0.f;
     printf("[Lag2] init sample:\n\t"); // mtm
     //	Lag2_next_k(unit, 1);//mtm
     Lag2_next_1_i(unit, 1); // mtm
     printf("[Lag2] first sample:\n\t"); // mtm
-    unit->m_y1a = unit->m_y1b = 0.f;
+    unit->m_y1a = unit->m_y1b = y1;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -778,15 +778,15 @@ void Lag2UD_Ctor(Lag2UD* unit) {
 
     float initlagu = ZIN0(1);
     float initlagd = ZIN0(2);
+    double y1 = unit->m_y1a = unit->m_y1b = ZIN0(0);
     unit->m_lagu = initlagu;
     unit->m_lagd = initlagd;
     unit->m_b1u = initlagu == 0.f ? 0.f : exp(log001 / (initlagu * unit->mRate->mSampleRate));
     unit->m_b1d = initlagd == 0.f ? 0.f : exp(log001 / (initlagd * unit->mRate->mSampleRate));
-    unit->m_y1a = unit->m_y1b = 0.f;
     printf("[Lag2UD] init sample:\n\t"); // mtm
     Lag2UD_next(unit, 1); // mtm
     printf("[Lag2UD] first sample:\n\t"); // mtm
-    unit->m_y1a = unit->m_y1b = 0.f;
+    unit->m_y1a = unit->m_y1b = y1;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -860,13 +860,13 @@ void Lag3_Ctor(Lag3* unit) {
     //	Lag3_next(unit, 1);
 
     float initlag = ZIN0(1);
+    double y1 = unit->m_y1a = unit->m_y1b = unit->m_y1c = ZIN0(0);
     unit->m_lag = initlag;
     unit->m_b1 = initlag == 0.f ? 0.f : exp(log001 / (initlag * unit->mRate->mSampleRate));
-    unit->m_y1a = unit->m_y1b = unit->m_y1c = 0.f;
     printf("[Lag3] init sample:\n\t"); // mtm
     Lag3_next_1_i(unit, 1); // mtm
     printf("[Lag3] first sample:\n\t"); // mtm
-    unit->m_y1a = unit->m_y1b = unit->m_y1c = 0.f;
+    unit->m_y1a = unit->m_y1b = unit->m_y1c = y1;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -925,15 +925,15 @@ void Lag3UD_Ctor(Lag3UD* unit) {
 
     float initlagu = ZIN0(1);
     float initlagd = ZIN0(2);
+    double y1 = unit->m_y1a = unit->m_y1b = unit->m_y1c = ZIN0(0);
     unit->m_lagu = initlagu;
     unit->m_lagd = initlagd;
     unit->m_b1u = initlagu == 0.f ? 0.f : exp(log001 / (initlagu * unit->mRate->mSampleRate));
     unit->m_b1d = initlagd == 0.f ? 0.f : exp(log001 / (initlagd * unit->mRate->mSampleRate));
-    unit->m_y1a = unit->m_y1b = unit->m_y1c = 0.f;
     printf("[Lag3UD] init sample:\n\t"); // mtm
     Lag3UD_next(unit, 1); // mtm
     printf("[Lag3UD] first sample:\n\t"); // mtm
-    unit->m_y1a = unit->m_y1b = unit->m_y1c = 0.f;
+    unit->m_y1a = unit->m_y1b = unit->m_y1c = y1;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
