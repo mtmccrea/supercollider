@@ -22,6 +22,16 @@ OnePole : Filter {
 	}
 }
 
+OnePoleMod : Filter {
+
+    *ar { arg in = 0.0, b0 = 0.5, a1 = 0.5, mul = 1.0, add = 0.0;
+        ^this.multiNew('audio', in, b0, a1).madd(mul, add)
+    }
+    *kr { arg in = 0.0, b0 = 0.5, a1 = 0.5, mul = 1.0, add = 0.0;
+        ^this.multiNew('control', in, b0, a1).madd(mul, add)
+    }
+}
+
 OneZero : OnePole {}
 
 TwoPole : Filter {
