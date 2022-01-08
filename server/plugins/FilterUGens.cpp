@@ -87,6 +87,10 @@ struct OnePole : public Unit {
     double m_b1, m_y1;
 };
 
+struct OnePoleMod : public Unit {
+    double m_b0, m_a1, m_y1;
+};
+
 struct OneZero : public Unit {
     double m_b1, m_x1;
 };
@@ -314,6 +318,11 @@ void OnePole_next_a(OnePole* unit, int inNumSamples);
 void OnePole_next_k(OnePole* unit, int inNumSamples);
 void OnePole_next_1(OnePole* unit, int inNumSamples);
 void OnePole_Ctor(OnePole* unit);
+
+void OnePoleMod_next_a(OnePoleMod* unit, int inNumSamples);
+void OnePoleMod_next_k(OnePoleMod* unit, int inNumSamples);
+void OnePoleMod_next_1(OnePoleMod* unit, int inNumSamples);
+void OnePoleMod_Ctor(OnePoleMod* unit);
 
 void OneZero_next(OneZero* unit, int inNumSamples);
 void OneZero_Ctor(OneZero* unit);
@@ -1066,7 +1075,8 @@ void OnePole_next_a(OnePole* unit, int inNumSamples)
     double y1 = unit->m_y1;
 
     LOOP1(inNumSamples, double y0 = ZXP(in); double b1 = ZXP(b1p);
-          //		  printf("[OnePole] next_a: %f\n", y0 + b1 * (y1 - y0));//mtm
+//          		  printf("[OnePole] next_a: %f\n", y0 + b1 * (y1 - y0));//mtm
+//          printf("[OnePole] next_a: %f\n", (1.f - std::abs(b1)) * y0 + b1 * y1);//mtm
           ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;);
     unit->m_y1 = zapgremlins(y1);
 }
@@ -1246,14 +1256,124 @@ void OnePole_Ctor(OnePole* unit) {
             printf("[OnePole] choosing next_k\n"); // mtm
         }
     }
-
+    
+//    unit->m_b1 = ZIN0(1);
+//    unit->m_y1 = 0.f;
+//    OnePole_next_a(unit, 1);
+    
+    // option 1: (follows convention of calling next_1 then restoring state)
+    printf("[OnePole] init sample:\n\t"); // mtm
     unit->m_b1 = ZIN0(1);
     unit->m_y1 = 0.f;
-    //	OnePole_next_a(unit, 1);
-
-    printf("[OnePole] init sample:\n\t"); // mtm
     OnePole_next_1(unit, 1); // mtm
     printf("[OnePole] first sample:\n\t"); // mtm
+    unit->m_y1 = 0.f;
+    
+    // option 2: (calculates init sample directly, sets state correctly)
+//    float b1 = ZIN0(1);
+//    printf("[OnePole] initsample_ctor: %f\n", (1.f - std::abs(b1)) * ZIN0(0));//mtm
+//    ZOUT0(0) = (1.f - std::abs(b1)) * ZIN0(0); // out = (1.f - abs(b1)) * y0 + b1 * y1;
+//    unit->m_y1 = 0.f;
+//    unit->m_b1 = b1;
+//    printf("[OnePole] first sample:\n\t"); // mtm
+}
+
+///////////////////// OnePoleMod ///////////////////////////////////////////////////////////
+
+void OnePoleMod_next_a(OnePoleMod* unit, int inNumSamples)
+
+{ // naive implementation
+    // 89 - 92%
+    float* out = ZOUT(0);
+    float* in = ZIN(0);
+    float* b0p = ZIN(1);
+    float* a1p = ZIN(2);
+    double y1 = unit->m_y1;
+    LOOP1(inNumSamples, double x0 = ZXP(in); double b0 = ZXP(b0p); double a1 = ZXP(a1p);
+          ZXP(out) = y1 = b0*x0 - a1*y1;
+//          printf("[OnePoleMod] next_a: %f\n", y1);//mtm
+          );
+    unit->m_y1 = zapgremlins(y1);
+}
+
+void OnePoleMod_next_k(OnePoleMod* unit, int inNumSamples) {
+    float* out = ZOUT(0);
+    float* in = ZIN(0);
+    double b0 = unit->m_b0;
+    double a1 = unit->m_a1;
+    unit->m_b0 = ZIN0(1);
+    unit->m_a1 = ZIN0(2);
+
+    double y1 = unit->m_y1;
+    
+    if (b0 == unit->m_b0 && a1 == unit->m_a1) {
+        LOOP1(inNumSamples, double x0 = ZXP(in);
+        ZXP(out) = y1 = b0*x0 - a1*y1 );
+//        printf("[OnePoleMod] next_k_static: %f\n", y1);//mtm
+    } else {
+        double b0_slope = CALCSLOPE(unit->m_b0, b0);
+        double a1_slope = CALCSLOPE(unit->m_a1, a1);
+        LOOP1(inNumSamples, double x0 = ZXP(in);
+              ZXP(out) = y1 = b0*x0 - a1*y1;
+              b0 += b0_slope;
+              a1 += a1_slope;
+//              printf("[OnePoleMod] next_k_mod: %f\n", y1);//mtm
+              );
+    }
+    unit->m_y1 = zapgremlins(y1);
+}
+
+void OnePoleMod_next_1(OnePoleMod* unit, int inNumSamples) {
+    float x0 = ZIN0(0);
+    double b0 = ZIN0(1);
+    double a1 = ZIN0(2);
+    double y1 = unit->m_y1;
+    ZOUT0(0) = y1 = b0*x0 - a1*y1;
+//    printf("[OnePoleMod] next_1: %f\n", y1);//mtm
+    unit->m_y1 = zapgremlins(y1);
+}
+
+void OnePoleMod_next_i(OnePoleMod* unit, int inNumSamples) {
+    float* out = ZOUT(0);
+    float* in = ZIN(0);
+    double b0 = unit->m_b0;
+    double a1 = unit->m_a1;
+    double y1 = unit->m_y1;
+    LOOP1(inNumSamples, double x0 = ZXP(in);
+          ZXP(out) = y1 = b0*x0 - a1*y1;
+//          printf("[OnePoleMod] next_i: %f\n", y1);//mtm
+          );
+    unit->m_y1 = zapgremlins(y1);
+}
+
+
+void OnePoleMod_Ctor(OnePoleMod* unit) {
+    if (unit->mBufLength == 1) {
+        printf("[OnePoleMod] choosing next_1\n"); // mtm
+        SETCALC(OnePoleMod_next_1);
+    } else {
+        if (INRATE(1) == calc_FullRate) {
+            printf("[OnePoleMod] choosing next_a\n"); // mtm
+            SETCALC(OnePoleMod_next_a);
+        } else if (INRATE(1) == calc_ScalarRate) {
+            printf("[OnePoleMod] choosing next_i\n"); // mtm
+            SETCALC(OnePoleMod_next_i);
+        } else {
+            printf("[OnePoleMod] choosing next_k\n"); // mtm
+            SETCALC(OnePoleMod_next_k);
+        }
+    }
+
+    // option 1: (follows convention of calling next_1 then restoring state)
+    unit->m_b0 = ZIN0(1);
+    unit->m_a1 = ZIN0(2);
+    printf("[OnePoleMod] ctor: b0 %f, a1 %f\n", unit->m_b0, unit->m_a1);//mtm
+    printf("[OnePoleMod] init sample:\n\t"); // mtm
+    unit->m_y1 = 0.f;
+    OnePoleMod_next_1(unit, 1); // mtm
+    printf("[OnePoleMod] first sample:\n\t"); // mtm
+    unit->m_b0 = ZIN0(1);
+    unit->m_a1 = ZIN0(2);
     unit->m_y1 = 0.f;
 }
 
@@ -3021,9 +3141,13 @@ void BRF_next(BRF* unit, int inNumSamples) {
              ZXP(out) = a0 * (y1 + y0) + ay;
 
              a0 += a0_slope; a1 += a1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2;
+        LOOP(unit->mRate->mFilterRemain,
+             ay = a1 * y1; // ay = a1*0 = 0
+             y0 = ZXP(in) - ay - b2 * y2; // y0 = in - 0 - (b2*0) = in
+             ZXP(out) = a0 * (y0 + y2) + ay; // out = a0 * (y0+0) + 0 = a0*in;
              printf("[BRF] next: %f\n", a0 * (y0 + y2) + ay); // mtm
-             ZXP(out) = a0 * (y0 + y2) + ay; y2 = y1; y1 = y0;);
+             y2 = y1;
+             y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_bw = bw;
@@ -3362,6 +3486,9 @@ void Resonz_Ctor(Resonz* unit) {
     Resonz_next(unit, 1);
     POP_LOOPVALS
     printf("[Resonz] first sample:\n\t"); // mtm
+    // roll back advance done in initialization
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
 }
 
 
@@ -3418,10 +3545,12 @@ void Resonz_next(Resonz* unit, int inNumSamples) {
              printf("[Resonz] next: %f\n", a0 * (y0 - y2)); // mtm
              ZXP(out) = a0 * (y0 - y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[Resonz] next: %f\n", a0 * (y2 - y1)); // mtm
+             y2 = ZXP(in) + b1 * y0 + b2 * y1;
+             printf("[Resonz] next: %f\n", a0 * (y2 - y1)); // mtm
              ZXP(out) = a0 * (y2 - y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[Resonz] next: %f\n", a0 * (y1 - y0)); // mtm
+             y1 = ZXP(in) + b1 * y2 + b2 * y0;
+             printf("[Resonz] next: %f\n", a0 * (y1 - y0)); // mtm
              ZXP(out) = a0 * (y1 - y0););
         LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
              printf("[Resonz] next: %f\n", a0 * (y0 - y2)); // mtm
@@ -3452,6 +3581,7 @@ void Ringz_Ctor(Ringz* unit) {
     Ringz_next(unit, 1);
     POP_LOOPVALS
     printf("[Ringz] first sample:\n\t"); // mtm
+    // roll back advance done in initialization
     unit->m_y1 = 0.f;
     unit->m_y2 = 0.f;
 }
@@ -3544,6 +3674,11 @@ void Formlet_Ctor(Formlet* unit) {
     printf("[Formlet] init sample:\n\t"); // mtm
     Formlet_next_1(unit, 1); // mtm
     printf("[Formlet] first sample:\n\t"); // mtm
+    // roll back advance done in initialization
+    unit->m_y01 = 0.f;
+    unit->m_y02 = 0.f;
+    unit->m_y11 = 0.f;
+    unit->m_y12 = 0.f;
 }
 
 void Formlet_next(Formlet* unit, int inNumSamples) {
@@ -6334,6 +6469,7 @@ PluginLoad(Filter) {
     DefineSimpleUnit(Lag3UD);
     DefineSimpleUnit(VarLag);
     DefineSimpleUnit(OnePole);
+    DefineSimpleUnit(OnePoleMod); // MTM
     DefineSimpleUnit(OneZero);
     DefineSimpleUnit(TwoPole);
     DefineSimpleUnit(TwoZero);
