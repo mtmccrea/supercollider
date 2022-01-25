@@ -122,6 +122,9 @@ Saw : UGen {
 	*ar { arg freq=440.0, mul = 1.0, add = 0.0;
 		^this.multiNew('audio', freq).madd(mul, add)
 	}
+	*kr { arg freq=440.0, mul = 1.0, add = 0.0;
+		^this.multiNew('control', freq).madd(mul, add)
+	}
 }
 
 Pulse : UGen {
