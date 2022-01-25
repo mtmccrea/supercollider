@@ -547,7 +547,7 @@ void Select_next_a(Select* unit, int inNumSamples) {
 
 void TWindex_Ctor(TWindex* unit) {
     if (INRATE(0) == calc_FullRate) {
-        SETCALC(TWindex_next_ak); // todo : ar
+        SETCALC(TWindex_next_ak);
     } else {
         SETCALC(TWindex_next_k);
     }
@@ -1306,7 +1306,6 @@ void PSinGrain_Ctor(PSinGrain* unit) {
     double b1, y1, y2;
     unit->m_b1 = b1 = 2. * cos(w);
     unit->m_y1 = y1 = -sin(w) * amp;
-    ;
     unit->m_y2 = y2 = -sin(w + w) * amp;
 
     float outn = b1 * y1 - y2; // mtm
@@ -1549,21 +1548,18 @@ void SinOsc_Ctor(SinOsc* unit) {
             // Print("next_ika\n");
             SETCALC(SinOsc_next_ika);
             //			unit->m_phase = 0;//mtm
-            unit->m_phase = initPhase = 0; // mtm
-            SinOsc_next_iaa(unit, 1); // mtm
+            unit->m_phase = initPhase = 0; // store init phase
+            SinOsc_next_iaa(unit, 1); // generate init sample
         } else {
             SETCALC(SinOsc_next_ikk);
             //			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
-            unit->m_phase = initPhase = (int32)(unit->m_phasein * unit->m_radtoinc); // mtm
-            SinOsc_next_ikk(unit, 1); // mtm
+            unit->m_phase = initPhase = (int32)(unit->m_phasein * unit->m_radtoinc); // store init phase
+            SinOsc_next_ikk(unit, 1); // generate init sample
         }
     }
 
-    //	int32 initPhase;
-    //	unit->m_phase = initPhase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
-    //	int32 initPhase = unit->m_phase;
     //	SinOsc_next_ikk(unit, 1);
-    unit->m_phase = initPhase; // restore initial state mtm
+    unit->m_phase = initPhase; // restore initial state
     //	printf("[SinOsc] first sample:\n\t");
 }
 
