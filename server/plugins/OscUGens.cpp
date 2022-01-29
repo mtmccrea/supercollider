@@ -3914,34 +3914,45 @@ void Saw_next(Saw* unit, int inNumSamples) {
 
 void Pulse_Ctor(Pulse* unit) {
     SETCALC(Pulse_next);
-    unit->m_freqin = ZIN0(0);
-
+    
+    float freqin;
+    unit->m_freqin = freqin = ZIN0(0);
     unit->m_cpstoinc = ft->mSineSize * SAMPLEDUR * 65536. * 0.5;
     unit->m_N = (int32)((SAMPLERATE * 0.5) / unit->m_freqin);
     unit->m_scale = 0.5 / unit->m_N;
-    //	unit->m_phase = 0;
-    //	unit->m_phaseoff = 0;
-    //	unit->m_y1 = 0.f;//mtm
-    //	ZOUT0(0) = 0.f;//mtm
+    
+    unit->m_phase = 0;
+    unit->m_phaseoff = 0;
+    unit->m_y1 = 0.f;
+    ZOUT0(0) = 0.f;
 
-    printf("[Pulse] mscale - before: %f\n\t", unit->m_scale);
-    int32 initphaseoff;
-    unit->m_phase = 0.f;
-    unit->m_phaseoff = initphaseoff = (int32)(ZIN0(1) * (1L << 28));
-    //	unit->m_y1 = 0.f;//mtm
-    unit->m_y1 = -0.476432; // mtm
-
-    //	printf("[Pulse] init sample:\n\t");
-    Pulse_next(unit, 1);
-    //	printf("[Pulse] first sample:\n\t");
-
-    unit->m_phase = 0.f;
-    //	unit->m_phaseoff = 0;//mtm
-    unit->m_phaseoff = initphaseoff;
-    //	unit->m_y1 = 0.f;//mtm
-    unit->m_y1 = -0.476432; // mtm
-    //	unit->m_scale = 0.5/unit->m_N;//mtm
-    //	printf("[Pulse] mscale - after: %f\n\t", unit->m_scale);
+    
+//    int32 freq = (int32)(unit->m_cpstoinc * freqin);
+//
+////    printf("[Pulse] mscale - before: %f\n\t", unit->m_scale);
+////    int32 initphaseoff;
+////    unit->m_phase = freq * -1.f;
+////    unit->m_phaseoff = (int32)(ZIN0(1) * (1L << 28));
+////    unit->m_y1 = -0.5f;//mtm
+////    unit->m_y1 = -0.999;//mtm
+////    unit->m_y1 = -0.476432; // mtm
+//        unit->m_phase = 0;
+//        unit->m_phaseoff = 0;
+//        unit->m_y1 = 0.f;
+//    	printf("[Pulse] init sample:\n\t");
+//    Pulse_next(unit, 1);
+//    	printf("[Pulse] first sample:\n\t");
+//
+////    unit->m_phase = freq * -1.f;
+////    unit->m_phaseoff = (int32)(ZIN0(1) * (1L << 28));
+////    unit->m_y1 = -0.999;//mtm
+////    unit->m_y1 = -0.476432; // mtm
+//        unit->m_phase = 0;
+//        unit->m_phaseoff = 0;
+//        unit->m_y1 = 0.f;
+//
+//    //	unit->m_scale = 0.5/unit->m_N;//mtm
+//    //	printf("[Pulse] mscale - after: %f\n\t", unit->m_scale);
 }
 
 void Pulse_next(Pulse* unit, int inNumSamples) {
@@ -4081,7 +4092,7 @@ void Pulse_next(Pulse* unit, int inNumSamples) {
 
                 pul2 = lininterp(xfade, n1, n2);
             } float val = pul1 - pul2 + 0.999f * y1;
-            //			  printf("[Pulse_next 5] %f\n", val); //mtm
+            			  printf("[Pulse_next 5] %f\n", val); //mtm
             ZXP(out) = y1 = val; // mtm
             //			ZXP(out) = y1 = pul1 - pul2 + 0.999f * y1;
             phase += freq;
@@ -4142,7 +4153,7 @@ void Pulse_next(Pulse* unit, int inNumSamples) {
 
                 pul2 = (numer * denom);
             } float val = (pul1 - pul2) * scale + 0.999f * y1; // mtm
-            //			  printf("[Pulse_next 6] %f\n", val); //mtm
+            			  printf("[Pulse_next 6] %f\n", val); //mtm
             ZXP(out) = y1 = val; // mtm
             //			ZXP(out) = y1 = (pul1 - pul2) * scale + 0.999f * y1;//mtm
             phase += freq;
@@ -4196,7 +4207,6 @@ static float Klang_SetCoefs(Klang* unit) {
             *++coefs = level * sin(phase - w); // y1
             *++coefs = level * sin(phase - w - w); // y2
         } else {
-            outf += 0.f;
             *++coefs = level * -sin(w); // y1
             *++coefs = level * -sin(w + w); // y2
         }
