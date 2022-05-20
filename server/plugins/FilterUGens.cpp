@@ -1010,27 +1010,7 @@ void VarLag_Ctor(VarLag* unit) {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 void OnePole_next_a(OnePole* unit, int inNumSamples)
-//		  //mtm TODO: just use ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1; ??
-//		  // is conditional branching cheaper than factoring out the abs() and *?
-//		  // if conditional is cheaper, replace (1.f - std::abs(b1))... in OnePole_next_k (last else branch)
-
-//{	// orig - wrong for negative coeffs
-//	// 94-95%
-//	float *out = ZOUT(0);
-//	float *in = ZIN(0);
-//	float *b1p = ZIN(1);
-//	double y1 = unit->m_y1;
-//
-//	LOOP1(inNumSamples,
-//		  double y0 = ZXP(in);
-//		  double b1 = ZXP(b1p);
-//		  ZXP(out) = y1 = y0 + b1 * (y1 - y0);
-//		  );
-//	unit->m_y1 = zapgremlins(y1);
-//}
-
-{ // naive implementation
-    // 89 - 92%
+{
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float* b1p = ZIN(1);
@@ -1042,88 +1022,6 @@ void OnePole_next_a(OnePole* unit, int inNumSamples)
           ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;);
     unit->m_y1 = zapgremlins(y1);
 }
-
-//{	// check coeff for sign, then choose corresponding factored version
-//	// 94 - 95 %
-//	float *out = ZOUT(0);
-//	float *in = ZIN(0);
-//	float *b1p = ZIN(1);
-//	double y1 = unit->m_y1;
-//
-//	LOOP1(inNumSamples,
-//		  double y0 = ZXP(in);
-//		  double b1 = ZXP(b1p);
-//	//		  printf("[OnePole] next_a: %f\n", y0 + b1 * (y1 - y0));//mtm
-//		  if (b1 > 0.f) {
-//			  ZXP(out) = y1 = y0 + b1 * (y1 - y0);
-//		  } else {
-//			  ZXP(out) = y1 = y0 + b1 * (y0 + y1);
-//		  }
-//	);
-//	unit->m_y1 = zapgremlins(y1);
-//}
-
-//{	// check all coeffs for sign, then choose corresponding factored version
-//	// 91 - 93%
-//	float *out = ZOUT(0);
-//	float *in = ZIN(0);
-//	float *b1p = ZIN(1);
-//	double y1 = unit->m_y1;
-//
-//	if (all_of(in, in + inNumSamples, [](float e){return e >= 0.f;})) {
-//		LOOP1(inNumSamples,
-//			  double y0 = ZXP(in);
-//			  double b1 = ZXP(b1p);
-//			  ZXP(out) = y1 = y0 + b1 * (y1 - y0);
-//			  );
-//	} else if (all_of(in, in + inNumSamples, [](float e){return e < 0.f;})) {
-//		LOOP1(inNumSamples,
-//			  double y0 = ZXP(in);
-//			  double b1 = ZXP(b1p);
-//			  ZXP(out) = y1 = y0 + b1 * (y0 + y1);
-//			  );
-//	} else {
-//		LOOP1(inNumSamples,
-//			  double y0 = ZXP(in);
-//			  double b1 = ZXP(b1p);
-//			  ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
-//			  );
-//	}
-//	unit->m_y1 = zapgremlins(y1);
-//}
-
-//{	// using OUT/IN macros and pointer incrementing
-//	// 93 - 94 %
-//	float *out = OUT(0);
-//	float *in = IN(0);
-//	float *b1p = IN(1);
-//	double y1 = unit->m_y1;
-//
-//	for (int i = 0; i < inNumSamples; ++i) {
-//		double y0 = *in++;
-//		double b1 = *b1p++;
-//		*out++ = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
-//	}
-//	unit->m_y1 = zapgremlins(y1);
-//}
-
-//{	// try to take advantage of in-place operation
-//	// 96-97%
-//	float *out = OUT(0);
-//	//	float *in = IN(0);
-//	float *b1p = IN(1);
-//	double y1 = unit->m_y1;
-//
-//	for (int i = 0; i < inNumSamples; ++i) {
-//		// double y0 = *in++;
-//		double b1 = *b1p++;
-//		// *out++ = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
-//		*out *= (1.f - std::abs(b1));
-//		*out += (b1 * y1);
-//		y1 = *out++;
-//	}
-//	unit->m_y1 = zapgremlins(y1);
-//}
 
 void OnePole_next_k(OnePole* unit, int inNumSamples) {
     float* out = ZOUT(0);
@@ -1174,26 +1072,16 @@ void OnePole_next_1(OnePole* unit, int inNumSamples) {
     unit->m_y1 = zapgremlins(y1);
 }
 
-// template <bool b1isPositive>
 void OnePole_next_i(OnePole* unit, int inNumSamples) {
     float* out = ZOUT(0);
     float* in = ZIN(0);
     double b1 = unit->m_b1;
     double y1 = unit->m_y1;
 
-    //	if (b1isPositive) {
     LOOP1(inNumSamples, double y0 = ZXP(in);
-          //			  ZXP(out) = y1 = y0 + b1 * (y1 - y0);
           ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;);
-    //	} else {
-    //		LOOP1(inNumSamples,
-    //			  double y0 = ZXP(in);
-    //			  ZXP(out) = y1 = y0 + b1 * (y1 + y0);
-    //			  );
-    //	}
     unit->m_y1 = zapgremlins(y1);
 }
-
 
 void OnePole_Ctor(OnePole* unit) {
     if (unit->mBufLength == 1) {
@@ -1206,13 +1094,6 @@ void OnePole_Ctor(OnePole* unit) {
         } else if (INRATE(1) == calc_ScalarRate) {
             printf("[OnePole] choosing next_i\n"); // mtm
             SETCALC(OnePole_next_i);
-            //			if (ZIN0(1) >= 0.f) {
-            //				printf("[OnePole] choosing next_i\n");//mtm
-            //				SETCALC(OnePole_next_i<true>);
-            //			} else {
-            //				printf("[OnePole] choosing next_i\n");//mtm
-            //				SETCALC(OnePole_next_i<false>);
-            //			}
         } else {
             SETCALC(OnePole_next_k);
             printf("[OnePole] choosing next_k\n"); // mtm
@@ -1223,119 +1104,11 @@ void OnePole_Ctor(OnePole* unit) {
 //    unit->m_y1 = 0.f;
 //    OnePole_next_a(unit, 1);
     
-    // option 1: (follows convention of calling next_1 then restoring state)
     printf("[OnePole] init sample:\n\t"); // mtm
     unit->m_b1 = ZIN0(1);
     unit->m_y1 = 0.f;
     OnePole_next_1(unit, 1); // mtm
     printf("[OnePole] first sample:\n\t"); // mtm
-    unit->m_y1 = 0.f;
-    
-    // option 2: (calculates init sample directly, sets state correctly)
-//    float b1 = ZIN0(1);
-//    printf("[OnePole] initsample_ctor: %f\n", (1.f - std::abs(b1)) * ZIN0(0));//mtm
-//    ZOUT0(0) = (1.f - std::abs(b1)) * ZIN0(0); // out = (1.f - abs(b1)) * y0 + b1 * y1;
-//    unit->m_y1 = 0.f;
-//    unit->m_b1 = b1;
-//    printf("[OnePole] first sample:\n\t"); // mtm
-}
-
-///////////////////// OnePoleMod ///////////////////////////////////////////////////////////
-
-void OnePoleMod_next_a(OnePoleMod* unit, int inNumSamples)
-
-{ // naive implementation
-    // 89 - 92%
-    float* out = ZOUT(0);
-    float* in = ZIN(0);
-    float* b0p = ZIN(1);
-    float* a1p = ZIN(2);
-    double y1 = unit->m_y1;
-    LOOP1(inNumSamples, double x0 = ZXP(in); double b0 = ZXP(b0p); double a1 = ZXP(a1p);
-          ZXP(out) = y1 = b0*x0 - a1*y1;
-//          printf("[OnePoleMod] next_a: %f\n", y1);//mtm
-          );
-    unit->m_y1 = zapgremlins(y1);
-}
-
-void OnePoleMod_next_k(OnePoleMod* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-    float* in = ZIN(0);
-    double b0 = unit->m_b0;
-    double a1 = unit->m_a1;
-    unit->m_b0 = ZIN0(1);
-    unit->m_a1 = ZIN0(2);
-
-    double y1 = unit->m_y1;
-    
-    if (b0 == unit->m_b0 && a1 == unit->m_a1) {
-        LOOP1(inNumSamples, double x0 = ZXP(in);
-        ZXP(out) = y1 = b0*x0 - a1*y1 );
-//        printf("[OnePoleMod] next_k_static: %f\n", y1);//mtm
-    } else {
-        double b0_slope = CALCSLOPE(unit->m_b0, b0);
-        double a1_slope = CALCSLOPE(unit->m_a1, a1);
-        LOOP1(inNumSamples, double x0 = ZXP(in);
-              ZXP(out) = y1 = b0*x0 - a1*y1;
-              b0 += b0_slope;
-              a1 += a1_slope;
-//              printf("[OnePoleMod] next_k_mod: %f\n", y1);//mtm
-              );
-    }
-    unit->m_y1 = zapgremlins(y1);
-}
-
-void OnePoleMod_next_1(OnePoleMod* unit, int inNumSamples) {
-    float x0 = ZIN0(0);
-    double b0 = ZIN0(1);
-    double a1 = ZIN0(2);
-    double y1 = unit->m_y1;
-    ZOUT0(0) = y1 = b0*x0 - a1*y1;
-//    printf("[OnePoleMod] next_1: %f\n", y1);//mtm
-    unit->m_y1 = zapgremlins(y1);
-}
-
-void OnePoleMod_next_i(OnePoleMod* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-    float* in = ZIN(0);
-    double b0 = unit->m_b0;
-    double a1 = unit->m_a1;
-    double y1 = unit->m_y1;
-    LOOP1(inNumSamples, double x0 = ZXP(in);
-          ZXP(out) = y1 = b0*x0 - a1*y1;
-//          printf("[OnePoleMod] next_i: %f\n", y1);//mtm
-          );
-    unit->m_y1 = zapgremlins(y1);
-}
-
-
-void OnePoleMod_Ctor(OnePoleMod* unit) {
-    if (unit->mBufLength == 1) {
-        printf("[OnePoleMod] choosing next_1\n"); // mtm
-        SETCALC(OnePoleMod_next_1);
-    } else {
-        if (INRATE(1) == calc_FullRate) {
-            printf("[OnePoleMod] choosing next_a\n"); // mtm
-            SETCALC(OnePoleMod_next_a);
-        } else if (INRATE(1) == calc_ScalarRate) {
-            printf("[OnePoleMod] choosing next_i\n"); // mtm
-            SETCALC(OnePoleMod_next_i);
-        } else {
-            printf("[OnePoleMod] choosing next_k\n"); // mtm
-            SETCALC(OnePoleMod_next_k);
-        }
-    }
-
-    // option 1: (follows convention of calling next_1 then restoring state)
-    unit->m_b0 = ZIN0(1);
-    unit->m_a1 = ZIN0(2);
-    printf("[OnePoleMod] ctor: b0 %f, a1 %f\n", unit->m_b0, unit->m_a1);//mtm
-    printf("[OnePoleMod] init sample:\n\t"); // mtm
-    unit->m_y1 = 0.f;
-    OnePoleMod_next_1(unit, 1); // mtm
-    printf("[OnePoleMod] first sample:\n\t"); // mtm
-    unit->m_b0 = ZIN0(1);
-    unit->m_a1 = ZIN0(2);
     unit->m_y1 = 0.f;
 }
 
