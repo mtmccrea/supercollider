@@ -87,10 +87,6 @@ struct OnePole : public Unit {
     double m_b1, m_y1;
 };
 
-struct OnePoleMod : public Unit {
-    double m_b0, m_a1, m_y1;
-};
-
 struct OneZero : public Unit {
     double m_b1, m_x1;
 };
@@ -318,11 +314,6 @@ void OnePole_next_a(OnePole* unit, int inNumSamples);
 void OnePole_next_k(OnePole* unit, int inNumSamples);
 void OnePole_next_1(OnePole* unit, int inNumSamples);
 void OnePole_Ctor(OnePole* unit);
-
-void OnePoleMod_next_a(OnePoleMod* unit, int inNumSamples);
-void OnePoleMod_next_k(OnePoleMod* unit, int inNumSamples);
-void OnePoleMod_next_1(OnePoleMod* unit, int inNumSamples);
-void OnePoleMod_Ctor(OnePoleMod* unit);
 
 void OneZero_next(OneZero* unit, int inNumSamples);
 void OneZero_Ctor(OneZero* unit);
@@ -6204,7 +6195,6 @@ PluginLoad(Filter) {
     DefineSimpleUnit(Lag3UD);
     DefineSimpleUnit(VarLag);
     DefineSimpleUnit(OnePole);
-    DefineSimpleUnit(OnePoleMod); // MTM
     DefineSimpleUnit(OneZero);
     DefineSimpleUnit(TwoPole);
     DefineSimpleUnit(TwoZero);
