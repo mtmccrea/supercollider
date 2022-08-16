@@ -372,7 +372,7 @@ void DegreeToKey_Ctor(DegreeToKey* unit) {
     unit->m_fbufnum = std::numeric_limits<float>::quiet_NaN();
     if (BUFLENGTH == 1) {
         SETCALC(DegreeToKey_next_1);
-        //	} else if (INRATE(0) == calc_FullRate) {
+        //    } else if (INRATE(0) == calc_FullRate) {
     } else if (INRATE(1) == calc_FullRate) { // mtm fix: check index input, not bufnum (bufnum wouldn't be fullRate)
         SETCALC(DegreeToKey_next_a);
     } else {
@@ -414,7 +414,7 @@ void DegreeToKey_next_1(DegreeToKey* unit, int inNumSamples) {
         unit->mPrevIndex = index;
         val = unit->mPrevKey = table[index];
     }
-    //	printf("\t[DegreeToKey_next_1] %f\n", val);
+    //    printf("\t[DegreeToKey_next_1] %f\n", val);
     ZOUT0(0) = val;
 }
 
@@ -447,7 +447,7 @@ void DegreeToKey_next_k(DegreeToKey* unit, int inNumSamples) {
         unit->mPrevIndex = index;
         val = unit->mPrevKey = table[index];
     }
-    //	printf("\t[DegreeToKey_next_k] %f\n", val);
+    //    printf("\t[DegreeToKey_next_k] %f\n", val);
     LOOP1(inNumSamples, ZXP(out) = val;);
 }
 
@@ -468,23 +468,23 @@ void DegreeToKey_next_a(DegreeToKey* unit, int inNumSamples) {
 
     LOOP1(
         inNumSamples, int32 index = (int32)floor(ZXP(in)); if (index == previndex) {
-            //			printf("\t[DegreeToKey_next_a (index == previndex)] %f\n", prevkey);
+            //            printf("\t[DegreeToKey_next_a (index == previndex)] %f\n", prevkey);
             ZXP(out) = prevkey;
         } else if (index < 0) {
             previndex = index;
             key = tableSize + index % tableSize;
             oct = (index + 1) / tableSize - 1;
-            //			printf("\t[DegreeToKey_next_a (index < 0)] %f\n", table[key] + octave * oct);
+            //            printf("\t[DegreeToKey_next_a (index < 0)] %f\n", table[key] + octave * oct);
             ZXP(out) = prevkey = table[key] + octave * oct;
         } else if (index > maxindex) {
             previndex = index;
             key = index % tableSize;
             oct = index / tableSize;
-            //			printf("\t[DegreeToKey_next_a (index > maxindex)] %f\n", table[key] + octave * oct);
+            //            printf("\t[DegreeToKey_next_a (index > maxindex)] %f\n", table[key] + octave * oct);
             ZXP(out) = prevkey = table[key] + octave * oct;
         } else {
             previndex = index;
-            //			printf("\t[DegreeToKey_next_a else] %f\n", table[index]);
+            //            printf("\t[DegreeToKey_next_a else] %f\n", table[index]);
             ZXP(out) = prevkey = table[index];
         });
     unit->mPrevIndex = previndex;
@@ -501,9 +501,9 @@ void Select_Ctor(Select* unit) {
     } else {
         SETCALC(Select_next_k);
     }
-    //	printf("[Select] init sample:\n\t");
+    //    printf("[Select] init sample:\n\t");
     Select_next_1(unit, 1);
-    //	printf("[Select] first sample:\n\t");
+    //    printf("[Select] first sample:\n\t");
 }
 
 void Select_next_1(Select* unit, int inNumSamples) {
@@ -513,7 +513,7 @@ void Select_next_1(Select* unit, int inNumSamples) {
     float val = ZIN0(index);
     // printf("[Select_next_1] \t%f\n", val);
     ZOUT0(0) = val;
-    //	ZOUT0(0) = ZIN0(index);
+    //    ZOUT0(0) = ZIN0(index);
 }
 
 void Select_next_k(Select* unit, int inNumSamples) {
@@ -540,7 +540,7 @@ void Select_next_a(Select* unit, int inNumSamples) {
         float val = in[index][i];
         // printf("[Select_next_a] \t%f\n", val);
         ZXP(out) = val;
-        //		ZXP(out) = in[index][i];
+        //        ZXP(out) = in[index][i];
     }
 }
 ////////////////////////////////////////////////////////////////////////////////////
@@ -578,7 +578,7 @@ void TWindex_Ctor(TWindex* unit) {
         }
     }
 
-    //	printf("[TWindex] init sample %d:\n", index);
+    //    printf("[TWindex] init sample %d:\n", index);
     OUT0(0) = index;
 
     // ensure a first-sample trigger doesn't cause another rand val,
@@ -587,11 +587,11 @@ void TWindex_Ctor(TWindex* unit) {
     unit->m_trig = 1.f;
     unit->m_prevIndex = index;
 
-    //	unit->m_prevIndex = 0; // mtm
-    //	unit->m_trig = -1.f;   // mtm: make it trigger the first time << mtm: this won't ensure it triggers the first
-    //time, if input <= 0
+    //    unit->m_prevIndex = 0; // mtm
+    //    unit->m_trig = -1.f;   // mtm: make it trigger the first time << mtm: this won't ensure it triggers the first
+    // time, if input <= 0
     TWindex_next_k(unit, 1); // don't call this
-    //	printf("[TWindex] first sample:\n\t");
+    //    printf("[TWindex] first sample:\n\t");
 }
 
 
@@ -638,7 +638,7 @@ void TWindex_next_ak(TWindex* unit, int inNumSamples) {
     int maxindex = unit->mNumInputs;
     int32 index = maxindex;
 
-    //	float sum = 0.f; // mtm
+    //    float sum = 0.f; // mtm
     float maxSum = -1.f;
     float normalize = ZIN0(1); // switch normalisation on or off
     float* trig = ZIN(0);
@@ -686,9 +686,9 @@ void Index_Ctor(Index* unit) {
     } else {
         SETCALC(Index_next_k);
     }
-    //	printf("[Index] init sample:\n\t");
+    //    printf("[Index] init sample:\n\t");
     Index_next_1(unit, 1);
-    //	printf("[Index] first sample:\n\t");
+    //    printf("[Index] first sample:\n\t");
 }
 
 void Index_next_1(Index* unit, int inNumSamples) {
@@ -699,7 +699,7 @@ void Index_next_1(Index* unit, int inNumSamples) {
 
     int32 index = (int32)ZIN0(1);
     index = sc_clip(index, 0, maxindex);
-    //	printf("[Index_next_1] \t%f\n", table[index]); //mtm
+    //    printf("[Index_next_1] \t%f\n", table[index]); //mtm
     ZOUT0(0) = table[index];
 }
 
@@ -715,7 +715,7 @@ void Index_next_k(Index* unit, int inNumSamples) {
 
     index = sc_clip(index, 0, maxindex);
     float val = table[index];
-    //	printf("[Index_next_k] \t%f\n", val); //mtm
+    //    printf("[Index_next_k] \t%f\n", val); //mtm
     LOOP1(inNumSamples, ZXP(out) = val;);
 }
 
@@ -730,7 +730,7 @@ void Index_next_a(Index* unit, int inNumSamples) {
     float* in = ZIN(1);
 
     LOOP1(inNumSamples, int32 index = (int32)ZXP(in); index = sc_clip(index, 0, maxindex);
-          //		printf("[Index_next_a] \t%f\n", table[index]); //mtm
+          //        printf("[Index_next_a] \t%f\n", table[index]); //mtm
           ZXP(out) = table[index];);
 }
 
@@ -746,9 +746,9 @@ void IndexL_Ctor(IndexL* unit) {
     } else {
         SETCALC(IndexL_next_k);
     }
-    //	printf("[IndexL] init sample:\n\t");
+    //    printf("[IndexL] init sample:\n\t");
     IndexL_next_1(unit, 1);
-    //	printf("[IndexL] first sample:\n\t");
+    //    printf("[IndexL] first sample:\n\t");
 }
 
 void IndexL_next_1(IndexL* unit, int inNumSamples) {
@@ -765,7 +765,7 @@ void IndexL_next_1(IndexL* unit, int inNumSamples) {
 
     float a = table[index];
     float b = table[sc_clip(index + 1, 0, maxindex)];
-    //	printf("[IndexL_next_1] \t%f\n", lininterp(frac, a, b)); //mtm
+    //    printf("[IndexL_next_1] \t%f\n", lininterp(frac, a, b)); //mtm
     ZOUT0(0) = lininterp(frac, a, b);
 }
 
@@ -789,7 +789,7 @@ void IndexL_next_k(IndexL* unit, int inNumSamples) {
     float val = lininterp(frac, a, b);
 
     LOOP1(inNumSamples,
-          //		  printf("[IndexL_next_k] \t%f\n", val); //mtm
+          //          printf("[IndexL_next_k] \t%f\n", val); //mtm
           ZXP(out) = val;);
 }
 
@@ -806,7 +806,7 @@ void IndexL_next_a(IndexL* unit, int inNumSamples) {
     LOOP1(inNumSamples, float findex = ZXP(in); float frac = sc_frac(findex);
           int32 i1 = sc_clip((int32)findex, 0, maxindex); int32 i2 = sc_clip(i1 + 1, 0, maxindex); float a = table[i1];
           float b = table[i2];
-          //		  printf("[IndexL_next_a] \t%f\n", lininterp(frac, a, b)); //mtm
+          //          printf("[IndexL_next_a] \t%f\n", lininterp(frac, a, b)); //mtm
           ZXP(out) = lininterp(frac, a, b););
 }
 
@@ -823,9 +823,9 @@ void FoldIndex_Ctor(FoldIndex* unit) {
     } else {
         SETCALC(FoldIndex_next_k);
     }
-    //	printf("[FoldIndex] init sample:\n\t");
+    //    printf("[FoldIndex] init sample:\n\t");
     FoldIndex_next_1(unit, 1);
-    //	printf("[FoldIndex] first sample:\n\t");
+    //    printf("[FoldIndex] first sample:\n\t");
 }
 
 void FoldIndex_next_1(FoldIndex* unit, int inNumSamples) {
@@ -836,7 +836,7 @@ void FoldIndex_next_1(FoldIndex* unit, int inNumSamples) {
 
     int32 index = (int32)ZIN0(1);
     index = sc_fold(index, 0, maxindex);
-    //	printf("[FoldIndex_next_1] \t%f\n", table[index]); //mtm
+    //    printf("[FoldIndex_next_1] \t%f\n", table[index]); //mtm
     ZOUT0(0) = table[index];
 }
 
@@ -852,7 +852,7 @@ void FoldIndex_next_k(FoldIndex* unit, int inNumSamples) {
     index = sc_fold(index, 0, maxindex);
     float val = table[index];
     LOOP1(inNumSamples,
-          //		  printf("[FoldIndex_next_k] \t%f\n", val); //mtm
+          //          printf("[FoldIndex_next_k] \t%f\n", val); //mtm
           ZXP(out) = val;);
 }
 
@@ -867,7 +867,7 @@ void FoldIndex_next_a(FoldIndex* unit, int inNumSamples) {
     float* in = ZIN(1);
 
     LOOP1(inNumSamples, int32 index = (int32)ZXP(in); index = sc_fold(index, 0, maxindex);
-          //		  printf("[FoldIndex_next_a] \t%f\n", table[index]); //mtm
+          //          printf("[FoldIndex_next_a] \t%f\n", table[index]); //mtm
           ZXP(out) = table[index];);
 }
 
@@ -883,9 +883,9 @@ void WrapIndex_Ctor(WrapIndex* unit) {
     } else {
         SETCALC(WrapIndex_next_k);
     }
-    //	printf("[WrapIndex] init sample:\n\t");
+    //    printf("[WrapIndex] init sample:\n\t");
     WrapIndex_next_1(unit, 1);
-    //	printf("[WrapIndex] first sample:\n\t");
+    //    printf("[WrapIndex] first sample:\n\t");
 }
 
 void WrapIndex_next_1(WrapIndex* unit, int inNumSamples) {
@@ -896,7 +896,7 @@ void WrapIndex_next_1(WrapIndex* unit, int inNumSamples) {
 
     int32 index = (int32)floor(ZIN0(1));
     index = sc_wrap(index, 0, maxindex);
-    //	printf("[WrapIndex_next_1] \t%f\n", table[index]); //mtm
+    //    printf("[WrapIndex_next_1] \t%f\n", table[index]); //mtm
     ZOUT0(0) = table[index];
 }
 
@@ -912,7 +912,7 @@ void WrapIndex_next_k(WrapIndex* unit, int inNumSamples) {
     index = sc_wrap(index, 0, maxindex);
     float val = table[index];
     LOOP1(inNumSamples,
-          //		  printf("[WrapIndex_next_k] \t%f\n", val); //mtm
+          //          printf("[WrapIndex_next_k] \t%f\n", val); //mtm
           ZXP(out) = val;);
 }
 
@@ -927,7 +927,7 @@ void WrapIndex_next_a(WrapIndex* unit, int inNumSamples) {
     float* in = ZIN(1);
 
     LOOP1(inNumSamples, int32 index = (int32)ZXP(in); index = sc_wrap(index, 0, maxindex);
-          //		  printf("[WrapIndex_next_a] \t%f\n", table[index]); //mtm
+          //          printf("[WrapIndex_next_a] \t%f\n", table[index]); //mtm
           ZXP(out) = table[index];);
 }
 
@@ -955,9 +955,9 @@ void IndexInBetween_Ctor(IndexInBetween* unit) {
     } else {
         SETCALC(IndexInBetween_next_k);
     }
-    //	printf("[IndexInBetween] init sample:\n\t");
+    //    printf("[IndexInBetween] init sample:\n\t");
     IndexInBetween_next_1(unit, 1);
-    //	printf("[IndexInBetween] first sample:\n\t");
+    //    printf("[IndexInBetween] first sample:\n\t");
 }
 
 void IndexInBetween_next_1(IndexInBetween* unit, int inNumSamples) {
@@ -968,9 +968,9 @@ void IndexInBetween_next_1(IndexInBetween* unit, int inNumSamples) {
 
     float in = ZIN0(1);
     float val = IndexInBetween_FindIndex(table, in, maxindex); // mtm
-    //	  printf("[IndexInBetween_next_1] \t%f\n", val); //mtm
+    //      printf("[IndexInBetween_next_1] \t%f\n", val); //mtm
     ZOUT0(0) = val; // mtm
-    //	ZOUT0(0) = IndexInBetween_FindIndex(table, in, maxindex);
+    //    ZOUT0(0) = IndexInBetween_FindIndex(table, in, maxindex);
 }
 
 void IndexInBetween_next_k(IndexInBetween* unit, int inNumSamples) {
@@ -984,7 +984,7 @@ void IndexInBetween_next_k(IndexInBetween* unit, int inNumSamples) {
 
     float val = IndexInBetween_FindIndex(table, in, maxindex);
     LOOP1(inNumSamples,
-          //		    printf("[IndexInBetween_next_k] \t%f\n", val); //mtm
+          //            printf("[IndexInBetween_next_k] \t%f\n", val); //mtm
           ZXP(out) = val;);
 }
 
@@ -998,11 +998,13 @@ void IndexInBetween_next_a(IndexInBetween* unit, int inNumSamples) {
     float* out = ZOUT(0);
     float* in = ZIN(1);
 
-    LOOP1(inNumSamples, float val = IndexInBetween_FindIndex(table, ZXP(in), maxindex); // mtm
-          //		  printf("[IndexInBetween_next_a] \t%f\n", val); //mtm
+    LOOP1(inNumSamples,
+          float val = IndexInBetween_FindIndex(
+              table, ZXP(in), maxindex); // mtm
+                                         //          printf("[IndexInBetween_next_a] \t%f\n", val); //mtm
           ZXP(out) = val; // mtm
-          //		ZXP(out) = IndexInBetween_FindIndex(table, ZXP(in), maxindex);
-    );
+        //        ZXP(out) = IndexInBetween_FindIndex(table, ZXP(in), maxindex);
+        );
 }
 
 
@@ -1031,9 +1033,9 @@ void DetectIndex_Ctor(DetectIndex* unit) {
     // ensure in != unit->mPrevIn on first frame
     unit->mPrevIn = std::numeric_limits<float>::quiet_NaN(); // mtm
 
-    //	printf("[DetectIndex] init sample:\n\t");
+    //    printf("[DetectIndex] init sample:\n\t");
     DetectIndex_next_1(unit, 1);
-    //	printf("[DetectIndex] first sample:\n\t");
+    //    printf("[DetectIndex] first sample:\n\t");
 }
 
 void DetectIndex_next_1(DetectIndex* unit, int inNumSamples) {
@@ -1051,7 +1053,7 @@ void DetectIndex_next_1(DetectIndex* unit, int inNumSamples) {
         unit->mPrev = index;
         unit->mPrevIn = in;
     }
-    //	    printf("[DetectIndex_next_1] \t%f\n", (float)index); //mtm
+    //        printf("[DetectIndex_next_1] \t%f\n", (float)index); //mtm
     ZOUT0(0) = (float)index;
 }
 
@@ -1074,7 +1076,7 @@ void DetectIndex_next_k(DetectIndex* unit, int inNumSamples) {
     };
     val = (float)index;
     LOOP1(inNumSamples,
-          //		  printf("[DetectIndex_next_k] \t%f\n", val); //mtm
+          //          printf("[DetectIndex_next_k] \t%f\n", val); //mtm
           ZXP(out) = val;);
 }
 
@@ -1094,7 +1096,7 @@ void DetectIndex_next_a(DetectIndex* unit, int inNumSamples) {
     LOOP1(
         inNumSamples, inval = ZXP(in);
         if (inval != prev) { prevIndex = DetectIndex_FindIndex(table, inval, maxindex); } prev = inval;
-        //		    printf("[DetectIndex_next_a] \t%f\n", (float)prevIndex); //mtm
+        //            printf("[DetectIndex_next_a] \t%f\n", (float)prevIndex); //mtm
         ZXP(out) = (float)prevIndex;);
 
     unit->mPrev = prevIndex;
@@ -1113,11 +1115,11 @@ void Shaper_Ctor(Shaper* unit) {
     } else {
         SETCALC(Shaper_next_k);
     }
-    //	unit->mPrevIn = ZIN0(0); // mtm
+    //    unit->mPrevIn = ZIN0(0); // mtm
     unit->mPrevIn = ZIN0(1); // mtm -- FIXed
-    //	printf("[Shaper] init sample:\n\t"); //mtm
+    //    printf("[Shaper] init sample:\n\t"); //mtm
     Shaper_next_1(unit, 1);
-    //	printf("[Shaper] first sample:\n\t");  //mtm
+    //    printf("[Shaper] first sample:\n\t");  //mtm
 }
 
 float force_inline ShaperPerform(const float* table0, const float* table1, float in, float offset, float fmaxindex) {
@@ -1140,9 +1142,9 @@ void Shaper_next_1(Shaper* unit, int inNumSamples) {
     float fmaxindex = (float)(tableSize >> 1) - 0.001;
     float offset = tableSize * 0.25;
     float val = ShaperPerform(table0, table1, ZIN0(1), offset, fmaxindex); // mtm
-    //	printf("\t[Shaper_next_1] %f\n", val); //mtm
+    //    printf("\t[Shaper_next_1] %f\n", val); //mtm
     ZOUT0(0) = val; // mtm
-    //	ZOUT0(0) = ShaperPerform(table0, table1, ZIN0(1), offset, fmaxindex); //mtm
+    //    ZOUT0(0) = ShaperPerform(table0, table1, ZIN0(1), offset, fmaxindex); //mtm
 }
 
 void Shaper_next_k(Shaper* unit, int inNumSamples) {
@@ -1159,17 +1161,19 @@ void Shaper_next_k(Shaper* unit, int inNumSamples) {
     if (fin == unit->mPrevIn) {
         LOOP1(inNumSamples, ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex););
     } else {
-        //		float phaseinc = (fin - unit->mPrevIn) * offset; //mtm
-        //		unit->mPrevIn = fin; //mtm
+        //        float phaseinc = (fin - unit->mPrevIn) * offset; //mtm
+        //        unit->mPrevIn = fin; //mtm
 
         float prevIn = unit->mPrevIn; // mtm
         float phaseinc = CALCSLOPE(fin, prevIn); // mtm
         fin = prevIn; // mtm
 
-        LOOP1(inNumSamples, float val = ShaperPerform(table0, table1, fin, offset, fmaxindex); // mtm
-              //			  printf("\t[Shaper_next_k] %f\n", val); //mtm
+        LOOP1(inNumSamples,
+              float val = ShaperPerform(table0, table1, fin, offset,
+                                        fmaxindex); // mtm
+                                                    //              printf("\t[Shaper_next_k] %f\n", val); //mtm
               ZXP(out) = val; // mtm
-              //			ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex); // mtm
+              //            ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex); // mtm
               fin += phaseinc;);
         unit->mPrevIn = fin; // mtm
     }
@@ -1186,11 +1190,13 @@ void Shaper_next_a(Shaper* unit, int inNumSamples) {
     float* out = ZOUT(0);
     const float* in = ZIN(1);
 
-    LOOP1(inNumSamples, float fin = ZXP(in); float val = ShaperPerform(table0, table1, fin, offset, fmaxindex); // mtm
-          //		  printf("\t[Shaper_next_a] %f\n", val); //mtm
+    LOOP1(inNumSamples, float fin = ZXP(in);
+          float val = ShaperPerform(table0, table1, fin, offset,
+                                    fmaxindex); // mtm
+                                                //          printf("\t[Shaper_next_a] %f\n", val); //mtm
           ZXP(out) = val; // mtm
-          //		ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex);
-    );
+        //        ZXP(out) = ShaperPerform(table0, table1, fin, offset, fmaxindex);
+        );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1204,22 +1210,22 @@ void FSinOsc_Ctor(FSinOsc* unit) {
     unit->m_freq = ZIN0(0);
     float iphase = ZIN0(1);
     float w = unit->m_freq * unit->mRate->mRadiansPerSample;
-    //	unit->m_b1 = 2. * cos(w); //mtm
+    //    unit->m_b1 = 2. * cos(w); //mtm
     unit->m_b1 = b1 = 2. * cos(w);
 
-    //	unit->m_y1 = sin(iphase);
-    //	unit->m_y2 = sin(iphase - w);
-    //	printf("[FSinOsc] init sample:\n\t%f\n", unit->m_y1);//mtm
-    //	ZOUT0(0) = unit->m_y1; // this is y(-1) not (y0) mtm
-    //	printf("[FSinOsc] first sample:\n\t"); //mtm
+    //    unit->m_y1 = sin(iphase);
+    //    unit->m_y2 = sin(iphase - w);
+    //    printf("[FSinOsc] init sample:\n\t%f\n", unit->m_y1);//mtm
+    //    ZOUT0(0) = unit->m_y1; // this is y(-1) not (y0) mtm
+    //    printf("[FSinOsc] first sample:\n\t"); //mtm
 
     unit->m_y1 = y1 = sin(iphase - w);
     unit->m_y2 = y2 = sin(iphase - 2 * w);
 
     float outn = b1 * y1 - y2; // mtm
-    //		printf("[FSinOsc] init sample:\n\t%f\n", outn);//mtm
+    //        printf("[FSinOsc] init sample:\n\t%f\n", outn);//mtm
     ZOUT0(0) = outn; // mtm
-    //		printf("[FSinOsc] first sample:\n\t"); //mtm
+    //        printf("[FSinOsc] first sample:\n\t"); //mtm
 }
 
 void FSinOsc_next(FSinOsc* unit, int inNumSamples) {
@@ -1239,14 +1245,14 @@ void FSinOsc_next(FSinOsc* unit, int inNumSamples) {
     // Print("y %g %g  b1 %g\n", y1, y2, b1);
     // Print("%d %d\n", unit->mRate->mFilterLoops, unit->mRate->mFilterRemain);
     LOOP(unit->mRate->mFilterLoops, ZXP(out) = y0 = b1 * y1 - y2;
-         //		 printf("[FSinOsc_next_mFilterLoops] %f\n", y0);//mtm
+         //         printf("[FSinOsc_next_mFilterLoops] %f\n", y0);//mtm
          ZXP(out) = y2 = b1 * y0 - y1;
-         //		  printf("[FSinOsc_next_mFilterLoops] %f\n", y2);//mtm
+         //          printf("[FSinOsc_next_mFilterLoops] %f\n", y2);//mtm
          ZXP(out) = y1 = b1 * y2 - y0;
-         //		  printf("[FSinOsc_next_mFilterLoops] %f\n", y1);//mtm
+         //          printf("[FSinOsc_next_mFilterLoops] %f\n", y1);//mtm
     );
     LOOP(unit->mRate->mFilterRemain, ZXP(out) = y0 = b1 * y1 - y2;
-         //		 printf("[FSinOsc_next_mFilterRemain] %f\n", y0);//mtm
+         //         printf("[FSinOsc_next_mFilterRemain] %f\n", y0);//mtm
          y2 = y1;
          y1 = y0;);
     // Print("y %g %g  b1 %g\n", y1, y2, b1);
@@ -1264,13 +1270,13 @@ void FSinOsc_next_i(FSinOsc* unit, int inNumSamples) {
     // Print("y %g %g  b1 %g\n", y1, y2, b1);
     // Print("%d %d\n", unit->mRate->mFilterLoops, unit->mRate->mFilterRemain);
     LOOP(unit->mRate->mFilterLoops, y0 = b1 * y1 - y2; y2 = b1 * y0 - y1; y1 = b1 * y2 - y0;
-         //		 printf("[FSinOsc_next_i_mFilterLoops] %f\n", y0);//mtm
-         //		 printf("[FSinOsc_next_i_mFilterLoops] %f\n", y2);//mtm
-         //		 printf("[FSinOsc_next_i_mFilterLoops] %f\n", y1);//mtm
+         //         printf("[FSinOsc_next_i_mFilterLoops] %f\n", y0);//mtm
+         //         printf("[FSinOsc_next_i_mFilterLoops] %f\n", y2);//mtm
+         //         printf("[FSinOsc_next_i_mFilterLoops] %f\n", y1);//mtm
          ZXP(out) = y0;
          ZXP(out) = y2; ZXP(out) = y1;);
     LOOP(unit->mRate->mFilterRemain, ZXP(out) = y0 = b1 * y1 - y2;
-         //		 printf("[FSinOsc_next_i_mFilterRemain] %f\n", y0);//mtm
+         //         printf("[FSinOsc_next_i_mFilterRemain] %f\n", y0);//mtm
          y2 = y1;
          y1 = y0;);
     // Print("y %g %g  b1 %g\n", y1, y2, b1);
@@ -1298,10 +1304,10 @@ void PSinGrain_Ctor(PSinGrain* unit) {
     unit->mCounter = (int32)(sdur + .5);
 
     /* calc feedback param and initial conditions */
-    //	unit->m_b1 = 2. * cos(w);
-    //	unit->m_y1 = 0.f;
-    //	unit->m_y2 = -sin(w) * amp;
-    //	ZOUT0(0) = 0.f;
+    //    unit->m_b1 = 2. * cos(w);
+    //    unit->m_y1 = 0.f;
+    //    unit->m_y2 = -sin(w) * amp;
+    //    ZOUT0(0) = 0.f;
 
     double b1, y1, y2;
     unit->m_b1 = b1 = 2. * cos(w);
@@ -1309,9 +1315,9 @@ void PSinGrain_Ctor(PSinGrain* unit) {
     unit->m_y2 = y2 = -sin(w + w) * amp;
 
     float outn = b1 * y1 - y2; // mtm
-    //	printf("[PSinGrain] init sample:\n\t%f\n", outn);//mtm
+    //    printf("[PSinGrain] init sample:\n\t%f\n", outn);//mtm
     ZOUT0(0) = outn; // mtm
-    //	printf("[PSinGrain] first sample:\n\t"); //mtm
+    //    printf("[PSinGrain] first sample:\n\t"); //mtm
 }
 
 
@@ -1331,7 +1337,7 @@ void PSinGrain_next(PSinGrain* unit, int inNumSamples) {
         if (counter <= 0) {
             nsmps = remain;
             remain = 0;
-            //				printf("[PSinGrain_next_clear] %f\n", 0.f);//mtm
+            //                printf("[PSinGrain_next_clear] %f\n", 0.f);//mtm
             LOOP(nsmps, ZXP(out) = 0.f;); // can't use Clear bcs might not be aligned
         } else {
             nsmps = sc_min(remain, counter);
@@ -1340,23 +1346,23 @@ void PSinGrain_next(PSinGrain* unit, int inNumSamples) {
             if (nsmps == inNumSamples) {
                 nsmps = unit->mRate->mFilterLoops;
                 LOOP(nsmps, y0 = b1 * y1 - y2;
-                     //					 printf("[PSinGrain_next_mFilterLoops] %f\n", y0 * level);//mtm
+                     //                     printf("[PSinGrain_next_mFilterLoops] %f\n", y0 * level);//mtm
                      ZXP(out) = y0 * level;
                      level += slope; slope += curve; y2 = b1 * y0 - y1;
-                     //					 printf("[PSinGrain_next_mFilterLoops] %f\n", y2 * level);//mtm
+                     //                     printf("[PSinGrain_next_mFilterLoops] %f\n", y2 * level);//mtm
                      ZXP(out) = y2 * level;
                      level += slope; slope += curve; y1 = b1 * y2 - y0;
-                     //					 printf("[PSinGrain_next_mFilterLoops] %f\n", y1 * level);//mtm
+                     //                     printf("[PSinGrain_next_mFilterLoops] %f\n", y1 * level);//mtm
                      ZXP(out) = y1 * level;
                      level += slope; slope += curve;);
                 nsmps = unit->mRate->mFilterRemain;
                 LOOP(nsmps, y0 = b1 * y1 - y2; y2 = y1; y1 = y0;
-                     //					 printf("[PSinGrain_next_mFilterRemain] %f\n", y0 * level);//mtm
+                     //                     printf("[PSinGrain_next_mFilterRemain] %f\n", y0 * level);//mtm
                      ZXP(out) = y0 * level;
                      level += slope; slope += curve;);
             } else {
                 LOOP(nsmps, y0 = b1 * y1 - y2; y2 = y1; y1 = y0;
-                     //					 printf("[PSinGrain_next_else2] %f\n", y0 * level);//mtm
+                     //                     printf("[PSinGrain_next_else2] %f\n", y0 * level);//mtm
                      ZXP(out) = y0 * level;
                      level += slope; slope += curve;);
             }
@@ -1387,10 +1393,11 @@ force_inline void Osc_ikk_perform(OscType* unit, const float* table0, const floa
     int32 phaseinc = freq + (int32)(CALCSLOPE(phasein, unit->m_phasein) * unit->m_radtoinc);
     unit->m_phasein = phasein;
 
-    LOOP1(inNumSamples, float val = lookupi1(table0, table1, phase, lomask); // mtm
-          //		  printf("[Osc_ikk_perform] %f\n", val);//mtm
+    LOOP1(inNumSamples,
+          float val = lookupi1(table0, table1, phase, lomask); // mtm
+                                                               //          printf("[Osc_ikk_perform] %f\n", val);//mtm
           ZXP(out) = val; // mtm
-          //		ZXP(out) = lookupi1(table0, table1, phase, lomask);
+          //        ZXP(out) = lookupi1(table0, table1, phase, lomask);
           phase += phaseinc;);
     unit->m_phase = phase;
 }
@@ -1416,9 +1423,9 @@ force_inline void Osc_ika_perform(OscType* unit, const float* table0, const floa
     float radtoinc = unit->m_radtoinc;
     LOOP1(inNumSamples, int32 phaseoffset = phase + (int32)(radtoinc * ZXP(phasein));
           float val = lookupi1(table0, table1, phaseoffset, lomask); // mtm
-          //		  printf("[Osc_ika_perform] %f\n", val);//mtm
+          //          printf("[Osc_ika_perform] %f\n", val);//mtm
           ZXP(out) = val; // mtm
-          //		ZXP(out) = lookupi1(table0, table1, phaseoffset, lomask);//mtm
+          //        ZXP(out) = lookupi1(table0, table1, phaseoffset, lomask);//mtm
           phase += freq;);
     unit->m_phase = phase;
 }
@@ -1444,7 +1451,7 @@ force_inline void Osc_iaa_perform(OscType* unit, const float* table0, const floa
     LOOP1(inNumSamples, float phaseIn = ZXP(phasein); float freqIn = ZXP(freqin);
           int32 phaseoffset = phase + (int32)(radtoinc * phaseIn);
           float z = lookupi1(table0, table1, phaseoffset, lomask); phase += (int32)(cpstoinc * freqIn);
-          //		  printf("[Osc_iaa_perform] %f\n", z);//mtm
+          //          printf("[Osc_iaa_perform] %f\n", z);//mtm
           ZXP(out) = z;);
     unit->m_phase = phase;
 }
@@ -1475,12 +1482,12 @@ force_inline void Osc_iak_perform(OscType* unit, const float* table0, const floa
 
         LOOP1(inNumSamples, int32 pphase = phase + (int32)(radtoinc * phasemod); phasemod += phaseslope;
               float z = lookupi1(table0, table1, pphase, lomask); phase += (int32)(cpstoinc * ZXP(freqin));
-              //			  printf("[Osc_iak_perform-phasemod] %f\n", z);//mtm
+              //              printf("[Osc_iak_perform-phasemod] %f\n", z);//mtm
               ZXP(out) = z;);
     } else {
         LOOP1(inNumSamples, int32 pphase = phase + (int32)(radtoinc * phasemod);
               float z = lookupi1(table0, table1, pphase, lomask);
-              //			  printf("[Osc_iak_perform-staticphase] %f\n", z);//mtm
+              //              printf("[Osc_iak_perform-staticphase] %f\n", z);//mtm
               phase += (int32)(cpstoinc * ZXP(freqin));
               ZXP(out) = z;);
     }
@@ -1510,7 +1517,7 @@ force_inline void Osc_iai_perform(OscType* unit, const float* table0, const floa
 
     LOOP1(inNumSamples, int32 pphase = phase + (int32)(radtoinc * phasemod);
           float z = lookupi1(table0, table1, pphase, lomask); phase += (int32)(cpstoinc * ZXP(freqin));
-          //			  printf("[Osc_iai_perform] %f\n", z);//mtm
+          //              printf("[Osc_iai_perform] %f\n", z);//mtm
           ZXP(out) = z;);
     unit->m_phase = phase;
 }
@@ -1530,7 +1537,7 @@ void SinOsc_Ctor(SinOsc* unit) {
     unit->m_lomask = (tableSize2 - 1) << 3;
 
     int32 initPhase; // mtm
-    //	printf("[SinOsc] init sample:\n\t");//mtm
+    //    printf("[SinOsc] init sample:\n\t");//mtm
 
     if (INRATE(0) == calc_FullRate) {
         if (INRATE(1) == calc_FullRate)
@@ -1540,27 +1547,27 @@ void SinOsc_Ctor(SinOsc* unit) {
         else
             SETCALC(SinOsc_next_iai);
 
-        //		unit->m_phase = 0;//mtm
+        //        unit->m_phase = 0;//mtm
         unit->m_phase = initPhase = 0; // mtm
         SinOsc_next_iaa(unit, 1); // mtm
     } else {
         if (INRATE(1) == calc_FullRate) {
             // Print("next_ika\n");
             SETCALC(SinOsc_next_ika);
-            //			unit->m_phase = 0;//mtm
+            //            unit->m_phase = 0;//mtm
             unit->m_phase = initPhase = 0; // store init phase
             SinOsc_next_iaa(unit, 1); // generate init sample
         } else {
             SETCALC(SinOsc_next_ikk);
-            //			unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
+            //            unit->m_phase = (int32)(unit->m_phasein * unit->m_radtoinc);//mtm
             unit->m_phase = initPhase = (int32)(unit->m_phasein * unit->m_radtoinc); // store init phase
             SinOsc_next_ikk(unit, 1); // generate init sample
         }
     }
 
-    //	SinOsc_next_ikk(unit, 1);
+    //    SinOsc_next_ikk(unit, 1);
     unit->m_phase = initPhase; // restore initial state
-    //	printf("[SinOsc] first sample:\n\t");
+    //    printf("[SinOsc] first sample:\n\t");
 }
 
 
@@ -1588,7 +1595,7 @@ void SinOscFB_next_kk(SinOscFB* unit, int inNumSamples) {
 
     LooP(inNumSamples) {
         prevout = lookupi1(table0, table1, phase + (int32)(feedback * prevout), lomask);
-        //		  printf("[SinOscFB_next_kk] %f\n", prevout);//mtm
+        //          printf("[SinOscFB_next_kk] %f\n", prevout);//mtm
         ZXP(out) = prevout;
         phase += freq;
         feedback += feedback_slope;
@@ -1609,16 +1616,16 @@ void SinOscFB_Ctor(SinOscFB* unit) {
     unit->m_prevout = 0.;
     unit->m_feedback = ZIN0(1) * unit->m_radtoinc;
 
-    //	float *table0 = ft->mSineWavetable;//mtm
-    //	float *table1 = table0 + 1;//mtm
-    //	int32 lomask = unit->m_lomask;//mtm
-    //	int32 prevphase = -(int32)(unit->m_cpstoinc * ZIN0(0));//mtm
-    //	unit->m_prevout = lookupi1(table0, table1, prevphase, lomask);//mtm
+    //    float *table0 = ft->mSineWavetable;//mtm
+    //    float *table1 = table0 + 1;//mtm
+    //    int32 lomask = unit->m_lomask;//mtm
+    //    int32 prevphase = -(int32)(unit->m_cpstoinc * ZIN0(0));//mtm
+    //    unit->m_prevout = lookupi1(table0, table1, prevphase, lomask);//mtm
 
     unit->m_phase = 0;
-    //	printf("[SinOscFB] init sample:\n\t");
+    //    printf("[SinOscFB] init sample:\n\t");
     SinOscFB_next_kk(unit, 1);
-    //	printf("[SinOscFB] first sample:\n\t");
+    //    printf("[SinOscFB] first sample:\n\t");
     unit->m_phase = 0;
 }
 
@@ -1652,17 +1659,17 @@ void Osc_Ctor(Osc* unit) {
 
     unit->m_phasein = ZIN0(2);
     int32 initphase; // mtm
-    //	printf("[Osc] init sample:\n\t");//mtm
+    //    printf("[Osc] init sample:\n\t");//mtm
 
     if (INRATE(1) == calc_FullRate) {
         if (INRATE(2) == calc_FullRate) {
             // Print("next_iaa\n");
             SETCALC(Osc_next_iaa);
-            //			unit->m_phase = 0;//mtm
+            //            unit->m_phase = 0;//mtm
         } else {
             // Print("next_iak\n");
             SETCALC(Osc_next_iak);
-            //			unit->m_phase = 0; //mtm
+            //            unit->m_phase = 0; //mtm
         }
         unit->m_phase = initphase = 0;
         Osc_next_iaa(unit, 1);
@@ -1680,8 +1687,8 @@ void Osc_Ctor(Osc* unit) {
         }
     }
 
-    //	Osc_next_ikk(unit, 1);//mtm
-    //	printf("[Osc] first sample:\n\t");//mtm
+    //    Osc_next_ikk(unit, 1);//mtm
+    //    printf("[Osc] first sample:\n\t");//mtm
     unit->m_phase = initphase;
 }
 
@@ -1796,9 +1803,9 @@ void OscN_Ctor(OscN* unit) {
         }
     }
 
-    //	printf("[OscN] init sample:\n\t");
-    //	OscN_next_nkk(unit, 1);
-    //	printf("[OscN] first sample:\n\t");
+    //    printf("[OscN] init sample:\n\t");
+    //    OscN_next_nkk(unit, 1);
+    //    printf("[OscN] first sample:\n\t");
     unit->m_phase = initphase; // mtm
 }
 
@@ -1829,9 +1836,9 @@ void OscN_next_nkk(OscN* unit, int inNumSamples) {
     unit->m_phasein = phasein;
 
     LOOP1(inNumSamples, float val = *(float*)((char*)table + ((phase >> xlobits) & lomask));
-          //		  printf("[OscN_next_nkk] %f\n", val);//mtm
+          //          printf("[OscN_next_nkk] %f\n", val);//mtm
           ZXP(out) = val;
-          //		ZXP(out) = *(float*)((char*)table + ((phase >> xlobits) & lomask));//mtm
+          //        ZXP(out) = *(float*)((char*)table + ((phase >> xlobits) & lomask));//mtm
           phase += phaseinc;);
     unit->m_phase = phase;
 }
@@ -1861,7 +1868,7 @@ void OscN_next_nka(OscN* unit, int inNumSamples) {
     int32 freq = (int32)(unit->m_cpstoinc * freqin);
     float radtoinc = unit->m_radtoinc;
     LOOP1(inNumSamples, int32 pphase = phase + (int32)(radtoinc * ZXP(phasein));
-          //		  printf("[OscN_next_nka] %f\n", *(float*)((char*)table + ((pphase >> xlobits) & lomask)));//mtm
+          //          printf("[OscN_next_nka] %f\n", *(float*)((char*)table + ((pphase >> xlobits) & lomask)));//mtm
           ZXP(out) = *(float*)((char*)table + ((pphase >> xlobits) & lomask));
           phase += freq;);
     unit->m_phase = phase;
@@ -1892,7 +1899,7 @@ void OscN_next_naa(OscN* unit, int inNumSamples) {
     float radtoinc = unit->m_radtoinc;
     LOOP1(inNumSamples, int32 pphase = phase + (int32)(radtoinc * ZXP(phasein));
           float z = *(float*)((char*)table + ((pphase >> xlobits) & lomask)); phase += (int32)(cpstoinc * ZXP(freqin));
-          //		  printf("[OscN_next_naa] %f\n", z);//mtm
+          //          printf("[OscN_next_naa] %f\n", z);//mtm
           ZXP(out) = z;);
     unit->m_phase = phase;
 }
@@ -1926,7 +1933,7 @@ void OscN_next_nak(OscN* unit, int inNumSamples) {
 
     LOOP1(inNumSamples, int32 pphase = phase + (int32)(radtoinc * phasemod); phasemod += phaseslope;
           float z = *(float*)((char*)table + ((pphase >> xlobits) & lomask)); phase += (int32)(cpstoinc * ZXP(freqin));
-          //		    printf("[OscN_next_nak] %f\n", z);//mtm
+          //            printf("[OscN_next_nak] %f\n", z);//mtm
           ZXP(out) = z;);
     unit->m_phase = phase;
     unit->m_phasein = phasein;
@@ -1940,9 +1947,9 @@ void COsc_Ctor(COsc* unit) {
     unit->m_phase1 = 0;
     unit->m_phase2 = 0;
     unit->mTableSize = -1;
-    //	printf("[COsc] init sample:\n\t");
+    //    printf("[COsc] init sample:\n\t");
     COsc_next(unit, 1);
-    //	printf("[COsc] first sample:\n\t");
+    //    printf("[COsc] first sample:\n\t");
     unit->m_phase1 = 0; // mtm
     unit->m_phase2 = 0; // mtm
 }
@@ -1977,7 +1984,7 @@ void COsc_next(COsc* unit, int inNumSamples) {
     int32 freq2 = cfreq - beatf;
     LOOP1(inNumSamples, float a = lookupi1(table0, table1, phase1, lomask);
           float b = lookupi1(table0, table1, phase2, lomask);
-          //		   printf("[COsc_next] %f\n", a + b);//mtm
+          //           printf("[COsc_next] %f\n", a + b);//mtm
           ZXP(out) = a + b;
           phase1 += freq1; phase2 += freq2;);
     unit->m_phase1 = phase1;
@@ -1991,7 +1998,7 @@ static inline const SndBuf* VOscGetBuf(int& bufnum, World* world, Unit* unit) {
         bufnum = 0;
 
     const SndBuf* bufs;
-    //	 printf("[VOsc] bufnum %d\n", bufnum);//mtm
+    //     printf("[VOsc] bufnum %d\n", bufnum);//mtm
     if (bufnum + 1 >= world->mNumSndBufs) {
         int localBufNum = bufnum - world->mNumSndBufs;
         Graph* parent = unit->mParent;
@@ -2029,7 +2036,7 @@ void VOsc_Ctor(VOsc* unit) {
     unit->m_phaseoffset = (int32)(unit->m_phasein * unit->m_radtoinc);
 
     double initphase; // mtm
-    //	printf("[VOsc] init sample:\n\t");//mtm
+    //    printf("[VOsc] init sample:\n\t");//mtm
     if (INRATE(2) == calc_FullRate) {
         SETCALC(VOsc_next_ika);
         unit->m_phase = initphase = 0; // mtm
@@ -2041,8 +2048,8 @@ void VOsc_Ctor(VOsc* unit) {
     }
 
     unit->m_phase = initphase;
-    //	VOsc_next_ikk(unit, 1);//mtm
-    //	printf("[VOsc] first sample:\n\t");//mtm
+    //    VOsc_next_ikk(unit, 1);//mtm
+    //    printf("[VOsc] first sample:\n\t");//mtm
 }
 
 void VOsc_next_ikk(VOsc* unit, int inNumSamples) {
@@ -2068,7 +2075,7 @@ void VOsc_next_ikk(VOsc* unit, int inNumSamples) {
         float level = cur - sc_floor(cur);
         int32 bufnum = (int)sc_floor(cur);
 
-        //		printf("[VOsc] level %f, bufnum %d\n", level, bufnum);//mtm
+        //        printf("[VOsc] level %f, bufnum %d\n", level, bufnum);//mtm
         const SndBuf* bufs = VOscGetBuf(bufnum, world, unit);
         if (!verify_wavetable(unit, "VOsc", tableSize, inNumSamples))
             return; // mtm
@@ -2087,7 +2094,7 @@ void VOsc_next_ikk(VOsc* unit, int inNumSamples) {
               float val0 = *(float*)((char*)table0 + index); float val1 = *(float*)((char*)table1 + index);
               float val2 = *(float*)((char*)table2 + index); float val3 = *(float*)((char*)table3 + index);
               float a = val0 + val1 * pfrac; float b = val2 + val3 * pfrac;
-              //			  printf("[VOsc_next_ikk] %f\n", a + level * (b - a));//mtm
+              //              printf("[VOsc_next_ikk] %f\n", a + level * (b - a));//mtm
               ZXP(out) = a + level * (b - a);
               phase += phaseinc;);
     } else {
@@ -2134,7 +2141,7 @@ void VOsc_next_ikk(VOsc* unit, int inNumSamples) {
                  float val0 = *(float*)((char*)table0 + index); float val1 = *(float*)((char*)table1 + index);
                  float val2 = *(float*)((char*)table2 + index); float val3 = *(float*)((char*)table3 + index);
                  float a = val0 + val1 * pfrac; float b = val2 + val3 * pfrac;
-                 //				 printf("[VOsc_next_ikk2] %f\n", a + level * (b - a));//mtm
+                 //                 printf("[VOsc_next_ikk2] %f\n", a + level * (b - a));//mtm
                  ZXP(out) = a + level * (b - a);
                  phase += phaseinc; level += slope;);
             donesmps += nsmps;
@@ -2187,7 +2194,7 @@ void VOsc_next_ika(VOsc* unit, int inNumSamples) {
               float val0 = *(float*)((char*)table0 + index); float val1 = *(float*)((char*)table1 + index);
               float val2 = *(float*)((char*)table2 + index); float val3 = *(float*)((char*)table3 + index);
               float a = val0 + val1 * pfrac; float b = val2 + val3 * pfrac;
-              //			  printf("[VOsc_next_ika] %f\n", a + level * (b - a));//mtm
+              //              printf("[VOsc_next_ika] %f\n", a + level * (b - a));//mtm
               ZXP(out) = a + level * (b - a);
               phase += phaseinc;);
     } else {
@@ -2235,7 +2242,7 @@ void VOsc_next_ika(VOsc* unit, int inNumSamples) {
                  float val0 = *(float*)((char*)table0 + index); float val1 = *(float*)((char*)table1 + index);
                  float val2 = *(float*)((char*)table2 + index); float val3 = *(float*)((char*)table3 + index);
                  float a = val0 + val1 * pfrac; float b = val2 + val3 * pfrac;
-                 //				 printf("[VOsc_next_ika2] %f\n", a + level * (b - a));//mtm
+                 //                 printf("[VOsc_next_ika2] %f\n", a + level * (b - a));//mtm
                  ZXP(out) = a + level * (b - a);
                  phase += phaseinc; level += slope;);
             donesmps += nsmps;
@@ -2269,9 +2276,9 @@ void VOsc3_Ctor(VOsc3* unit) {
     unit->m_phase2 = 0;
     unit->m_phase3 = 0;
 
-    //	printf("[VOsc3] init sample:\n\t");//mtm
+    //    printf("[VOsc3] init sample:\n\t");//mtm
     VOsc3_next_ik(unit, 1);
-    //	printf("[VOsc3] first sample:\n\t");//mtm
+    //    printf("[VOsc3] first sample:\n\t");//mtm
 
     unit->m_phase1 = 0; // mtm
     unit->m_phase2 = 0; // mtm
@@ -2341,7 +2348,7 @@ void VOsc3_next_ik(VOsc3* unit, int inNumSamples) {
               float val30 = *(float*)((char*)table0 + index3); float val31 = *(float*)((char*)table1 + index3);
               float val32 = *(float*)((char*)table2 + index3); float val33 = *(float*)((char*)table3 + index3);
               a += val30 + val31 * pfrac3; b += val32 + val33 * pfrac3;
-              //			  printf("[VOsc3_next_ik1] %f\n", a + level * (b - a));//mtm
+              //              printf("[VOsc3_next_ik1] %f\n", a + level * (b - a));//mtm
               ZXP(out) = a + level * (b - a););
     } else {
         int nsmps;
@@ -2404,7 +2411,7 @@ void VOsc3_next_ik(VOsc3* unit, int inNumSamples) {
                  float val30 = *(float*)((char*)table0 + index3); float val31 = *(float*)((char*)table1 + index3);
                  float val32 = *(float*)((char*)table2 + index3); float val33 = *(float*)((char*)table3 + index3);
                  a += val30 + val31 * pfrac3; b += val32 + val33 * pfrac3;
-                 //				   printf("[VOsc3_next_ik2] %f\n", a + level * (b - a));//mtm
+                 //                   printf("[VOsc3_next_ik2] %f\n", a + level * (b - a));//mtm
                  ZXP(out) = a + level * (b - a);
                  level += slope;);
             donesmps += nsmps;
@@ -2426,9 +2433,9 @@ void Formant_Ctor(Formant* unit) {
     unit->m_phase1 = 0;
     unit->m_phase2 = 0;
     unit->m_phase3 = 0;
-    //	printf("[Formant] init sample:\n\t");//mtm
+    //    printf("[Formant] init sample:\n\t");//mtm
     Formant_next(unit, 1);
-    //	printf("[Formant] first sample:\n\t");//mtm
+    //    printf("[Formant] first sample:\n\t");//mtm
     unit->m_phase1 = 0; // mtm
     unit->m_phase2 = 0; // mtm
     unit->m_phase3 = 0; // mtm
@@ -2454,1138 +2461,15 @@ void Formant_next(Formant* unit, int inNumSamples) {
     LOOP1(
         inNumSamples,
         if (phase3 < onecyc13) {
-            ZXP(out) = (*(float*)((char*)sine + (((phase3 + tqcyc13) >> xlobits) & xlomask13)) + 1.f)
-                * *(float*)((char*)sine + ((phase2 >> xlobits) & xlomask13));
-            phase3 += formfreq;
-        } else { ZXP(out) = 0.f; } phase1 += freq1;
-        phase2 += freq2; if (phase1 > onecyc13) {
-            phase1 -= onecyc13;
-            phase2 = phase1 * freq2 / freq1;
-            phase3 = phase1 * freq3 / freq1;
-        });
-
-    unit->m_phase1 = phase1;
-    unit->m_phase2 = phase2;
-    unit->m_phase3 = phase3;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-inline float lookup13(float* table, int32 pphase) {
-    float pfrac = PhaseFrac(pphase);
-    float* tbl = (float*)((char*)table + ((pphase >> xlobits) & xlomask13));
-    return lininterp(pfrac, tbl[0], tbl[1]);
-}
-
-void Blip_Ctor(Blip* unit) {
-    SETCALC(Blip_next);
-    unit->m_freqin = ZIN0(0);
-    unit->m_numharm = (int32)ZIN0(1);
-
-    unit->m_cpstoinc = ft->mSineSize * SAMPLEDUR * 65536. * 0.5;
-    int32 N = unit->m_numharm;
-    int32 maxN = (int32)((SAMPLERATE * 0.5) / unit->m_freqin);
-    if (N > maxN)
-        N = maxN;
-    if (N < 1)
-        N = 1;
-    unit->m_N = N;
-    unit->m_scale = 0.5 / N;
-    unit->m_phase = 0;
-
-    Blip_next(unit, 1);
-}
-
-void Blip_next(Blip* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-    float freqin = ZIN0(0);
-    int numharm = (int32)ZIN0(1);
-
-    int32 phase = unit->m_phase;
-
-    float* numtbl = ft->mSine;
-    float* dentbl = ft->mCosecant;
-
-    int32 freq, N, prevN;
-    float scale, prevscale;
-    bool crossfade;
-    if (numharm != unit->m_numharm || freqin != unit->m_freqin) {
-        N = numharm;
-        int32 maxN = (int32)((SAMPLERATE * 0.5) / freqin);
-        if (N > maxN) {
-            float maxfreqin;
-            N = maxN;
-            maxfreqin = sc_max(unit->m_freqin, freqin);
-            freq = (int32)(unit->m_cpstoinc * maxfreqin);
-        } else {
-            if (N < 1) {
-                N = 1;
-            }
-            freq = (int32)(unit->m_cpstoinc * freqin);
-        }
-        crossfade = N != unit->m_N;
-        prevN = unit->m_N;
-        prevscale = unit->m_scale;
-        unit->m_N = N;
-        unit->m_scale = scale = 0.5 / N;
-    } else {
-        N = unit->m_N;
-        freq = (int32)(unit->m_cpstoinc * freqin);
-        scale = unit->m_scale;
-        crossfade = false;
-    }
-    int32 N2 = 2 * N + 1;
-
-    if (crossfade) {
-        int32 prevN2 = 2 * prevN + 1;
-        float xfade_slope = unit->mRate->mSlopeFactor;
-        float xfade = 0.f;
-        LOOP1(
-            inNumSamples, float* tbl = (float*)((char*)dentbl + ((phase >> xlobits) & xlomask13)); float t0 = tbl[0];
-            float t1 = tbl[1]; if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    ZXP(out) = 1.f;
-                } else {
-                    int32 rphase = phase * prevN2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n1 = (numer / denom - 1.f) * prevscale;
-
-                    rphase = phase * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n2 = (numer / denom - 1.f) * scale;
-
-                    ZXP(out) = lininterp(xfade, n1, n2);
-                }
-            } else {
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-
-                int32 rphase = phase * prevN2;
-                pfrac = PhaseFrac(rphase);
-                float* tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n1 = (numer * denom - 1.f) * prevscale;
-
-                rphase = phase * N2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n2 = (numer * denom - 1.f) * scale;
-
-                ZXP(out) = lininterp(xfade, n1, n2);
-            } phase += freq;
-            xfade += xfade_slope;);
-    } else {
-        // hmm, if freq is above sr/4 then revert to sine table osc w/ no interpolation ?
-        // why bother, it isn't a common choice for a fundamental.
-        LOOP1(
-            inNumSamples, float* tbl = (float*)((char*)dentbl + ((phase >> xlobits) & xlomask13)); float t0 = tbl[0];
-            float t1 = tbl[1]; if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    ZXP(out) = 1.f;
-                } else {
-                    int32 rphase = phase * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    ZXP(out) = (numer / denom - 1.f) * scale;
-                }
-            } else {
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                int32 rphase = phase * N2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                ZXP(out) = (numer * denom - 1.f) * scale;
-            } phase += freq;);
-    }
-
-    unit->m_phase = phase;
-    unit->m_freqin = freqin;
-    unit->m_numharm = numharm;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-void Saw_Ctor(Saw* unit) {
-    SETCALC(Saw_next);
-    unit->m_freqin = ZIN0(0);
-
-    unit->m_cpstoinc = ft->mSineSize * SAMPLEDUR * 65536. * 0.5;
-    unit->m_N = (int32)((SAMPLERATE * 0.5) / unit->m_freqin);
-    unit->m_scale = 0.5 / unit->m_N;
-    unit->m_phase = 0;
-    unit->m_y1 = -0.46f;
-
-    ZOUT0(0) = 0.f;
-}
-
-void Saw_next(Saw* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-    float freqin = ZIN0(0);
-
-    int32 phase = unit->m_phase;
-    float y1 = unit->m_y1;
-
-    float* numtbl = ft->mSine;
-    float* dentbl = ft->mCosecant;
-
-    int32 freq, N, prevN;
-    float scale, prevscale;
-    bool crossfade;
-    if (freqin != unit->m_freqin) {
-        N = (int32)((SAMPLERATE * 0.5) / freqin);
-        if (N != unit->m_N) {
-            float maxfreqin;
-            maxfreqin = sc_max(unit->m_freqin, freqin);
-            freq = (int32)(unit->m_cpstoinc * maxfreqin);
-            crossfade = true;
-        } else {
-            freq = (int32)(unit->m_cpstoinc * freqin);
-            crossfade = false;
-        }
-        prevN = unit->m_N;
-        prevscale = unit->m_scale;
-        unit->m_N = N;
-        unit->m_scale = scale = 0.5 / N;
-    } else {
-        N = unit->m_N;
-        freq = (int32)(unit->m_cpstoinc * freqin);
-        scale = unit->m_scale;
-        crossfade = false;
-    }
-    int32 N2 = 2 * N + 1;
-
-    if (crossfade) {
-        int32 prevN2 = 2 * prevN + 1;
-        float xfade_slope = unit->mRate->mSlopeFactor;
-        float xfade = 0.f;
-        LOOP1(
-            inNumSamples, float* tbl = (float*)((char*)dentbl + ((phase >> xlobits) & xlomask13)); float t0 = tbl[0];
-            float t1 = tbl[1]; if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    ZXP(out) = y1 = 1.f + 0.999f * y1;
-                } else {
-                    int32 rphase = phase * prevN2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n1 = (numer / denom - 1.f) * prevscale;
-
-                    rphase = phase * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n2 = (numer / denom - 1.f) * scale;
-
-                    ZXP(out) = y1 = n1 + xfade * (n2 - n1) + 0.999f * y1;
-                }
-            } else {
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-
-                int32 rphase = phase * prevN2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n1 = (numer * denom - 1.f) * prevscale;
-
-                rphase = phase * N2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n2 = (numer * denom - 1.f) * scale;
-
-                ZXP(out) = y1 = n1 + xfade * (n2 - n1) + 0.999f * y1;
-            } phase += freq;
-            xfade += xfade_slope;);
-    } else {
-        // hmm, if freq is above sr/4 then revert to sine table osc ?
-        // why bother, it isn't a common choice for a fundamental.
-        LOOP1(
-            inNumSamples, float* tbl = (float*)((char*)dentbl + ((phase >> xlobits) & xlomask13)); float t0 = tbl[0];
-            float t1 = tbl[1]; if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    ZXP(out) = y1 = 1.f + 0.999f * y1;
-                } else {
-                    int32 rphase = phase * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    ZXP(out) = y1 = (numer / denom - 1.f) * scale + 0.999f * y1;
-                }
-            } else {
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                int32 rphase = phase * N2;
-                pfrac = PhaseFrac(rphase);
-                float* tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                ZXP(out) = y1 = (numer * denom - 1.f) * scale + 0.999f * y1;
-            } phase += freq;);
-    }
-
-    unit->m_y1 = y1;
-    unit->m_phase = phase;
-    unit->m_freqin = freqin;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-void Pulse_Ctor(Pulse* unit) {
-    SETCALC(Pulse_next);
-    unit->m_freqin = ZIN0(0);
-
-    unit->m_cpstoinc = ft->mSineSize * SAMPLEDUR * 65536. * 0.5;
-    unit->m_N = (int32)((SAMPLERATE * 0.5) / unit->m_freqin);
-    unit->m_scale = 0.5 / unit->m_N;
-    unit->m_phase = 0;
-    unit->m_phaseoff = 0;
-    unit->m_y1 = 0.f;
-    ZOUT0(0) = 0.f;
-}
-
-void Pulse_next(Pulse* unit, int inNumSamples) {
-    float* out = ZOUT(0);
-    float freqin = ZIN0(0);
-    float duty = ZIN0(1);
-
-    int32 phase = unit->m_phase;
-    float y1 = unit->m_y1;
-
-    float* numtbl = ft->mSine;
-    float* dentbl = ft->mCosecant;
-
-    int32 freq, N, prevN;
-    float scale, prevscale;
-    bool crossfade;
-
-    if (freqin != unit->m_freqin) {
-        N = (int32)((SAMPLERATE * 0.5) / freqin);
-        if (N != unit->m_N) {
-            float maxfreqin;
-            maxfreqin = sc_max(unit->m_freqin, freqin);
-            freq = (int32)(unit->m_cpstoinc * maxfreqin);
-            crossfade = true;
-        } else {
-            freq = (int32)(unit->m_cpstoinc * freqin);
-            crossfade = false;
-        }
-        prevN = unit->m_N;
-        prevscale = unit->m_scale;
-        unit->m_N = N;
-        unit->m_scale = scale = 0.5 / N;
-    } else {
-        N = unit->m_N;
-        freq = (int32)(unit->m_cpstoinc * freqin);
-        scale = unit->m_scale;
-        crossfade = false;
-    }
-    int32 N2 = 2 * N + 1;
-
-    int32 phaseoff = unit->m_phaseoff;
-    int32 next_phaseoff = (int32)(duty * (1L << 28));
-    int32 phaseoff_slope = (int32)((next_phaseoff - phaseoff) * unit->mRate->mSlopeFactor);
-    unit->m_phaseoff = next_phaseoff;
-    float rscale = 1.f / scale + 1.f;
-    float pul1, pul2;
-
-    if (crossfade) {
-        int32 prevN2 = 2 * prevN + 1;
-        float xfade_slope = unit->mRate->mSlopeFactor;
-        float xfade = 0.f;
-        LOOP1(
-            inNumSamples, float* tbl = (float*)((char*)dentbl + ((phase >> xlobits) & xlomask13)); float t0 = tbl[0];
-            float t1 = tbl[1]; if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    pul1 = 1.f;
-                } else {
-                    int32 rphase = phase * prevN2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n1 = (numer / denom - 1.f) * prevscale;
-
-                    rphase = phase * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n2 = (numer / denom - 1.f) * scale;
-
-                    pul1 = lininterp(xfade, n1, n2);
-                }
-            } else {
-                float pfrac = PhaseFrac(phase);
-                float denom = lininterp(pfrac, t0, t1);
-
-                int32 rphase = phase * prevN2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n1 = (numer * denom - 1.f) * prevscale;
-
-                rphase = phase * N2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n2 = (numer * denom - 1.f) * scale;
-
-                pul1 = lininterp(xfade, n1, n2);
-            }
-
-            int32 phase2 = phase + phaseoff;
-            tbl = (float*)((char*)dentbl + ((phase2 >> xlobits) & xlomask13)); t0 = tbl[0]; t1 = tbl[1];
-            if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase2 >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase2);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    pul2 = 1.f;
-                } else {
-                    int32 rphase = phase2 * prevN2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n1 = (numer / denom - 1.f) * prevscale;
-
-                    rphase = phase2 * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    float n2 = (numer / denom - 1.f) * scale;
-
-                    pul2 = lininterp(xfade, n1, n2);
-                }
-            } else {
-                float pfrac = PhaseFrac(phase2);
-                float denom = t0 + (t1 - t0) * pfrac;
-
-                int32 rphase = phase2 * prevN2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n1 = (numer * denom - 1.f) * prevscale;
-
-                rphase = phase2 * N2;
-                pfrac = PhaseFrac(rphase);
-                tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                numer = lininterp(pfrac, tbl[0], tbl[1]);
-                float n2 = (numer * denom - 1.f) * scale;
-
-                pul2 = lininterp(xfade, n1, n2);
-            }
-
-            ZXP(out) = y1 = pul1 - pul2 + 0.999f * y1;
-            phase += freq; phaseoff += phaseoff_slope; xfade += xfade_slope;);
-    } else {
-        LOOP1(
-            inNumSamples, float* tbl = (float*)((char*)dentbl + ((phase >> xlobits) & xlomask13)); float t0 = tbl[0];
-            float t1 = tbl[1]; if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    pul1 = rscale;
-                } else {
-                    int32 rphase = phase * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    pul1 = numer / denom;
-                }
-            } else {
-                float pfrac = PhaseFrac(phase);
-                float denom = t0 + (t1 - t0) * pfrac;
-                int32 rphase = phase * N2;
-                pfrac = PhaseFrac(rphase);
-                float* tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                pul1 = (numer * denom);
-            }
-
-            int32 phase2 = phase + phaseoff;
-            tbl = (float*)((char*)dentbl + ((phase2 >> xlobits) & xlomask13)); t0 = tbl[0]; t1 = tbl[1];
-            if (t0 == kBadValue || t1 == kBadValue) {
-                tbl = (float*)((char*)numtbl + ((phase2 >> xlobits) & xlomask13));
-                t0 = tbl[0];
-                t1 = tbl[1];
-                float pfrac = PhaseFrac(phase2);
-                float denom = t0 + (t1 - t0) * pfrac;
-                if (std::abs(denom) < 0.0005f) {
-                    pul2 = rscale;
-                } else {
-                    int32 rphase = phase2 * N2;
-                    pfrac = PhaseFrac(rphase);
-                    tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                    float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    pul2 = numer / denom;
-                }
-            } else {
-                float pfrac = PhaseFrac(phase2);
-                float denom = t0 + (t1 - t0) * pfrac;
-                int32 rphase = phase2 * N2;
-                pfrac = PhaseFrac(rphase);
-                float* tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
-                float numer = lininterp(pfrac, tbl[0], tbl[1]);
-
-                pul2 = (numer * denom);
-            }
-
-            ZXP(out) = y1 = (pul1 - pul2) * scale + 0.999f * y1;
-            phase += freq; phaseoff += phaseoff_slope;);
-    }
-
-    unit->m_y1 = y1;
-    unit->m_phase = phase;
-    unit->m_freqin = freqin;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-static float Klang_SetCoefs(Klang* unit) {
-    float freqscale = ZIN0(0) * unit->mRate->mRadiansPerSample;
-    float freqoffset = ZIN0(1) * unit->mRate->mRadiansPerSample;
-
-    float outf = 0.;
-    float* coefs = unit->m_coefs - 1;
-
-    for (int i = 0, j = 2; i < unit->m_numpartials; ++i, j += 3) {
-        float w = ZIN0(j) * freqscale + freqoffset;
-        float level = ZIN0(j + 1);
-        float phase = ZIN0(j + 2);
-
-        if (phase != 0.f) {
-            outf += * ++coefs = level * sin(phase); // y1
-            *++coefs = level * sin(phase - w); // y2
-        } else {
-            outf += * ++coefs = 0.f; // y1
-            *++coefs = level * -sin(w); // y2
-        }
-        *++coefs = 2. * cos(w); // b1
-    }
-    return outf;
-}
-
-void Klang_Ctor(Klang* unit) {
-    SETCALC(Klang_next);
-    unit->m_numpartials = (unit->mNumInputs - 2) / 3;
-    int numcoefs = unit->m_numpartials * 3;
-    unit->m_coefs = (float*)RTAlloc(unit->mWorld, numcoefs * sizeof(float));
-    ClearUnitIfMemFailed(unit->m_coefs);
-    ZOUT0(0) = Klang_SetCoefs(unit);
-}
-
-void Klang_Dtor(Klang* unit) { RTFree(unit->mWorld, unit->m_coefs); }
-
-void Klang_next(Klang* unit, int inNumSamples) {
-    float* out0 = ZOUT(0);
-
-    float* out;
-    float y0_0, y1_0, y2_0, b1_0;
-    float y0_1, y1_1, y2_1, b1_1;
-    float y0_2, y1_2, y2_2, b1_2;
-    float y0_3, y1_3, y2_3, b1_3;
-    float outf;
-
-    float* coefs = unit->m_coefs - 1;
-    int32 numpartials = unit->m_numpartials;
-
-    switch (numpartials & 3) {
-    case 3:
-        y1_0 = *++coefs;
-        y2_0 = *++coefs;
-        b1_0 = *++coefs;
-        y1_1 = *++coefs;
-        y2_1 = *++coefs;
-        b1_1 = *++coefs;
-        y1_2 = *++coefs;
-        y2_2 = *++coefs;
-        b1_2 = *++coefs;
-
-        out = out0;
-        LOOP(unit->mRate->mFilterLoops, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
-             outf += y0_2 = b1_2 * y1_2 - y2_2; ZXP(out) = outf;
-
-             outf = y2_0 = b1_0 * y0_0 - y1_0; outf += y2_1 = b1_1 * y0_1 - y1_1; outf += y2_2 = b1_2 * y0_2 - y1_2;
-             ZXP(out) = outf;
-
-             outf = y1_0 = b1_0 * y2_0 - y0_0; outf += y1_1 = b1_1 * y2_1 - y0_1; outf += y1_2 = b1_2 * y2_2 - y0_2;
-             ZXP(out) = outf;);
-        LOOP(unit->mRate->mFilterRemain, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
-             outf += y0_2 = b1_2 * y1_2 - y2_2; y2_0 = y1_0; y1_0 = y0_0; y2_1 = y1_1; y1_1 = y0_1; y2_2 = y1_2;
-             y1_2 = y0_2; ZXP(out) = outf;);
-        coefs -= 9;
-        *++coefs = y1_0;
-        *++coefs = y2_0;
-        ++coefs;
-        *++coefs = y1_1;
-        *++coefs = y2_1;
-        ++coefs;
-        *++coefs = y1_2;
-        *++coefs = y2_2;
-        ++coefs;
-        break;
-    case 2:
-        y1_0 = *++coefs;
-        y2_0 = *++coefs;
-        b1_0 = *++coefs;
-        y1_1 = *++coefs;
-        y2_1 = *++coefs;
-        b1_1 = *++coefs;
-
-        out = out0;
-        LOOP(unit->mRate->mFilterLoops, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
-             ZXP(out) = outf;
-
-             outf = y2_0 = b1_0 * y0_0 - y1_0; outf += y2_1 = b1_1 * y0_1 - y1_1; ZXP(out) = outf;
-
-             outf = y1_0 = b1_0 * y2_0 - y0_0; outf += y1_1 = b1_1 * y2_1 - y0_1; ZXP(out) = outf;);
-        LOOP(unit->mRate->mFilterRemain, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
-             y2_0 = y1_0; y1_0 = y0_0; y2_1 = y1_1; y1_1 = y0_1; ZXP(out) = outf;);
-
-        coefs -= 6;
-        *++coefs = y1_0;
-        *++coefs = y2_0;
-        ++coefs;
-        *++coefs = y1_1;
-        *++coefs = y2_1;
-        ++coefs;
-        break;
-    case 1:
-        y1_0 = *++coefs;
-        y2_0 = *++coefs;
-        b1_0 = *++coefs;
-
-        out = out0;
-        LOOP(unit->mRate->mFilterLoops, ZXP(out) = y0_0 = b1_0 * y1_0 - y2_0;
-
-             ZXP(out) = y2_0 = b1_0 * y0_0 - y1_0;
-
-             ZXP(out) = y1_0 = b1_0 * y2_0 - y0_0;);
-        LOOP(unit->mRate->mFilterRemain, ZXP(out) = y0_0 = b1_0 * y1_0 - y2_0; y2_0 = y1_0; y1_0 = y0_0;);
-
-        coefs -= 3;
-        *++coefs = y1_0;
-        *++coefs = y2_0;
-        ++coefs;
-        break;
-    case 0:
-        out = out0;
-        ZClear(inNumSamples, out);
-        break;
-    }
-
-    int32 imax = numpartials >> 2;
-
-    for (int i = 0; i < imax; ++i) {
-        y1_0 = *++coefs;
-        y2_0 = *++coefs;
-        b1_0 = *++coefs;
-        y1_1 = *++coefs;
-        y2_1 = *++coefs;
-        b1_1 = *++coefs;
-        y1_2 = *++coefs;
-        y2_2 = *++coefs;
-        b1_2 = *++coefs;
-        y1_3 = *++coefs;
-        y2_3 = *++coefs;
-        b1_3 = *++coefs;
-
-        out = out0;
-        LOOP(unit->mRate->mFilterLoops, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
-             outf += y0_2 = b1_2 * y1_2 - y2_2; outf += y0_3 = b1_3 * y1_3 - y2_3; ZXP(out) += outf;
-
-             outf = y2_0 = b1_0 * y0_0 - y1_0; outf += y2_1 = b1_1 * y0_1 - y1_1; outf += y2_2 = b1_2 * y0_2 - y1_2;
-             outf += y2_3 = b1_3 * y0_3 - y1_3; ZXP(out) += outf;
-
-             outf = y1_0 = b1_0 * y2_0 - y0_0; outf += y1_1 = b1_1 * y2_1 - y0_1; outf += y1_2 = b1_2 * y2_2 - y0_2;
-             outf += y1_3 = b1_3 * y2_3 - y0_3; ZXP(out) += outf;);
-        LOOP(unit->mRate->mFilterRemain, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
-             outf += y0_2 = b1_2 * y1_2 - y2_2; outf += y0_3 = b1_3 * y1_3 - y2_3; y2_0 = y1_0; y1_0 = y0_0;
-             y2_1 = y1_1; y1_1 = y0_1; y2_2 = y1_2; y1_2 = y0_2; y2_3 = y1_3; y1_3 = y0_3; ZXP(out) += outf;);
-        coefs -= 12;
-        *++coefs = y1_0;
-        *++coefs = y2_0;
-        ++coefs;
-        *++coefs = y1_1;
-        *++coefs = y2_1;
-        ++coefs;
-        *++coefs = y1_2;
-        *++coefs = y2_2;
-        ++coefs;
-        *++coefs = y1_3;
-        *++coefs = y2_3;
-        ++coefs;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-static void Klank_SetCoefs(Klank* unit) {
-    int numpartials = (unit->mNumInputs - 4) / 3;
-    unit->m_numpartials = numpartials;
-
-    int numcoefs = ((unit->m_numpartials + 3) & ~3) * 5;
-    unit->m_coefs = (float*)RTAlloc(unit->mWorld, (numcoefs + unit->mWorld->mBufLength) * sizeof(float));
-    ClearUnitIfMemFailed(unit->m_coefs);
-
-    unit->m_buf = unit->m_coefs + numcoefs;
-
-    float freqscale = ZIN0(1) * unit->mRate->mRadiansPerSample;
-    float freqoffset = ZIN0(2) * unit->mRate->mRadiansPerSample;
-    float decayscale = ZIN0(3);
-
-    float* coefs = unit->m_coefs;
-
-    float sampleRate = SAMPLERATE;
-
-    for (int i = 0, j = 4; i < numpartials; ++i, j += 3) {
-        float w = ZIN0(j) * freqscale + freqoffset;
-        float level = ZIN0(j + 1);
-        float time = ZIN0(j + 2) * decayscale;
-
-        float R = time == 0.f ? 0.f : exp(log001 / (time * sampleRate));
-        float twoR = 2.f * R;
-        float R2 = R * R;
-        float cost = (twoR * cos(w)) / (1.f + R2);
-
-        int k = 20 * (i >> 2) + (i & 3);
-        coefs[k + 0] = 0.f; // y1
-        coefs[k + 4] = 0.f; // y2
-        coefs[k + 8] = twoR * cost; // b1
-        coefs[k + 12] = -R2; // b2
-        coefs[k + 16] = level * 0.25; // a0
-        // Print("coefs %d  %g %g %g\n", i, twoR * cost, -R2, ampf * 0.25);
-    }
-}
-
-void Klank_Ctor(Klank* unit) {
-    SETCALC(Klank_next);
-    unit->m_x1 = unit->m_x2 = 0.f;
-    Klank_SetCoefs(unit);
-    ZOUT0(0) = 0.f;
-}
-
-void Klank_Dtor(Klank* unit) { RTFree(unit->mWorld, unit->m_coefs); }
-
-void Klank_next(Klank* unit, int inNumSamples) {
-    float* out0 = ZOUT(0);
-    float* in0 = ZIN(0);
-
-    float *in, *out;
-    float inf;
-    float y0_0, y1_0, y2_0, a0_0, b1_0, b2_0;
-    float y0_1, y1_1, y2_1, a0_1, b1_1, b2_1;
-    float y0_2, y1_2, y2_2, a0_2, b1_2, b2_2;
-    float y0_3, y1_3, y2_3, a0_3, b1_3, b2_3;
-
-    int32 numpartials = unit->m_numpartials;
-    int32 imax = numpartials >> 2;
-
-    float* coefs = unit->m_coefs + imax * 20;
-
-    switch (numpartials & 3) {
-    case 3:
-        y1_0 = coefs[0];
-        y2_0 = coefs[4];
-        b1_0 = coefs[8];
-        b2_0 = coefs[12];
-        a0_0 = coefs[16];
-        y1_1 = coefs[1];
-        y2_1 = coefs[5];
-        b1_1 = coefs[9];
-        b2_1 = coefs[13];
-        a0_1 = coefs[17];
-        y1_2 = coefs[2];
-        y2_2 = coefs[6];
-        b1_2 = coefs[10];
-        b2_2 = coefs[14];
-        a0_2 = coefs[18];
-
-        in = in0;
-        out = unit->m_buf - 1;
-        LooP(unit->mRate->mFilterLoops) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
-            *++out = a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2;
-
-            inf = *++in;
-            y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
-            y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
-            y2_2 = inf + b1_2 * y0_2 + b2_2 * y1_2;
-            *++out = a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2;
-
-            inf = *++in;
-            y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
-            y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
-            y1_2 = inf + b1_2 * y2_2 + b2_2 * y0_2;
-            *++out = a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2;
-        }
-        LooP(unit->mRate->mFilterRemain) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
-            *++out = a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2;
-            y2_0 = y1_0;
-            y1_0 = y0_0;
-            y2_1 = y1_1;
-            y1_1 = y0_1;
-            y2_2 = y1_2;
-            y1_2 = y0_2;
-        }
-        coefs[0] = zapgremlins(y1_0);
-        coefs[4] = zapgremlins(y2_0);
-        coefs[1] = zapgremlins(y1_1);
-        coefs[5] = zapgremlins(y2_1);
-        coefs[2] = zapgremlins(y1_2);
-        coefs[6] = zapgremlins(y2_2);
-        break;
-    case 2:
-        y1_0 = coefs[0];
-        y2_0 = coefs[4];
-        b1_0 = coefs[8];
-        b2_0 = coefs[12];
-        a0_0 = coefs[16];
-        y1_1 = coefs[1];
-        y2_1 = coefs[5];
-        b1_1 = coefs[9];
-        b2_1 = coefs[13];
-        a0_1 = coefs[17];
-
-        in = in0;
-        out = unit->m_buf - 1;
-        LooP(unit->mRate->mFilterLoops) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            *++out = a0_0 * y0_0 + a0_1 * y0_1;
-
-            inf = *++in;
-            y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
-            y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
-            *++out = a0_0 * y2_0 + a0_1 * y2_1;
-
-            inf = *++in;
-            y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
-            y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
-            *++out = a0_0 * y1_0 + a0_1 * y1_1;
-        }
-        LooP(unit->mRate->mFilterRemain) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            *++out = a0_0 * y0_0 + a0_1 * y0_1;
-            y2_0 = y1_0;
-            y1_0 = y0_0;
-            y2_1 = y1_1;
-            y1_1 = y0_1;
-        }
-        coefs[0] = zapgremlins(y1_0);
-        coefs[4] = zapgremlins(y2_0);
-        coefs[1] = zapgremlins(y1_1);
-        coefs[5] = zapgremlins(y2_1);
-        break;
-    case 1:
-        y1_0 = coefs[0];
-        y2_0 = coefs[4];
-        b1_0 = coefs[8];
-        b2_0 = coefs[12];
-        a0_0 = coefs[16];
-
-        // Print("rcoefs %g %g %g %g %g\n", y1_0, y2_0, b1_0, b2_0, a0_0);
-        in = in0;
-        out = unit->m_buf - 1;
-        LooP(unit->mRate->mFilterLoops) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            *++out = a0_0 * y0_0;
-
-            inf = *++in;
-            y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
-            *++out = a0_0 * y2_0;
-
-            inf = *++in;
-            y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
-            *++out = a0_0 * y1_0;
-            // Print("out %g %g %g\n", y0_0, y2_0, y1_0);
-        }
-        LooP(unit->mRate->mFilterRemain) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            *++out = a0_0 * y0_0;
-            y2_0 = y1_0;
-            y1_0 = y0_0;
-            // Print("out %g\n", y0_0);
-        }
-        /*
-        coefs[0] = y1_0;	coefs[4] = y2_0;
-        */
-        coefs[0] = zapgremlins(y1_0);
-        coefs[4] = zapgremlins(y2_0);
-        break;
-    case 0:
-        out = unit->m_buf - 1;
-        LooP(inNumSamples) { *++out = 0.f; }
-        break;
-    }
-
-    coefs = unit->m_coefs;
-
-    for (int i = 0; i < imax; ++i) {
-        y1_0 = coefs[0];
-        y2_0 = coefs[4];
-        b1_0 = coefs[8];
-        b2_0 = coefs[12];
-        a0_0 = coefs[16];
-        y1_1 = coefs[1];
-        y2_1 = coefs[5];
-        b1_1 = coefs[9];
-        b2_1 = coefs[13];
-        a0_1 = coefs[17];
-        y1_2 = coefs[2];
-        y2_2 = coefs[6];
-        b1_2 = coefs[10];
-        b2_2 = coefs[14];
-        a0_2 = coefs[18];
-        y1_3 = coefs[3];
-        y2_3 = coefs[7];
-        b1_3 = coefs[11];
-        b2_3 = coefs[15];
-        a0_3 = coefs[19];
-
-        in = in0;
-        out = unit->m_buf - 1;
-        LooP(unit->mRate->mFilterLoops) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
-            y0_3 = inf + b1_3 * y1_3 + b2_3 * y2_3;
-            *++out += a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3;
-
-            inf = *++in;
-            y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
-            y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
-            y2_2 = inf + b1_2 * y0_2 + b2_2 * y1_2;
-            y2_3 = inf + b1_3 * y0_3 + b2_3 * y1_3;
-            *++out += a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2 + a0_3 * y2_3;
-
-            inf = *++in;
-            y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
-            y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
-            y1_2 = inf + b1_2 * y2_2 + b2_2 * y0_2;
-            y1_3 = inf + b1_3 * y2_3 + b2_3 * y0_3;
-            *++out += a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2 + a0_3 * y1_3;
-        }
-        LooP(unit->mRate->mFilterRemain) {
-            inf = *++in;
-            y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
-            y0_3 = inf + b1_3 * y1_3 + b2_3 * y2_3;
-            *++out += a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3;
-            y2_0 = y1_0;
-            y1_0 = y0_0;
-            y2_1 = y1_1;
-            y1_1 = y0_1;
-            y2_2 = y1_2;
-            y1_2 = y0_2;
-            y2_3 = y1_3;
-            y1_3 = y0_3;
-        }
-        coefs[0] = zapgremlins(y1_0);
-        coefs[4] = zapgremlins(y2_0);
-        coefs[1] = zapgremlins(y1_1);
-        coefs[5] = zapgremlins(y2_1);
-        coefs[2] = zapgremlins(y1_2);
-        coefs[6] = zapgremlins(y2_2);
-        coefs[3] = zapgremlins(y1_3);
-        coefs[7] = zapgremlins(y2_3);
-        coefs += 20;
-    }
-
-    float x0;
-    float x1 = unit->m_x1;
-    float x2 = unit->m_x2;
-
-    in = unit->m_buf - 1;
-    out = out0;
-    LooP(unit->mRate->mFilterLoops) {
-        x0 = *++in;
-        *++out = x0 - x2;
-        x2 = *++in;
-        *++out = x2 - x1;
-        x1 = *++in;
-        *++out = x1 - x0;
-    }
-    LooP(unit->mRate->mFilterRemain) {
-        x0 = *++in;
-        *++out = x0 - x2;
-        x2 = x1;
-        x1 = x0;
-    }
-
-    unit->m_x1 = x1;
-    unit->m_x2 = x2;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-static void normalize_samples(int size, float* data, float peak) {
-    float maxamp = 0.f;
-    for (int i = 0; i < size; ++i) {
-        float absamp = std::abs(data[i]);
-        if (absamp > maxamp)
-            maxamp = absamp;
-    }
-    if (maxamp != 0.f && maxamp != peak) {
-        float ampfac = peak / maxamp;
-        for (int i = 0; i < size; ++i) {
-            data[i] *= ampfac;
-        }
-    }
-}
-
-static void normalize_wsamples(int size, float* data, float peak) {
-    float maxamp = 0.f;
-    for (int i = 0; i < size; i += 2) {
-        float absamp = std::abs(data[i] + data[i + 1]);
-        if (absamp > maxamp)
-            maxamp = absamp;
-    }
-    if (maxamp != 0.f && maxamp != peak) {
-        float ampfac = peak / maxamp;
-        for (int i = 0; i < size; ++i) {
-            data[i] *= ampfac;
-        }
-    }
-}
-
-static void add_partial(int size, float* data, double partial, double amp, double phase) {
-    if (amp == 0.0)
-        return;
-    double w = (partial * 2.0 * 3.1415926535897932384626433832795) / (double)size;
-    for (int i = 0; i < size; ++i) {
-        data[i] += amp * sin(phase);
-        phase += w;
-    }
-}
-
-static void add_wpartial(int size, float* data, double partial, double amp, double phase) {
-    if (amp == 0.0)
-        return;
-    int size2 = size >> 1;
-    double w = (partial * 2.0 * 3.1415926535897932384626433832795) / (double)size2;
-    double cur = amp * sin(phase);
-    phase += w;
-    for (int i = 0; i < size; i += 2) {
-        double next = amp * sin(phase);
-        data[i] += 2 * cur - next;
-        data[i + 1] += next - cur;
-        cur = next;
-        phase += w;
-    }
-}
-
-static void add_chebyshev(int size, float* data, double partial, double amp) {
-    if (amp == 0.0)
-        return;
-    double w = 2.0 / (double)size;
-    double phase = -1.0;
-    double offset = -amp * cos(partial * pi2);
-    for (int i = 0; i < size; ++i) {
-        data[i] += amp * cos(partial * acos(phase)) + offset;
-        phase += w;
-    }
-}
-
-static void add_wchebyshev(int size, float* data, double partial, double amp) {
-    if (amp == 0.0)
-        return;
-    int size2 = size >> 1;
-    double w = 2.0 / (double)size2;
-    double phase = -1.0;
-    double offset = -amp * cos(partial * pi2);
-    double cur = amp * cos(partial * acos(phase)) + offset;
-    phase += w;
-    for (int i = 0; i < size; i += 2) {
-        double next = amp * cos(partial * acos(phase)) + offset;
-        data[i] += 2 * cur - next;
-        data[i + 1] += next - cur;
-        cur = next;
-        phase += w;
-    }
-}
-
-static void cantorFill(int size, float* data) // long offset, double amp)
-{
-	float *out = ZOUT(0);
-	float freq1in = ZIN0(0);
-	float freq2in = ZIN0(1);
-	float freq3in = ZIN0(2);
-
-    int32 phase1 = unit->m_phase1;
-    int32 phase2 = unit->m_phase2;
-    int32 phase3 = unit->m_phase3;
-    float cpstoinc = unit->m_cpstoinc;
-    int32 freq1 = (int32)(cpstoinc * freq1in);
-    int32 freq2 = (int32)(cpstoinc * freq2in);
-    int32 freq3 = (int32)(cpstoinc * freq3in);
-    float* sine = ft->mSine;
-    int32 formfreq = sc_max(freq1, freq3);
-    LOOP1(
-        inNumSamples,
-        if (phase3 < onecyc13) {
             float val = (*(float*)((char*)sine + (((phase3 + tqcyc13) >> xlobits) & xlomask13)) + 1.f)
                 * *(float*)((char*)sine + ((phase2 >> xlobits) & xlomask13)); // mtm
-            //			 printf("[Formant_next] %f\n", val);//mtm
+            //             printf("[Formant_next] %f\n", val);//mtm
             ZXP(out) = val; // mtm
-            //			ZXP(out) = (*(float*)((char*)sine + (((phase3 + tqcyc13) >> xlobits) & xlomask13)) + 1.f)
-            //			         *  *(float*)((char*)sine + ((phase2 >> xlobits) & xlomask13));
+            //            ZXP(out) = (*(float*)((char*)sine + (((phase3 + tqcyc13) >> xlobits) & xlomask13)) + 1.f)
+            //                     *  *(float*)((char*)sine + ((phase2 >> xlobits) & xlomask13));
             phase3 += formfreq;
         } else {
-            //			printf("[Formant_next else] %f\n", 0.f);//mtm
+            //            printf("[Formant_next else] %f\n", 0.f);//mtm
             ZXP(out) = 0.f;
         } phase1 += freq1;
         phase2 += freq2; if (phase1 > onecyc13) {
@@ -3623,9 +2507,9 @@ void Blip_Ctor(Blip* unit) {
     unit->m_scale = 0.5 / N;
     unit->m_phase = 0;
 
-    //	printf("[Blip] init sample:\n\t");
+    //    printf("[Blip] init sample:\n\t");
     Blip_next(unit, 1);
-    //	printf("[Blip] first sample:\n\t");
+    //    printf("[Blip] first sample:\n\t");
 
     unit->m_N = N; // mtm
     unit->m_scale = 0.5 / N; // mtm
@@ -3685,7 +2569,7 @@ void Blip_next(Blip* unit, int inNumSamples) {
                 float pfrac = PhaseFrac(phase);
                 float denom = t0 + (t1 - t0) * pfrac;
                 if (std::abs(denom) < 0.0005f) {
-                    //					   printf("[Blip_next 1] %f\n", 1.f);//mtm
+                    //                       printf("[Blip_next 1] %f\n", 1.f);//mtm
                     ZXP(out) = 1.f;
                 } else {
                     int32 rphase = phase * prevN2;
@@ -3699,7 +2583,7 @@ void Blip_next(Blip* unit, int inNumSamples) {
                     tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
                     numer = lininterp(pfrac, tbl[0], tbl[1]);
                     float n2 = (numer / denom - 1.f) * scale;
-                    //					   printf("[Blip_next 2] %f\n", lininterp(xfade, n1, n2));//mtm
+                    //                       printf("[Blip_next 2] %f\n", lininterp(xfade, n1, n2));//mtm
                     ZXP(out) = lininterp(xfade, n1, n2);
                 }
             } else {
@@ -3717,7 +2601,7 @@ void Blip_next(Blip* unit, int inNumSamples) {
                 tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
                 numer = lininterp(pfrac, tbl[0], tbl[1]);
                 float n2 = (numer * denom - 1.f) * scale;
-                //				   printf("[Blip_next 3] %f\n", lininterp(xfade, n1, n2));//mtm
+                //                   printf("[Blip_next 3] %f\n", lininterp(xfade, n1, n2));//mtm
                 ZXP(out) = lininterp(xfade, n1, n2);
             } phase += freq;
             xfade += xfade_slope;);
@@ -3733,14 +2617,14 @@ void Blip_next(Blip* unit, int inNumSamples) {
                 float pfrac = PhaseFrac(phase);
                 float denom = t0 + (t1 - t0) * pfrac;
                 if (std::abs(denom) < 0.0005f) {
-                    //					  printf("[Blip_next else 4] %f\n", 1.f);//mtm
+                    //                      printf("[Blip_next else 4] %f\n", 1.f);//mtm
                     ZXP(out) = 1.f;
                 } else {
                     int32 rphase = phase * N2;
                     pfrac = PhaseFrac(rphase);
                     tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
                     float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    //					  printf("[Blip_next else 5] %f\n", (numer / denom - 1.f) * scale);//mtm
+                    //                      printf("[Blip_next else 5] %f\n", (numer / denom - 1.f) * scale);//mtm
                     ZXP(out) = (numer / denom - 1.f) * scale;
                 }
             } else {
@@ -3750,7 +2634,7 @@ void Blip_next(Blip* unit, int inNumSamples) {
                 pfrac = PhaseFrac(rphase);
                 tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
                 float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                //				 printf("[Blip_next else 6] %f\n", (numer * denom - 1.f) * scale);//mtm
+                //                 printf("[Blip_next else 6] %f\n", (numer * denom - 1.f) * scale);//mtm
                 ZXP(out) = (numer * denom - 1.f) * scale;
             } phase += freq;);
     }
@@ -3774,10 +2658,10 @@ void Saw_Ctor(Saw* unit) {
     unit->m_phase = 0;
     unit->m_y1 = -0.46f;
 
-    //	printf("[Saw] init sample:\n\t");
-    //	ZOUT0(0) = 0.f; // <<<<<<<<<<<<< needs to be set properly
+    //    printf("[Saw] init sample:\n\t");
+    //    ZOUT0(0) = 0.f; // <<<<<<<<<<<<< needs to be set properly
     Saw_next(unit, 1); // mtm
-    //	printf("[Saw] first sample:\n\t");
+    //    printf("[Saw] first sample:\n\t");
 
     unit->m_scale = 0.5 / unit->m_N; // mtm
     unit->m_phase = 0; // mtm
@@ -3833,7 +2717,7 @@ void Saw_next(Saw* unit, int inNumSamples) {
                 float pfrac = PhaseFrac(phase);
                 float denom = t0 + (t1 - t0) * pfrac;
                 if (std::abs(denom) < 0.0005f) {
-                    //					 printf("[Saw_next 1] %f\n", 1.f + 0.999f * y1);//mtm
+                    //                     printf("[Saw_next 1] %f\n", 1.f + 0.999f * y1);//mtm
                     ZXP(out) = y1 = 1.f + 0.999f * y1;
                 } else {
                     int32 rphase = phase * prevN2;
@@ -3847,7 +2731,7 @@ void Saw_next(Saw* unit, int inNumSamples) {
                     tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
                     numer = lininterp(pfrac, tbl[0], tbl[1]);
                     float n2 = (numer / denom - 1.f) * scale;
-                    //					 printf("[Saw_next 2] %f\n", n1 + xfade * (n2 - n1) + 0.999f * y1);//mtm
+                    //                     printf("[Saw_next 2] %f\n", n1 + xfade * (n2 - n1) + 0.999f * y1);//mtm
                     ZXP(out) = y1 = n1 + xfade * (n2 - n1) + 0.999f * y1;
                 }
             } else {
@@ -3881,14 +2765,15 @@ void Saw_next(Saw* unit, int inNumSamples) {
                 float pfrac = PhaseFrac(phase);
                 float denom = t0 + (t1 - t0) * pfrac;
                 if (std::abs(denom) < 0.0005f) {
-                    //					 printf("[Saw_next 4] %f\n", 1.f + 0.999f * y1);//mtm
+                    //                     printf("[Saw_next 4] %f\n", 1.f + 0.999f * y1);//mtm
                     ZXP(out) = y1 = 1.f + 0.999f * y1;
                 } else {
                     int32 rphase = phase * N2;
                     pfrac = PhaseFrac(rphase);
                     tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
                     float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                    //					 printf("[Saw_next 5] %f\n", (numer / denom - 1.f) * scale + 0.999f * y1);//mtm
+                    //                     printf("[Saw_next 5] %f\n", (numer / denom - 1.f) * scale + 0.999f *
+                    //                     y1);//mtm
                     ZXP(out) = y1 = (numer / denom - 1.f) * scale + 0.999f * y1;
                 }
             } else {
@@ -3898,7 +2783,7 @@ void Saw_next(Saw* unit, int inNumSamples) {
                 pfrac = PhaseFrac(rphase);
                 float* tbl = (float*)((char*)numtbl + ((rphase >> xlobits) & xlomask13));
                 float numer = lininterp(pfrac, tbl[0], tbl[1]);
-                //				 printf("[Saw_next 6] %f\n", (numer * denom - 1.f) * scale + 0.999f * y1);//mtm
+                //                 printf("[Saw_next 6] %f\n", (numer * denom - 1.f) * scale + 0.999f * y1);//mtm
                 ZXP(out) = y1 = (numer * denom - 1.f) * scale + 0.999f * y1;
             } phase += freq;);
     }
@@ -3914,45 +2799,45 @@ void Saw_next(Saw* unit, int inNumSamples) {
 
 void Pulse_Ctor(Pulse* unit) {
     SETCALC(Pulse_next);
-    
+
     float freqin;
     unit->m_freqin = freqin = ZIN0(0);
     unit->m_cpstoinc = ft->mSineSize * SAMPLEDUR * 65536. * 0.5;
     unit->m_N = (int32)((SAMPLERATE * 0.5) / unit->m_freqin);
     unit->m_scale = 0.5 / unit->m_N;
-    
+
     unit->m_phase = 0;
     unit->m_phaseoff = 0;
     unit->m_y1 = 0.f;
     ZOUT0(0) = 0.f;
 
-    
-//    int32 freq = (int32)(unit->m_cpstoinc * freqin);
-//
-////    printf("[Pulse] mscale - before: %f\n\t", unit->m_scale);
-////    int32 initphaseoff;
-////    unit->m_phase = freq * -1.f;
-////    unit->m_phaseoff = (int32)(ZIN0(1) * (1L << 28));
-////    unit->m_y1 = -0.5f;//mtm
-////    unit->m_y1 = -0.999;//mtm
-////    unit->m_y1 = -0.476432; // mtm
-//        unit->m_phase = 0;
-//        unit->m_phaseoff = 0;
-//        unit->m_y1 = 0.f;
-//    	printf("[Pulse] init sample:\n\t");
-//    Pulse_next(unit, 1);
-//    	printf("[Pulse] first sample:\n\t");
-//
-////    unit->m_phase = freq * -1.f;
-////    unit->m_phaseoff = (int32)(ZIN0(1) * (1L << 28));
-////    unit->m_y1 = -0.999;//mtm
-////    unit->m_y1 = -0.476432; // mtm
-//        unit->m_phase = 0;
-//        unit->m_phaseoff = 0;
-//        unit->m_y1 = 0.f;
-//
-//    //	unit->m_scale = 0.5/unit->m_N;//mtm
-//    //	printf("[Pulse] mscale - after: %f\n\t", unit->m_scale);
+
+    //    int32 freq = (int32)(unit->m_cpstoinc * freqin);
+    //
+    ////    printf("[Pulse] mscale - before: %f\n\t", unit->m_scale);
+    ////    int32 initphaseoff;
+    ////    unit->m_phase = freq * -1.f;
+    ////    unit->m_phaseoff = (int32)(ZIN0(1) * (1L << 28));
+    ////    unit->m_y1 = -0.5f;//mtm
+    ////    unit->m_y1 = -0.999;//mtm
+    ////    unit->m_y1 = -0.476432; // mtm
+    //        unit->m_phase = 0;
+    //        unit->m_phaseoff = 0;
+    //        unit->m_y1 = 0.f;
+    //        printf("[Pulse] init sample:\n\t");
+    //    Pulse_next(unit, 1);
+    //        printf("[Pulse] first sample:\n\t");
+    //
+    ////    unit->m_phase = freq * -1.f;
+    ////    unit->m_phaseoff = (int32)(ZIN0(1) * (1L << 28));
+    ////    unit->m_y1 = -0.999;//mtm
+    ////    unit->m_y1 = -0.476432; // mtm
+    //        unit->m_phase = 0;
+    //        unit->m_phaseoff = 0;
+    //        unit->m_y1 = 0.f;
+    //
+    //    //    unit->m_scale = 0.5/unit->m_N;//mtm
+    //    //    printf("[Pulse] mscale - after: %f\n\t", unit->m_scale);
 }
 
 void Pulse_next(Pulse* unit, int inNumSamples) {
@@ -4092,9 +2977,9 @@ void Pulse_next(Pulse* unit, int inNumSamples) {
 
                 pul2 = lininterp(xfade, n1, n2);
             } float val = pul1 - pul2 + 0.999f * y1;
-            			  printf("[Pulse_next 5] %f\n", val); //mtm
+            printf("[Pulse_next 5] %f\n", val); // mtm
             ZXP(out) = y1 = val; // mtm
-            //			ZXP(out) = y1 = pul1 - pul2 + 0.999f * y1;
+            //            ZXP(out) = y1 = pul1 - pul2 + 0.999f * y1;
             phase += freq;
             phaseoff += phaseoff_slope; xfade += xfade_slope;);
     } else {
@@ -4126,7 +3011,7 @@ void Pulse_next(Pulse* unit, int inNumSamples) {
             }
 
             int32 phase2 = phase + phaseoff;
-            //			  printf("\tphase: %d  offset: %d\n\t", phase, phaseoff);//mtm
+            //              printf("\tphase: %d  offset: %d\n\t", phase, phaseoff);//mtm
             tbl = (float*)((char*)dentbl + ((phase2 >> xlobits) & xlomask13));
             t0 = tbl[0]; t1 = tbl[1]; if (t0 == kBadValue || t1 == kBadValue) {
                 tbl = (float*)((char*)numtbl + ((phase2 >> xlobits) & xlomask13));
@@ -4153,9 +3038,9 @@ void Pulse_next(Pulse* unit, int inNumSamples) {
 
                 pul2 = (numer * denom);
             } float val = (pul1 - pul2) * scale + 0.999f * y1; // mtm
-            			  printf("[Pulse_next 6] %f\n", val); //mtm
+            printf("[Pulse_next 6] %f\n", val); // mtm
             ZXP(out) = y1 = val; // mtm
-            //			ZXP(out) = y1 = (pul1 - pul2) * scale + 0.999f * y1;//mtm
+            //            ZXP(out) = y1 = (pul1 - pul2) * scale + 0.999f * y1;//mtm
             phase += freq;
             phaseoff += phaseoff_slope;);
     }
@@ -4190,16 +3075,16 @@ static float Klang_SetCoefs(Klang* unit) {
         float level = ZIN0(j + 1);
         float phase = ZIN0(j + 2);
 
-        //		if (phase != 0.f) {
-        //			Print("Klang: br 1\n");//mtm
-        //			outf += *++coefs = level * sin(phase);		// y1
-        //			        *++coefs = level * sin(phase - w);	// y2
-        //		} else {
-        //			Print("Klang: br 1\n");//mtm
-        //			outf += *++coefs = 0.f;						// y1
-        //			        *++coefs = level * -sin(w);	// y2
-        //		}
-        //		*++coefs = 2. * cos(w);		// b1
+        //        if (phase != 0.f) {
+        //            Print("Klang: br 1\n");//mtm
+        //            outf += *++coefs = level * sin(phase);        // y1
+        //                    *++coefs = level * sin(phase - w);    // y2
+        //        } else {
+        //            Print("Klang: br 1\n");//mtm
+        //            outf += *++coefs = 0.f;                        // y1
+        //                    *++coefs = level * -sin(w);    // y2
+        //        }
+        //        *++coefs = 2. * cos(w);        // b1
 
         // start mtm
         if (phase != 0.f) {
@@ -4220,10 +3105,10 @@ void Klang_Ctor(Klang* unit) {
     SETCALC(Klang_next);
 
     float val = Klang_SetCoefs(unit); // mtm
-    //	printf("[Klang] init sample:\n\t%f\n", val);//mtm
+    //    printf("[Klang] init sample:\n\t%f\n", val);//mtm
     ZOUT0(0) = val; // mtm
-    //	ZOUT0(0) = Klang_SetCoefs(unit);
-    //	printf("[Klang] first sample:\n\t");//mtm
+    //    ZOUT0(0) = Klang_SetCoefs(unit);
+    //    printf("[Klang] first sample:\n\t");//mtm
 }
 
 void Klang_Dtor(Klang* unit) { RTFree(unit->mWorld, unit->m_coefs); }
@@ -4256,20 +3141,20 @@ void Klang_next(Klang* unit, int inNumSamples) {
         out = out0;
         LOOP(unit->mRate->mFilterLoops, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
              outf += y0_2 = b1_2 * y1_2 - y2_2;
-             //				   printf("[Klang_next 1] %f\n", outf); //mtm
+             //                   printf("[Klang_next 1] %f\n", outf); //mtm
              ZXP(out) = outf;
 
              outf = y2_0 = b1_0 * y0_0 - y1_0; outf += y2_1 = b1_1 * y0_1 - y1_1; outf += y2_2 = b1_2 * y0_2 - y1_2;
-             //				   printf("[Klang_next 2] %f\n", outf); //mtm
+             //                   printf("[Klang_next 2] %f\n", outf); //mtm
              ZXP(out) = outf;
 
              outf = y1_0 = b1_0 * y2_0 - y0_0; outf += y1_1 = b1_1 * y2_1 - y0_1; outf += y1_2 = b1_2 * y2_2 - y0_2;
-             //				 	  printf("[Klang_next 3] %f\n", outf); //mtm
+             //                       printf("[Klang_next 3] %f\n", outf); //mtm
              ZXP(out) = outf;);
         LOOP(unit->mRate->mFilterRemain, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
              outf += y0_2 = b1_2 * y1_2 - y2_2; y2_0 = y1_0; y1_0 = y0_0; y2_1 = y1_1; y1_1 = y0_1; y2_2 = y1_2;
              y1_2 = y0_2;
-             //				   printf("[Klang_next 4] %f\n", outf); //mtm
+             //                   printf("[Klang_next 4] %f\n", outf); //mtm
              ZXP(out) = outf;);
         coefs -= 9;
         *++coefs = y1_0;
@@ -4292,19 +3177,19 @@ void Klang_next(Klang* unit, int inNumSamples) {
 
         out = out0;
         LOOP(unit->mRate->mFilterLoops, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
-             //				   printf("[Klang_next 5] %f\n", outf); //mtm
+             //                   printf("[Klang_next 5] %f\n", outf); //mtm
              ZXP(out) = outf;
 
              outf = y2_0 = b1_0 * y0_0 - y1_0; outf += y2_1 = b1_1 * y0_1 - y1_1;
-             //				   printf("[Klang_next 6] %f\n", outf); //mtm
+             //                   printf("[Klang_next 6] %f\n", outf); //mtm
              ZXP(out) = outf;
 
              outf = y1_0 = b1_0 * y2_0 - y0_0; outf += y1_1 = b1_1 * y2_1 - y0_1;
-             //				   printf("[Klang_next 7] %f\n", outf); //mtm
+             //                   printf("[Klang_next 7] %f\n", outf); //mtm
              ZXP(out) = outf;);
         LOOP(unit->mRate->mFilterRemain, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
              y2_0 = y1_0; y1_0 = y0_0; y2_1 = y1_1; y1_1 = y0_1;
-             //				   printf("[Klang_next 9] %f\n", outf); //mtm
+             //                   printf("[Klang_next 9] %f\n", outf); //mtm
              ZXP(out) = outf;);
 
         coefs -= 6;
@@ -4322,16 +3207,16 @@ void Klang_next(Klang* unit, int inNumSamples) {
 
         out = out0;
         LOOP(unit->mRate->mFilterLoops,
-             //				   printf("[Klang_next 10] %f\n", b1_0 * y1_0 - y2_0); //mtm
+             //                   printf("[Klang_next 10] %f\n", b1_0 * y1_0 - y2_0); //mtm
              ZXP(out) = y0_0 = b1_0 * y1_0 - y2_0;
 
-             //				   printf("[Klang_next 11] %f\n", b1_0 * y0_0 - y1_0); //mtm
+             //                   printf("[Klang_next 11] %f\n", b1_0 * y0_0 - y1_0); //mtm
              ZXP(out) = y2_0 = b1_0 * y0_0 - y1_0;
 
-             //				   printf("[Klang_next 12] %f\n", b1_0 * y2_0 - y0_0); //mtm
+             //                   printf("[Klang_next 12] %f\n", b1_0 * y2_0 - y0_0); //mtm
              ZXP(out) = y1_0 = b1_0 * y2_0 - y0_0;);
         LOOP(unit->mRate->mFilterRemain,
-             //				 printf("[Klang_next 13] %f\n", b1_0 * y1_0 - y2_0); //mtm
+             //                 printf("[Klang_next 13] %f\n", b1_0 * y1_0 - y2_0); //mtm
              ZXP(out) = y0_0 = b1_0 * y1_0 - y2_0;
              y2_0 = y1_0; y1_0 = y0_0;);
 
@@ -4365,22 +3250,22 @@ void Klang_next(Klang* unit, int inNumSamples) {
         out = out0;
         LOOP(unit->mRate->mFilterLoops, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
              outf += y0_2 = b1_2 * y1_2 - y2_2; outf += y0_3 = b1_3 * y1_3 - y2_3;
-             //			  printf("[Klang_next 14] %f\n", outf); //mtm
+             //              printf("[Klang_next 14] %f\n", outf); //mtm
              ZXP(out) += outf;
 
              outf = y2_0 = b1_0 * y0_0 - y1_0; outf += y2_1 = b1_1 * y0_1 - y1_1; outf += y2_2 = b1_2 * y0_2 - y1_2;
              outf += y2_3 = b1_3 * y0_3 - y1_3;
-             //			  printf("[Klang_next 15] %f\n", outf); //mtm
+             //              printf("[Klang_next 15] %f\n", outf); //mtm
              ZXP(out) += outf;
 
              outf = y1_0 = b1_0 * y2_0 - y0_0; outf += y1_1 = b1_1 * y2_1 - y0_1; outf += y1_2 = b1_2 * y2_2 - y0_2;
              outf += y1_3 = b1_3 * y2_3 - y0_3;
-             //			  printf("[Klang_next 16] %f\n", outf); //mtm
+             //              printf("[Klang_next 16] %f\n", outf); //mtm
              ZXP(out) += outf;);
         LOOP(unit->mRate->mFilterRemain, outf = y0_0 = b1_0 * y1_0 - y2_0; outf += y0_1 = b1_1 * y1_1 - y2_1;
              outf += y0_2 = b1_2 * y1_2 - y2_2; outf += y0_3 = b1_3 * y1_3 - y2_3; y2_0 = y1_0; y1_0 = y0_0;
              y2_1 = y1_1; y1_1 = y0_1; y2_2 = y1_2; y1_2 = y0_2; y2_3 = y1_3; y1_3 = y0_3;
-             //			  printf("[Klang_next 17] %f\n", outf); //mtm
+             //              printf("[Klang_next 17] %f\n", outf); //mtm
              ZXP(out) += outf;);
         coefs -= 12;
         *++coefs = y1_0;
@@ -4402,18 +3287,18 @@ void Klang_next(Klang* unit, int inNumSamples) {
 
 static void Klank_SetCoefs(Klank* unit) {
     //// mtm moved to Ctor
-    //	int numpartials = (unit->mNumInputs - 4) / 3;
-    //	unit->m_numpartials = numpartials;
+    //    int numpartials = (unit->mNumInputs - 4) / 3;
+    //    unit->m_numpartials = numpartials;
     //
-    //	int numcoefs = ((unit->m_numpartials + 3) & ~3) * 5;
-    //	unit->m_coefs = (float*)RTAlloc(unit->mWorld, (numcoefs + unit->mWorld->mBufLength) * sizeof(float));
-    //	if (!unit->m_coefs) {
-    //		Print("Klank: RT memory allocation failed\n");// mtm Klang/k typo fix
-    //		SETCALC(ClearUnitOutputs);
-    //		return;
-    //	}
+    //    int numcoefs = ((unit->m_numpartials + 3) & ~3) * 5;
+    //    unit->m_coefs = (float*)RTAlloc(unit->mWorld, (numcoefs + unit->mWorld->mBufLength) * sizeof(float));
+    //    if (!unit->m_coefs) {
+    //        Print("Klank: RT memory allocation failed\n");// mtm Klang/k typo fix
+    //        SETCALC(ClearUnitOutputs);
+    //        return;
+    //    }
     //
-    //	unit->m_buf = unit->m_coefs + numcoefs;
+    //    unit->m_buf = unit->m_coefs + numcoefs;
 
     float freqscale = ZIN0(1) * unit->mRate->mRadiansPerSample;
     float freqoffset = ZIN0(2) * unit->mRate->mRadiansPerSample;
@@ -4447,10 +3332,10 @@ void Klank_Ctor(Klank* unit) {
     SETCALC(Klank_next);
     unit->m_x1 = unit->m_x2 = 0.f;
 
-    //	printf("[Klank] init sample: %f\n", 0.f);
-    //	Klank_SetCoefs(unit);
-    //	ZOUT0(0) = 0.f;//mtm
-    //	printf("[Klank] first sample:\n\t");
+    //    printf("[Klank] init sample: %f\n", 0.f);
+    //    Klank_SetCoefs(unit);
+    //    ZOUT0(0) = 0.f;//mtm
+    //    printf("[Klank] first sample:\n\t");
 
     // mtm start
     int numpartials = (unit->mNumInputs - 4) / 3;
@@ -4467,7 +3352,7 @@ void Klank_Ctor(Klank* unit) {
     // mtm end
 
     Klank_SetCoefs(unit);
-    //	printf("[Klank] init sample:\n\t");
+    //    printf("[Klank] init sample:\n\t");
     int tempFiltLoops = unit->mRate->mFilterLoops;
     int tempFiltRemain = unit->mRate->mFilterRemain;
     unit->mRate->mFilterLoops = 0; // don't allow to unwrap 3 samples, we don't have that much input
@@ -4476,10 +3361,10 @@ void Klank_Ctor(Klank* unit) {
     unit->mRate->mFilterLoops = tempFiltLoops; // reset for normal cycling
     unit->mRate->mFilterRemain = tempFiltRemain;
 
-    //	printf("[Klank] RESETTING COEFFS\n");
+    //    printf("[Klank] RESETTING COEFFS\n");
     unit->m_x1 = unit->m_x2 = 0.f; // can't infer x1, x2, so zero
     Klank_SetCoefs(unit); // reset coeffs for first sample
-    //	printf("[Klank] first sample:\n\t");
+    //    printf("[Klank] first sample:\n\t");
 }
 
 void Klank_Dtor(Klank* unit) { RTFree(unit->mWorld, unit->m_coefs); }
@@ -4525,21 +3410,21 @@ void Klank_next(Klank* unit, int inNumSamples) {
             y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
             y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
             y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
-            //					  printf("[Klank_next 1] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2); //mtm
+            //                      printf("[Klank_next 1] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2); //mtm
             *++out = a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2;
 
             inf = *++in;
             y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
             y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
             y2_2 = inf + b1_2 * y0_2 + b2_2 * y1_2;
-            //				 printf("[Klank_next 2] %f\n", a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2); //mtm
+            //                 printf("[Klank_next 2] %f\n", a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2); //mtm
             *++out = a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2;
 
             inf = *++in;
             y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
             y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
             y1_2 = inf + b1_2 * y2_2 + b2_2 * y0_2;
-            //				 printf("[Klank_next 3] %f\n", a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2); //mtm
+            //                 printf("[Klank_next 3] %f\n", a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2); //mtm
             *++out = a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2;
         }
         LooP(unit->mRate->mFilterRemain) {
@@ -4547,7 +3432,7 @@ void Klank_next(Klank* unit, int inNumSamples) {
             y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
             y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
             y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
-            //				 printf("[Klank_next 4] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2); //mtm
+            //                 printf("[Klank_next 4] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2); //mtm
             *++out = a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2;
             y2_0 = y1_0;
             y1_0 = y0_0;
@@ -4581,26 +3466,26 @@ void Klank_next(Klank* unit, int inNumSamples) {
             inf = *++in;
             y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
             y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            //				 printf("[Klank_next 15] %f\n", a0_0 * y0_0 + a0_1 * y0_1); //mtm
+            //                 printf("[Klank_next 15] %f\n", a0_0 * y0_0 + a0_1 * y0_1); //mtm
             *++out = a0_0 * y0_0 + a0_1 * y0_1;
 
             inf = *++in;
             y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
             y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
-            //				 printf("[Klank_next 16] %f\n", a0_0 * y2_0 + a0_1 * y2_1); //mtm
+            //                 printf("[Klank_next 16] %f\n", a0_0 * y2_0 + a0_1 * y2_1); //mtm
             *++out = a0_0 * y2_0 + a0_1 * y2_1;
 
             inf = *++in;
             y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
             y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
-            //				 printf("[Klank_next 17] %f\n", a0_0 * y1_0 + a0_1 * y1_1); //mtm
+            //                 printf("[Klank_next 17] %f\n", a0_0 * y1_0 + a0_1 * y1_1); //mtm
             *++out = a0_0 * y1_0 + a0_1 * y1_1;
         }
         LooP(unit->mRate->mFilterRemain) {
             inf = *++in;
             y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
             y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
-            //				 printf("[Klank_next 18] %f\n", a0_0 * y0_0 + a0_1 * y0_1); //mtm
+            //                 printf("[Klank_next 18] %f\n", a0_0 * y0_0 + a0_1 * y0_1); //mtm
             *++out = a0_0 * y0_0 + a0_1 * y0_1;
             y2_0 = y1_0;
             y1_0 = y0_0;
@@ -4624,29 +3509,29 @@ void Klank_next(Klank* unit, int inNumSamples) {
         LooP(unit->mRate->mFilterLoops) {
             inf = *++in;
             y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            //				 printf("[Klank_next 19] %f\n", a0_0 * y0_0); //mtm
+            //                 printf("[Klank_next 19] %f\n", a0_0 * y0_0); //mtm
             *++out = a0_0 * y0_0;
 
             inf = *++in;
             y2_0 = inf + b1_0 * y0_0 + b2_0 * y1_0;
-            //				 printf("[Klank_next 100] %f\n", a0_0 * y2_0); //mtm
+            //                 printf("[Klank_next 100] %f\n", a0_0 * y2_0); //mtm
             *++out = a0_0 * y2_0;
 
             inf = *++in;
             y1_0 = inf + b1_0 * y2_0 + b2_0 * y0_0;
-            //				 printf("[Klank_next 111] %f\n", a0_0 * y1_0); //mtm
+            //                 printf("[Klank_next 111] %f\n", a0_0 * y1_0); //mtm
             *++out = a0_0 * y1_0;
         }
         LooP(unit->mRate->mFilterRemain) {
             inf = *++in;
             y0_0 = inf + b1_0 * y1_0 + b2_0 * y2_0;
-            //				 printf("[Klank_next 122] %f\n", a0_0 * y0_0); //mtm
+            //                 printf("[Klank_next 122] %f\n", a0_0 * y0_0); //mtm
             *++out = a0_0 * y0_0;
             y2_0 = y1_0;
             y1_0 = y0_0;
         }
         /*
-        coefs[0] = y1_0;	coefs[4] = y2_0;
+        coefs[0] = y1_0;    coefs[4] = y2_0;
         */
         coefs[0] = zapgremlins(y1_0);
         coefs[4] = zapgremlins(y2_0);
@@ -4659,7 +3544,7 @@ void Klank_next(Klank* unit, int inNumSamples) {
 
     coefs = unit->m_coefs;
 
-    //	printf("[Klank] Second loop\n"); //mtm
+    //    printf("[Klank] Second loop\n"); //mtm
 
     for (int i = 0; i < imax; ++i) {
         y1_0 = coefs[0];
@@ -4691,7 +3576,7 @@ void Klank_next(Klank* unit, int inNumSamples) {
             y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
             y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
             y0_3 = inf + b1_3 * y1_3 + b2_3 * y2_3;
-            //			 printf("[Klank_next 133] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3); //mtm
+            //             printf("[Klank_next 133] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3); //mtm
             *++out += a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3;
 
             inf = *++in;
@@ -4699,7 +3584,7 @@ void Klank_next(Klank* unit, int inNumSamples) {
             y2_1 = inf + b1_1 * y0_1 + b2_1 * y1_1;
             y2_2 = inf + b1_2 * y0_2 + b2_2 * y1_2;
             y2_3 = inf + b1_3 * y0_3 + b2_3 * y1_3;
-            //			 printf("[Klank_next 144] %f\n", a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2 + a0_3 * y2_3); //mtm
+            //             printf("[Klank_next 144] %f\n", a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2 + a0_3 * y2_3); //mtm
             *++out += a0_0 * y2_0 + a0_1 * y2_1 + a0_2 * y2_2 + a0_3 * y2_3;
 
             inf = *++in;
@@ -4707,7 +3592,7 @@ void Klank_next(Klank* unit, int inNumSamples) {
             y1_1 = inf + b1_1 * y2_1 + b2_1 * y0_1;
             y1_2 = inf + b1_2 * y2_2 + b2_2 * y0_2;
             y1_3 = inf + b1_3 * y2_3 + b2_3 * y0_3;
-            //			 printf("[Klank_next 155] %f\n", a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2 + a0_3 * y1_3); //mtm
+            //             printf("[Klank_next 155] %f\n", a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2 + a0_3 * y1_3); //mtm
             *++out += a0_0 * y1_0 + a0_1 * y1_1 + a0_2 * y1_2 + a0_3 * y1_3;
         }
         LooP(unit->mRate->mFilterRemain) {
@@ -4716,7 +3601,7 @@ void Klank_next(Klank* unit, int inNumSamples) {
             y0_1 = inf + b1_1 * y1_1 + b2_1 * y2_1;
             y0_2 = inf + b1_2 * y1_2 + b2_2 * y2_2;
             y0_3 = inf + b1_3 * y1_3 + b2_3 * y2_3;
-            //			 printf("[Klank_next 166] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3); //mtm
+            //             printf("[Klank_next 166] %f\n", a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3); //mtm
             *++out += a0_0 * y0_0 + a0_1 * y0_1 + a0_2 * y0_2 + a0_3 * y0_3;
             y2_0 = y1_0;
             y1_0 = y0_0;
@@ -4746,18 +3631,18 @@ void Klank_next(Klank* unit, int inNumSamples) {
     out = out0;
     LooP(unit->mRate->mFilterLoops) {
         x0 = *++in;
-        //		 printf("[Klank_next 177] %f\n",  x0 - x2); //mtm
+        //         printf("[Klank_next 177] %f\n",  x0 - x2); //mtm
         *++out = x0 - x2;
         x2 = *++in;
-        //		 printf("[Klank_next 188] %f\n", x2 - x1); //mtm
+        //         printf("[Klank_next 188] %f\n", x2 - x1); //mtm
         *++out = x2 - x1;
         x1 = *++in;
-        //		 printf("[Klank_next 199] %f\n", x1 - x0); //mtm
+        //         printf("[Klank_next 199] %f\n", x1 - x0); //mtm
         *++out = x1 - x0;
     }
     LooP(unit->mRate->mFilterRemain) {
         x0 = *++in;
-        //		 printf("[Klank_next 1000] %f\n", x0 - x2); //mtm
+        //         printf("[Klank_next 1000] %f\n", x0 - x2); //mtm
         *++out = x0 - x2;
         x2 = x1;
         x1 = x0;
@@ -4857,7 +3742,7 @@ static void add_wchebyshev(int size, float* data, double partial, double amp) {
 
 static void cantorFill(int size, float* data) // long offset, double amp)
 {
-    //	if (amp == 0.0) return;
+    //    if (amp == 0.0) return;
     for (int i = 0; i < (size); ++i) {
         int j = i;
         float flag = 1.f;
@@ -5083,9 +3968,9 @@ void CopyBuf(World* world, struct SndBuf* buf, struct sc_msg_iter* msg) {
 void CantorFill(World* world, struct SndBuf* buf, struct sc_msg_iter* msg) {
     float* data = buf->data;
     int size = buf->samples;
-    //	double offset = msg->getf();
-    //	double amp = msg->getf();
-    //	long offs = (long) offset;
+    //    double offset = msg->getf();
+    //    double amp = msg->getf();
+    //    long offs = (long) offset;
     cantorFill(size, data);
 }
 
