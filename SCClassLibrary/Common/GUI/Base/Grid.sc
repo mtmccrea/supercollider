@@ -491,6 +491,10 @@ ExponentialGridLines : AbstractGridLines {
 
 ExponentialGridLines : GridLines {
 
+	*new { arg spec;
+		^super.newCopyArgs(spec.asSpec)
+	}
+
 	getParams { |valueMin, valueMax, pixelMin, pixelMax, numTicks, tickSpacing = 64|
 		var lines,p,pixRange;
 		var nfrac,d,graphmin,graphmax,range, nfracarr;
