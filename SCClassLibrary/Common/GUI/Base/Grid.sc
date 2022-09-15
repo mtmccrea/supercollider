@@ -1,73 +1,18 @@
 DrawGrid {
-
 	var <bounds, <>x, <>y;
 	var <>opacity=0.7, <>smoothing=false, <>linePattern;
-	var <>testView;
 
 	*new { |bounds, horzGrid, vertGrid|
 		^super.new.init(bounds, horzGrid, vertGrid)
 	}
 
 	*test { arg horzGrid, vertGrid, bounds;
-		var w, grid;
-		var insetH = 45, insetV = 35; // left, bottom margins for labels
-		var gridPad = 15; 			  // right, top margin
-		var txtPad = 2;               // label offset from window's edge
-		var font = Font( Font.defaultSansFace, 9 ); // match this.font
-		var fcolor = Color.grey(0.3); // match this.fontColor
-
-		bounds = bounds ?? { Rect(0, 0, 500, 400) };
-		bounds = bounds.asRect;       // in case bounds are a Point
-		insetH = insetH + gridPad;
-		insetV = insetV + gridPad;
-
-		grid = DrawGrid(
-			bounds.insetBy(insetH.half, insetV.half).moveTo(insetH-gridPad, gridPad),
-			horzGrid, vertGrid
-		);
-
-		w = Window("Grid test", bounds.center_(Window.screenBounds.center)).front;
-
-		grid.testView = UserView(w, bounds ?? { w.bounds.moveTo(0,0) })
-		.drawFunc_({ |v|
-			var units;
-
-			grid.draw;
-
-			units = grid.x.grid.spec.units; // x label
-			if(units.size > 0) {
-				Pen.push;
-				Pen.translate(grid.bounds.center.x, v.bounds.bottom);
-				Pen.stringCenteredIn(units,
-					units.bounds.center_(0@0).bottom_(txtPad.neg),
-					font, fcolor);
-				Pen.pop;
-			};
-
-			units = grid.y.grid.spec.units; // y label
-			if(units.size > 0) {
-				Pen.push;
-				Pen.translate(0, grid.bounds.center.y);
-				Pen.rotateDeg(-90);
-				Pen.stringCenteredIn(units,
-					units.bounds.center_(0@0).top_(txtPad),
-					font, fcolor);
-				Pen.pop;
-			};
-		})
-		.onResize_({ |v|
-			grid.bounds = v.bounds
-			.insetBy(insetH.half, insetV.half)
-			.moveTo(insetH - gridPad, gridPad);
-		})
-		.resize_(5)
-		.background_(Color.white);
-
-		^grid
+		^DrawGrid(bounds, horzGrid, vertGrid).test
 	}
 
+	test { ^DrawGridTest(this) }
+
 	init { arg bounds, h, v;
-		var w;
 		x = DrawGridX(h);
 		y = DrawGridY(v);
 		this.bounds = bounds;
@@ -110,7 +55,6 @@ DrawGrid {
 	tickSpacing_ { arg val;
 		x.tickSpacing = val;
 		y.tickSpacing = val;
-		testView !? {testView.refresh};
 	}
 	copy {
 		^DrawGrid(bounds,x.grid,y.grid).x_(x.copy).y_(y.copy).opacity_(opacity).smoothing_(smoothing).linePattern_(linePattern)
@@ -588,6 +532,78 @@ BlankGridLines : AbstractGridLines {
 		^()
 	}
 	prCheckWarp {}
+}
+
+DrawGridTest : DrawGrid {
+	var <testView;
+	var insetH = 45, insetV = 35; // left, bottom margins for labels
+	var gridPad = 15; 			  // right, top margin
+	var txtPad = 2;               // label offset from window's edge
+	var win, winBounds, font, fcolor;
+
+	*new { arg drawGrid;
+		^super.new(
+			drawGrid.bounds, drawGrid.x.grid, drawGrid.y.grid
+		).makeWindow;
+	}
+
+	makeWindow {
+		font = Font( Font.defaultSansFace, 9 ); // match this.font
+		fcolor = Color.grey(0.3); // match this.fontColor
+		insetH = insetH + gridPad;
+		insetV = insetV + gridPad;
+
+		// bounds of the grid lines
+		this.bounds = this.bounds ?? { Rect(0, 0, 500, 400) };
+		// move grid bounds to make room for tick & axis labels
+		this.bounds = this.bounds.moveTo(insetH-gridPad, gridPad);
+
+		winBounds = this.bounds + Size(insetH, insetV);
+		win = Window("Grid test",
+			winBounds.center_(Window.screenBounds.center)
+		).front;
+
+		// the view holding the gridlines
+		testView = UserView(win, winBounds.size.asRect)
+		.drawFunc_({ |uv|
+			var unitsStr;
+
+			// draw the drid
+			this.draw;
+
+			// draw x-axis label
+			unitsStr = this.x.grid.spec.units;
+			if(unitsStr.size > 0) {
+				Pen.push;
+				Pen.translate(this.bounds.center.x, uv.bounds.bottom);
+				Pen.stringCenteredIn(unitsStr,
+					unitsStr.bounds.center_(0@0).bottom_(txtPad.neg),
+					font, fcolor);
+				Pen.pop;
+			};
+
+			// draw y-axis label
+			unitsStr = this.y.grid.spec.units;
+			if(unitsStr.size > 0) {
+				Pen.push;
+				Pen.translate(0, this.bounds.center.y);
+				Pen.rotateDeg(-90);
+				Pen.stringCenteredIn(unitsStr,
+					unitsStr.bounds.center_(0@0).top_(txtPad),
+					font, fcolor);
+				Pen.pop;
+			};
+		})
+		.onResize_({ |uv|
+			this.bounds = uv.bounds
+			.insetBy(insetH.half, insetV.half)
+			.moveTo(insetH - gridPad, gridPad);
+		})
+		.resize_(5)
+		.background_(Color.white);
+	}
+
+	refresh { testView.refresh }
 }
 
 
