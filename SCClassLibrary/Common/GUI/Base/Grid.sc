@@ -52,9 +52,13 @@ DrawGrid {
 	vertGrid_ { arg g;
 		y.grid = g;
 	}
-	tickSpacing_ { arg val;
-		x.tickSpacing = val;
-		y.tickSpacing = val;
+	tickSpacing_ { arg xpx, ypx;
+		x.tickSpacing = xpx;
+		y.tickSpacing = ypx;
+	}
+	numTicks_ { arg xnum, ynum;
+		x.numTicks = xnum;
+		y.numTicks = ynum;
 	}
 	copy {
 		^DrawGrid(bounds,x.grid,y.grid).x_(x.copy).y_(y.copy).opacity_(opacity).smoothing_(smoothing).linePattern_(linePattern)
