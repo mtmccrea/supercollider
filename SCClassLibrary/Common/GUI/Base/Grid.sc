@@ -72,8 +72,8 @@ DrawGridX {
 	var <>font,<>fontColor,<>gridColor,<>labelOffset;
 	var commands,cacheKey;
 	var txtPad = 2; // match with Plot:txtPad
-	var <>tickSpacing = 64;
-	var <>numTicks = nil; // nil for dynamic with view size
+	var <tickSpacing = 64;
+	var <numTicks = nil; // nil for dynamic with view size
 
 	*new { arg grid;
 		^super.newCopyArgs(grid.asGrid).init
@@ -87,6 +87,16 @@ DrawGridX {
 	grid_ { arg g;
 		grid = g.asGrid;
 		range = [grid.spec.minval, grid.spec.maxval];
+		this.clearCache;
+	}
+	tickSpacing_{ |px|
+		px !? {
+			tickSpacing = px;
+			this.clearCache;
+		};
+	}
+	numTicks_{ |num|
+		numTicks = num;
 		this.clearCache;
 	}
 	setZoom { arg min,max;
