@@ -1,73 +1,18 @@
 DrawGrid {
-
 	var <bounds, <>x, <>y;
 	var <>opacity=0.7, <>smoothing=false, <>linePattern;
-	var <>testView;
 
 	*new { |bounds, horzGrid, vertGrid|
 		^super.new.init(bounds, horzGrid, vertGrid)
 	}
 
 	*test { arg horzGrid, vertGrid, bounds;
-		var w, grid;
-		var insetH = 45, insetV = 35; // left, bottom margins for labels
-		var gridPad = 15; 			  // right, top margin
-		var txtPad = 2;               // label offset from window's edge
-		var font = Font( Font.defaultSansFace, 9 ); // match this.font
-		var fcolor = Color.grey(0.3); // match this.fontColor
-
-		bounds = bounds ?? { Rect(0, 0, 500, 400) };
-		bounds = bounds.asRect;       // in case bounds are a Point
-		insetH = insetH + gridPad;
-		insetV = insetV + gridPad;
-
-		grid = DrawGrid(
-			bounds.insetBy(insetH.half, insetV.half).moveTo(insetH-gridPad, gridPad),
-			horzGrid, vertGrid
-		);
-
-		w = Window("Grid test", bounds.center_(Window.screenBounds.center)).front;
-
-		grid.testView = UserView(w, bounds ?? { w.bounds.moveTo(0,0) })
-		.drawFunc_({ |v|
-			var units;
-
-			grid.draw;
-
-			units = grid.x.grid.spec.units; // x label
-			if(units.size > 0) {
-				Pen.push;
-				Pen.translate(grid.bounds.center.x, v.bounds.bottom);
-				Pen.stringCenteredIn(units,
-					units.bounds.center_(0@0).bottom_(txtPad.neg),
-					font, fcolor);
-				Pen.pop;
-			};
-
-			units = grid.y.grid.spec.units; // y label
-			if(units.size > 0) {
-				Pen.push;
-				Pen.translate(0, grid.bounds.center.y);
-				Pen.rotateDeg(-90);
-				Pen.stringCenteredIn(units,
-					units.bounds.center_(0@0).top_(txtPad),
-					font, fcolor);
-				Pen.pop;
-			};
-		})
-		.onResize_({ |v|
-			grid.bounds = v.bounds
-			.insetBy(insetH.half, insetV.half)
-			.moveTo(insetH - gridPad, gridPad);
-		})
-		.resize_(5)
-		.background_(Color.white);
-
-		^grid
+		^DrawGrid(bounds, horzGrid, vertGrid).test
 	}
 
+	test { ^DrawGridTest(this) }
+
 	init { arg bounds, h, v;
-		var w;
 		x = DrawGridX(h);
 		y = DrawGridY(v);
 		this.bounds = bounds;
@@ -110,7 +55,6 @@ DrawGrid {
 	tickSpacing_ { arg val;
 		x.tickSpacing = val;
 		y.tickSpacing = val;
-		testView !? {testView.refresh};
 	}
 	copy {
 		^DrawGrid(bounds,x.grid,y.grid).x_(x.copy).y_(y.copy).opacity_(opacity).smoothing_(smoothing).linePattern_(linePattern)
@@ -489,105 +433,84 @@ ExponentialGridLines : AbstractGridLines {
 	}
 }
 
-ExponentialGridLines : GridLines {
-
-	*new { arg spec;
-		^super.newCopyArgs(spec.asSpec)
-	}
-
-	getParams { |valueMin, valueMax, pixelMin, pixelMax, numTicks, tickSpacing = 64|
-		var lines,p,pixRange;
-		var nfrac,d,graphmin,graphmax,range, nfracarr;
-		var nDecades, first, step, tick, expRangeIsValid, expRangeIsPositive, roundFactor;
-		pixRange = pixelMax - pixelMin;
-		lines = [];
-		nfracarr = [];
-
-		expRangeIsValid = ((valueMin > 0) && (valueMax > 0)) || ((valueMin < 0) && (valueMax < 0));
-		if(expRangeIsValid) {
-			expRangeIsPositive = valueMin > 0;
-			if(expRangeIsPositive) {
-				nDecades = log10(valueMax/valueMin);
-				first = step = 10**(valueMin.abs.log10.trunc);
-				roundFactor = step;
-			} {
-				nDecades = log10(valueMin/valueMax);
-				step = 10**(valueMin.abs.log10.trunc - 1);
-				first = 10 * step.neg;
-				roundFactor = 10**(valueMax.abs.log10.trunc);
-			};
-			//workaround for small ranges
-			if(nDecades < 1) {
-				step = step * 0.1;
-				roundFactor = roundFactor * 0.1;
-				nfrac = valueMin.abs.log10.floor.neg + 1;
-			};
-			numTicks ?? {numTicks = (pixRange / (tickSpacing * nDecades))};
-			tick = first;
-			while ({tick <= (valueMax + step)}) {
-				var drawLabel = true, maxNumTicks;
-				if(round(tick, roundFactor).inclusivelyBetween(valueMin, valueMax)) {
-					if(
-						(numTicks > 4) ||
-						((numTicks > 2.5).and(tick.abs.round(1).asInteger == this.niceNum(tick.abs, true).round(1).asInteger)).and(tick >= 1) ||
-						((numTicks > 2).and((tick - this.niceNum(tick, true)).abs < 1e-15)) ||
-						(tick.abs.round(roundFactor).log10.frac < 0.01) ||
-						(tick.absdif(valueMax) < 1e-15) ||
-						(tick.absdif(valueMin) < 1e-15)
-					) {
-						maxNumTicks = tickSpacing.linlin(32, 64, 8, 5, nil);
-						maxNumTicks = maxNumTicks * tick.asFloat.asString.bounds.width.linlin(24, 40, 0.7, 1.5); // 10.0.asString.bounds.width to 1000.0.asString.bounds.width
-						if(
-							(numTicks < maxNumTicks) &&
-							((tick.abs.round(1).asInteger == this.niceNum(tick.abs, true).round(1).asInteger)).and(tick >= 1).not &&
-							(((tick - this.niceNum(tick, true)).abs < 1e-15)).not &&
-							(tick.abs.log10.frac > numTicks.linlin(4, maxNumTicks, 0.7, 0.93))
-						) {
-							drawLabel = false // drop labels for tightly spaced upper area of the decade
-						};
-						lines = lines.add([tick, drawLabel])
-					};
-				};
-				if(tick >= (step * 9.9999)) { step = (step * 10) };
-				if(expRangeIsPositive) {
-					if((round(tick,roundFactor) >= (round(step*10,roundFactor))) && (nDecades > 1)) { step = (step*10) };
-				} {
-					if((round(tick.abs,roundFactor) <= (round(step,roundFactor))) && (nDecades > 1)) { step = (step*0.1) };
-				};
-				tick = (tick+step);
-			};
-			nfracarr = lines.collect({ arg arr;
-				var val = arr[0];
-				val.abs.log10.floor.neg.max(0)
-			});
-
-		} {
-			format("Unable to get exponential GridLines for values between % and %", valueMin, valueMax).warn;
-			numTicks ?? {
-				numTicks = (pixRange / tickSpacing);
-				numTicks = numTicks.max(3).round(1);
-			}; // set numTicks regardless to avoid errors
-		};
-		p = ();
-		p['lines'] = lines.flop.first;
-		if(pixRange / numTicks > 9) {
-			if (sum(p['lines'] % 1) == 0) { nfrac = 0 };
-			p['labels'] = lines.collect({ arg arr, inc;
-				var val, drawLabel, thisLabel;
-				#val, drawLabel = arr;
-				[val, this.formatLabel(val, nfrac ? nfracarr[inc] ? 1), nil, nil, drawLabel.not] });
-		};
-		^p
-	}
-}
-
-
 BlankGridLines : AbstractGridLines {
 
 	getParams {
 		^()
 	}
 	prCheckWarp {}
+}
+
+DrawGridTest : DrawGrid {
+	var <testView;
+	var insetH = 45, insetV = 35; // left, bottom margins for labels
+	var gridPad = 15; 			  // right, top margin
+	var txtPad = 2;               // label offset from window's edge
+	var win, winBounds, font, fcolor;
+
+	*new { arg drawGrid;
+		^super.new(
+			drawGrid.bounds, drawGrid.x.grid, drawGrid.y.grid
+		).makeWindow;
+	}
+
+	makeWindow {
+		font = Font( Font.defaultSansFace, 9 ); // match this.font
+		fcolor = Color.grey(0.3); // match this.fontColor
+		insetH = insetH + gridPad;
+		insetV = insetV + gridPad;
+
+		// bounds of the grid lines
+		this.bounds = this.bounds ?? { Rect(0, 0, 500, 400) };
+		// move grid bounds to make room for tick & axis labels
+		this.bounds = this.bounds.moveTo(insetH-gridPad, gridPad);
+
+		winBounds = this.bounds + Size(insetH, insetV);
+		win = Window("Grid test",
+			winBounds.center_(Window.screenBounds.center)
+		).front;
+
+		// the view holding the gridlines
+		testView = UserView(win, winBounds.size.asRect)
+		.drawFunc_({ |uv|
+			var unitsStr;
+
+			// draw the drid
+			this.draw;
+
+			// draw x-axis label
+			unitsStr = this.x.grid.spec.units;
+			if(unitsStr.size > 0) {
+				Pen.push;
+				Pen.translate(this.bounds.center.x, uv.bounds.bottom);
+				Pen.stringCenteredIn(unitsStr,
+					unitsStr.bounds.center_(0@0).bottom_(txtPad.neg),
+					font, fcolor);
+				Pen.pop;
+			};
+
+			// draw y-axis label
+			unitsStr = this.y.grid.spec.units;
+			if(unitsStr.size > 0) {
+				Pen.push;
+				Pen.translate(0, this.bounds.center.y);
+				Pen.rotateDeg(-90);
+				Pen.stringCenteredIn(unitsStr,
+					unitsStr.bounds.center_(0@0).top_(txtPad),
+					font, fcolor);
+				Pen.pop;
+			};
+		})
+		.onResize_({ |uv|
+			this.bounds = uv.bounds
+			.insetBy(insetH.half, insetV.half)
+			.moveTo(insetH - gridPad, gridPad);
+		})
+		.resize_(5)
+		.background_(Color.white);
+	}
+
+	refresh { testView.refresh }
 }
 
 
