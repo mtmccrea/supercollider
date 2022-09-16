@@ -465,7 +465,11 @@ DrawGridTest : DrawGrid {
 	*new { arg drawGrid;
 		^super.new(
 			drawGrid.bounds, drawGrid.x.grid, drawGrid.y.grid
-		).makeWindow;
+		)
+		.opacity_(drawGrid.opacity)
+		.smoothing_(drawGrid.smoothing)
+		.linePattern_(drawGrid.linePattern)
+		.makeWindow;
 	}
 
 	makeWindow {
