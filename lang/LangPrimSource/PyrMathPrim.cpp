@@ -1106,6 +1106,35 @@ int prSphericalHarmonic(struct VMGlobals* g, int numArgsPushed) {
     return errNone;
 }
 
+template <typename ArgT>
+int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
+    PyrSlot* a = g->sp - 1; // receiver, Complex
+    PyrSlot* b = g->sp;     // argument
+
+    ArgT arg2 = {};
+
+    int err;
+//    err = slotVal(a, &arg1); // slotVal only unwraps/extracts numeric values
+//    if (err)
+//        return err;
+    std::complex<double> arg1 = slotComplexVal(a);
+
+    err = slotVal(b, &arg2);
+    if (err)
+        return err;
+
+    auto res_cmplx = arg1 * arg2;
+
+    // TODO: should this be instantiateObject:size be 2?? (if yes, change below as well)
+    PyrObject* obj_cmplx = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
+    PyrSlot* slots = obj_cmplx->slots;
+    SetFloat(slots + 0, res_cmplx.real());
+    SetFloat(slots + 1, res_cmplx.imag());
+    SetObject(a, obj_cmplx);
+
+    return errNone;
+}
+
 template <typename Arg1T, typename Arg2T, std::complex<double> BoostFunctionT(Arg1T, Arg2T)>
 int prBoostTwoArgRetComplex(struct VMGlobals* g, int numArgsPushed) {
     PyrSlot* a = g->sp - 1;
@@ -1591,4 +1620,8 @@ void initMathPrimitives() {
     //	Owen's T function:
     definePrimitive(base, index++, "_OwensT", prBoostTwoArg<double, double, double, boost::math::owens_t<double>>, 2,
                     0);
+    
+    // Complex
+    definePrimitive(base, index++, "_OwensT", prComplexMul<double>, 2, 0);
+    definePrimitive(base, index++, "_OwensT", prComplexMul<std::complex<double>>, 2, 0);
 }
