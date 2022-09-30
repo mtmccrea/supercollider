@@ -1106,31 +1106,95 @@ int prSphericalHarmonic(struct VMGlobals* g, int numArgsPushed) {
     return errNone;
 }
 
-template <typename ArgT>
-int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
-    PyrSlot* a = g->sp - 1; // receiver, Complex
-    PyrSlot* b = g->sp;     // argument
-
-    ArgT arg2 = {};
-
-    int err;
-//    err = slotVal(a, &arg1); // slotVal only unwraps/extracts numeric values
+//template <typename ArgT>
+//int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
+//    post("CALLING \n");
+//    PyrSlot* a = g->sp - 1; // receiver, Complex (Array)
+//    PyrSlot* b = g->sp;     // argument, number
+//
+//    float inreal, inimag;
+//
+//    inreal = *(float*)slotRawObject(a)->slots;
+//    inimag = *(float*)slotRawObject(a)->slots+1;
+//    std::complex<double> incmplx (inreal, inimag);
+//
+//    ArgT arg = {};
+//    int err = slotVal(b, &arg);
 //    if (err)
 //        return err;
-    std::complex<double> arg1 = slotComplexVal(a);
+//
+//    auto res_cmplx = incmplx * arg;
+//
+//    // TODO: should this be instantiateObject:size be 2?? (if yes, change below as well)
+//    PyrObject* complexobj = instantiateObject(g->gc, s_complex->u.classobj, 0, false, true);
+//    ++g->sp;
+//    SetObject(g->sp, complexobj);
+//
+//        SetFloat(complexobj->slots + 0, res_cmplx.real());
+//        SetFloat(complexobj->slots + 1, res_cmplx.imag());
+//        SetObject(a, complexobj);
+//
+////    realobj = newPyrSignal(g, fftbufsize);
+////    SetObject(complexobj->slots + 0, realobj);
+////    g->gc->GCWriteNew(complexobj, realobj);
+//
+////    imagobj = newPyrSignal(g, fftbufsize);
+////    SetObject(complexobj->slots + 1, imagobj);
+////    g->gc->GCWriteNew(complexobj, imagobj);
+////
+////    PyrObject* obj_cmplx = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
+////    PyrSlot* slots = obj_cmplx->slots;
+////    SetFloat(slots + 0, res_cmplx.real());
+////    SetFloat(slots + 1, res_cmplx.imag());
+////    SetObject(a, obj_cmplx);
+//
+//    return errNone;
+//}
 
-    err = slotVal(b, &arg2);
+template <typename ArgT>
+int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
+    postfl("CALLING\n");
+    
+    PyrSlot* a = g->sp - 1; // receiver, Complex (Array)
+    PyrSlot* b = g->sp;     // argument, number
+    
+    PyrObject* complexInObj = slotRawObject(a);
+    int size = complexInObj->size; // should be 2: re, im
+//    if (complexInObj->obj_format == obj_float) { // TODO: Check this
+    
+//    postfl("getIndexedSlot %s %X %d\n", slotRawSymbol(&complexInObj->classptr->name)->name, complexInObj, index);
+    
+    float inreal, inimag;
+//    slotVal(complexInObj->slots + 0, &inreal);
+//    slotVal(complexInObj->slots + 1, &inimag);
+    inreal = ((float*)(complexInObj->slots))[0]; // works
+    inimag = ((float*)(complexInObj->slots))[1];
+//        inreal = *(float*)slotRawObject(a)->slots;
+//        inimag = *(float*)slotRawObject(a)->slots+1;
+
+    postfl("In a: %s %f %f\n",
+           slotRawSymbol(&complexInObj->classptr->name)->name, inreal, inimag);
+
+    std::complex<double> incmplx (inreal, inimag);
+    
+    ArgT arg = {};
+    int err = slotVal(b, &arg);
     if (err)
         return err;
-
-    auto res_cmplx = arg1 * arg2;
+    
+    auto res_cmplx = incmplx * arg;
+    
+    postfl("Cmplx mul res: %f %f\n",
+           slotRawSymbol(&complexInObj->classptr->name)->name, res_cmplx.real(), res_cmplx.imag());
 
     // TODO: should this be instantiateObject:size be 2?? (if yes, change below as well)
-    PyrObject* obj_cmplx = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
-    PyrSlot* slots = obj_cmplx->slots;
+    
+    PyrObject* obj = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
+    SetObject(a, obj);
+
+    PyrSlot* slots = obj->slots;
     SetFloat(slots + 0, res_cmplx.real());
     SetFloat(slots + 1, res_cmplx.imag());
-    SetObject(a, obj_cmplx);
 
     return errNone;
 }
@@ -1622,6 +1686,6 @@ void initMathPrimitives() {
                     0);
     
     // Complex
-    definePrimitive(base, index++, "_OwensT", prComplexMul<double>, 2, 0);
-    definePrimitive(base, index++, "_OwensT", prComplexMul<std::complex<double>>, 2, 0);
+    definePrimitive(base, index++, "_prComplexMul", prComplexMul<double>, 2, 0);
+//    definePrimitive(base, index++, "_OwensT", prComplexMul<std::complex<double>>, 2, 0);
 }

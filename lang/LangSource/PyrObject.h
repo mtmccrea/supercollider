@@ -49,6 +49,7 @@ enum {
     obj_int8,
     obj_char,
     obj_symbol,
+    obj_complex,
 
     NUMOBJFORMATS
 };

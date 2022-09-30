@@ -315,6 +315,7 @@ void initSymbols() {
     gFormatElemSize[obj_int8] = sizeof(int8);
     gFormatElemSize[obj_char] = sizeof(char);
     gFormatElemSize[obj_symbol] = sizeof(PyrSymbol*);
+    gFormatElemSize[obj_complex] = sizeof(std::complex<double>*);
 
     gFormatElemCapc[obj_notindexed] = sizeof(PyrSlot) / sizeof(PyrSlot);
     gFormatElemCapc[obj_slot] = sizeof(PyrSlot) / sizeof(PyrSlot);
@@ -325,6 +326,7 @@ void initSymbols() {
     gFormatElemCapc[obj_int8] = sizeof(PyrSlot) / sizeof(int8);
     gFormatElemCapc[obj_char] = sizeof(PyrSlot) / sizeof(char);
     gFormatElemCapc[obj_symbol] = sizeof(PyrSlot) / sizeof(PyrSymbol*);
+    gFormatElemCapc[obj_complex] = sizeof(PyrSlot) / sizeof(std::complex<double>*);
 
     gFormatElemTag[obj_notindexed] = -1;
     gFormatElemTag[obj_slot] = -1;
@@ -335,6 +337,7 @@ void initSymbols() {
     gFormatElemTag[obj_int8] = tagInt;
     gFormatElemTag[obj_char] = tagChar;
     gFormatElemTag[obj_symbol] = tagSym;
+    gFormatElemTag[obj_complex] = tagComplex;
 }
 
 const char* slotSymString(PyrSlot* slot) {
