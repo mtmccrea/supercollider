@@ -57,6 +57,9 @@ struct addNum {
     static inline PyrObject* signal_xx(VMGlobals* g, PyrObject* ina, PyrObject* inb) {
         return signal_add_xx(g, ina, inb);
     }
+    static inline std::complex<double> run(std::complex<double> lhs, std::complex<double> rhs) { return lhs + rhs; }
+    static inline std::complex<double> run(std::complex<double> lhs, double rhs) { return lhs + rhs; }
+//    static inline std::complex<double> run(double lhs, std::complex<double> rhs) { return lhs + rhs; }
 };
 
 struct mulNum {
@@ -67,6 +70,9 @@ struct mulNum {
     static inline PyrObject* signal_xx(VMGlobals* g, PyrObject* ina, PyrObject* inb) {
         return signal_mul_xx(g, ina, inb);
     }
+    static inline std::complex<double> run(std::complex<double> lhs, std::complex<double> rhs) { return lhs * rhs; }
+    static inline std::complex<double> run(std::complex<double> lhs, double rhs) { return lhs * rhs; }
+//    static inline std::complex<double> run(double lhs, std::complex<double> rhs) { return rhs * lhs; }
 };
 
 struct subNum {
@@ -77,6 +83,9 @@ struct subNum {
     static inline PyrObject* signal_xx(VMGlobals* g, PyrObject* ina, PyrObject* inb) {
         return signal_sub_xx(g, ina, inb);
     }
+    static inline std::complex<double> run(std::complex<double> lhs, std::complex<double> rhs) { return lhs - rhs; }
+    static inline std::complex<double> run(std::complex<double> lhs, double rhs) { return lhs - rhs; }
+//    static inline std::complex<double> run(double lhs, std::complex<double> rhs) { return (rhs * -1.) + lhs; }
 };
 
 template <typename Functor> inline int prOpNum(VMGlobals* g, int numArgsPushed) {
@@ -283,12 +292,78 @@ send_normal_2:
     return errNone;
 }
 
+template <typename Functor> inline int prOpComplex(VMGlobals* g, int numArgsPushed) {
+    PyrSlot *a, *b;
+    PyrSymbol* msg;
+
+    a = g->sp - 1;
+    b = g->sp;
+    
+    PyrObject* complexInObj = slotRawObject(a);
+    int size = complexInObj->size; // should be 2: re, im
+    
+    double inreal, inimag;
+    inreal = ((double*)(complexInObj->slots))[0]; // works
+    inimag = ((double*)(complexInObj->slots))[1];
+    std::complex<double> incmplx (inreal, inimag);
+    std::complex<double> retcmplx (0., 0.);
+//    postfl("In a: %s %f %f\n", slotRawSymbol(&complexInObj->classptr->name)->name, inreal, inimag);
+
+    PyrObject* retobj = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
+    SetObject(a, retobj);
+    PyrSlot* slots = retobj->slots;
+    
+    switch (GetTag(b)) {
+    case tagInt:
+//        postfl("In prOpComplex:tagInt: %f %f %f\n", inreal, inimag, (double)slotRawInt(b));
+        retcmplx = Functor::run(incmplx, (double)slotRawInt(b));
+//        SetRaw(a, Functor::run(incmplx, (double)slotRawInt(b)));
+        break;
+    case tagChar:
+    case tagPtr:
+    case tagNil:
+    case tagFalse:
+    case tagTrue:
+        goto send_normal_2;
+    case tagSym:
+        SetSymbol(a, slotRawSymbol(b));
+        break;
+    case tagObj:
+//        if (isKindOf(slotRawObject(b), class_signal))
+//            SetObject(a, Functor::signal_fx(g, slotRawFloat(a), slotRawObject(b)));
+//        else
+//            goto send_normal_2;
+//        break;
+    default:
+//        postfl("In prOpComplex:default: %f %f %f\n", inreal, inimag, slotRawFloat(b));
+        SetRaw(a, Functor::run(incmplx, slotRawFloat(b)));
+        break;
+    }
+    
+    SetFloat(slots + 0, retcmplx.real());
+    SetFloat(slots + 1, retcmplx.imag());
+
+    g->sp--; // drop
+    g->numpop = 0;
+#if TAILCALLOPTIMIZE
+    g->tailCall = 0;
+#endif
+    return errNone;
+
+send_normal_2:
+    if (numArgsPushed != -1) // special case flag meaning it is a primitive
+        return errFailed; // arguments remain on the stack
+
+    msg = gSpecialBinarySelectors[g->primitiveIndex];
+    sendMessage(g, msg, 2);
+    return errNone;
+}
+
 int prAddNum(VMGlobals* g, int numArgsPushed) { return prOpNum<addNum>(g, numArgsPushed); }
 
 int prSubNum(VMGlobals* g, int numArgsPushed) { return prOpNum<subNum>(g, numArgsPushed); }
 
 int prMulNum(VMGlobals* g, int numArgsPushed) { return prOpNum<mulNum>(g, numArgsPushed); }
-
 
 int prAddFloat(VMGlobals* g, int numArgsPushed) { return prOpFloat<addNum>(g, numArgsPushed); }
 
@@ -301,6 +376,15 @@ int prAddInt(VMGlobals* g, int numArgsPushed) { return prOpInt<addNum>(g, numArg
 int prSubInt(VMGlobals* g, int numArgsPushed) { return prOpInt<subNum>(g, numArgsPushed); }
 
 int prMulInt(VMGlobals* g, int numArgsPushed) { return prOpInt<mulNum>(g, numArgsPushed); }
+
+int prAddComplex(VMGlobals* g, int numArgsPushed) { return prOpComplex<addNum>(g, numArgsPushed); }
+
+int prSubComplex(VMGlobals* g, int numArgsPushed) { return prOpComplex<subNum>(g, numArgsPushed); }
+
+int prMulComplex(VMGlobals* g, int numArgsPushed) {
+    postfl("In prMulComplex\n");
+    return prOpComplex<mulNum>(g, numArgsPushed);
+}
 
 
 int prNthPrime(VMGlobals* g, int numArgsPushed) {
@@ -1162,13 +1246,11 @@ int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
     int size = complexInObj->size; // should be 2: re, im
 //    if (complexInObj->obj_format == obj_float) { // TODO: Check this
     
-//    postfl("getIndexedSlot %s %X %d\n", slotRawSymbol(&complexInObj->classptr->name)->name, complexInObj, index);
-    
     float inreal, inimag;
+    inreal = ((float*)(complexInObj->slots))[0]; // works NOTE: mind type on SC side
+    inimag = ((float*)(complexInObj->slots))[1];
 //    slotVal(complexInObj->slots + 0, &inreal);
 //    slotVal(complexInObj->slots + 1, &inimag);
-    inreal = ((float*)(complexInObj->slots))[0]; // works
-    inimag = ((float*)(complexInObj->slots))[1];
 //        inreal = *(float*)slotRawObject(a)->slots;
 //        inimag = *(float*)slotRawObject(a)->slots+1;
 
@@ -1687,5 +1769,8 @@ void initMathPrimitives() {
     
     // Complex
     definePrimitive(base, index++, "_prComplexMul", prComplexMul<double>, 2, 0);
-//    definePrimitive(base, index++, "_OwensT", prComplexMul<std::complex<double>>, 2, 0);
+
+    definePrimitive(base, index++, "_AddComplex", prAddComplex, 2, 0);
+    definePrimitive(base, index++, "_SubComplex", prSubComplex, 2, 0);
+    definePrimitive(base, index++, "_MulComplex", prMulComplex, 2, 0);
 }
