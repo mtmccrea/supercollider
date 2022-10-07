@@ -336,7 +336,8 @@ template <typename Functor> inline int prOpComplex(VMGlobals* g, int numArgsPush
 //        break;
     default:
 //        postfl("In prOpComplex:default: %f %f %f\n", inreal, inimag, slotRawFloat(b));
-        SetRaw(a, Functor::run(incmplx, slotRawFloat(b)));
+//        SetRaw(a, Functor::run(incmplx, slotRawFloat(b)));
+        retcmplx = Functor::run(incmplx, slotRawFloat(b));
         break;
     }
     
@@ -382,7 +383,7 @@ int prAddComplex(VMGlobals* g, int numArgsPushed) { return prOpComplex<addNum>(g
 int prSubComplex(VMGlobals* g, int numArgsPushed) { return prOpComplex<subNum>(g, numArgsPushed); }
 
 int prMulComplex(VMGlobals* g, int numArgsPushed) {
-    postfl("In prMulComplex\n");
+//    postfl("In prMulComplex\n");
     return prOpComplex<mulNum>(g, numArgsPushed);
 }
 
@@ -1247,8 +1248,11 @@ int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
 //    if (complexInObj->obj_format == obj_float) { // TODO: Check this
     
     float inreal, inimag;
-    inreal = ((float*)(complexInObj->slots))[0]; // works NOTE: mind type on SC side
-    inimag = ((float*)(complexInObj->slots))[1];
+//    inreal = ((float*)(complexInObj->slots))[0]; // works NOTE: mind type on SC side
+//    inimag = ((float*)(complexInObj->slots))[1];
+    inreal = slotRawFloat(complexInObj->slots+0); // works NOTE: mind type on SC side
+    inimag = slotRawFloat(complexInObj->slots+1);
+
 //    slotVal(complexInObj->slots + 0, &inreal);
 //    slotVal(complexInObj->slots + 1, &inimag);
 //        inreal = *(float*)slotRawObject(a)->slots;
@@ -1264,6 +1268,8 @@ int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
     if (err)
         return err;
     
+    postfl("In b (arg): %f\n", slotRawFloat(b));
+    
     auto res_cmplx = incmplx * arg;
     
     postfl("Cmplx mul res: %f %f\n",
@@ -1274,6 +1280,146 @@ int prComplexMul(struct VMGlobals* g, int numArgsPushed) {
     PyrObject* obj = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
     SetObject(a, obj);
 
+    PyrSlot* slots = obj->slots;
+    SetFloat(slots + 0, res_cmplx.real());
+    SetFloat(slots + 1, res_cmplx.imag());
+
+    return errNone;
+}
+
+template <typename ArgT>
+int prComplexMul2(struct VMGlobals* g, int numArgsPushed) {
+    postfl("CALLING 2\n");
+    
+    PyrSlot* a = g->sp - 1; // receiver, Complex (Array)
+    PyrSlot* b = g->sp;     // argument, number
+    
+    PyrObject* complexInObj = slotRawObject(a);
+    int size = complexInObj->size; // should be 2: re, im
+//    if (complexInObj->obj_format == obj_float) { // TODO: Check this
+    
+    float inreal, inimag;
+//    inreal = ((float*)(complexInObj->slots))[0]; // works NOTE: mind type on SC side
+//    inimag = ((float*)(complexInObj->slots))[1];
+    inreal = slotRawFloat(complexInObj->slots+0); // works NOTE: mind type on SC side
+    inimag = slotRawFloat(complexInObj->slots+1);
+
+//    slotVal(complexInObj->slots + 0, &inreal);
+//    slotVal(complexInObj->slots + 1, &inimag);
+//        inreal = *(float*)slotRawObject(a)->slots;
+//        inimag = *(float*)slotRawObject(a)->slots+1;
+
+    postfl("In a: %s %f %f\n",
+           slotRawSymbol(&complexInObj->classptr->name)->name, inreal, inimag);
+
+    std::complex<double> incmplx (inreal, inimag);
+    
+    ArgT arg = {};
+    int err = slotVal(b, &arg);
+    if (err)
+        return err;
+    
+    postfl("In b (arg): %f\n", slotRawFloat(b));
+    
+    auto res_cmplx = incmplx * arg;
+    
+    postfl("Cmplx mul res: %f %f\n",
+           slotRawSymbol(&complexInObj->classptr->name)->name, res_cmplx.real(), res_cmplx.imag());
+
+    // TODO: should this be instantiateObject:size be 2?? (if yes, change below as well)
+    
+    PyrObject* obj = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
+    SetObject(a, obj);
+
+    PyrSlot* slots = obj->slots;
+    SetFloat(slots + 0, res_cmplx.real());
+    SetFloat(slots + 1, res_cmplx.imag());
+
+    return errNone;
+}
+
+template <typename ArgT>
+int prComplexMul3(struct VMGlobals* g, int numArgsPushed) {
+    postfl("CALLING 2\n");
+    
+    PyrSlot* a = g->sp - 1; // receiver, Complex (Array)
+    PyrSlot* b = g->sp;     // argument, number
+    
+    PyrObject* complexInObj = slotRawObject(a);
+    int size = complexInObj->size; // should be 2: re, im
+//    if (complexInObj->obj_format == obj_float) { // TODO: Check this
+    
+//    float inreal, inimag;
+//    inreal = slotRawFloat(complexInObj->slots+0); // works NOTE: mind type on SC side
+//    inimag = slotRawFloat(complexInObj->slots+1);
+//    std::complex<double> incmplx (inreal, inimag);
+//    postfl("In a: %s %f %f\n", slotRawSymbol(&complexInObj->classptr->name)->name, inreal, inimag);
+    
+//    double* incmplx = (double*)complexInObj->slots;
+//    std::complex<double>* cmplx = reinterpret_cast<std::complex<double>(*)>(incmplx);
+//    postfl("In a: reinterpreted re %f; im %f\n", cmplx[0], cmplx[1]);
+
+    std::complex<double>* cmplx = reinterpret_cast<std::complex<double>(*)>(complexInObj->slots + 0);
+    postfl("In a: reinterpreted re %f; im %f\n", cmplx[0], cmplx[1]);
+    postfl("In a: reinterpreted re %f; im %f\n", (*cmplx).real(), (*cmplx).imag());
+
+    
+    ArgT arg = {};
+    int err = slotVal(b, &arg);
+    if (err)
+        return err;
+    
+    postfl("In b (arg): %f\n", arg);
+    
+    auto res_cmplx = (*cmplx) * arg;
+    
+    postfl("Cmplx mul res: %f %f\n",
+           slotRawSymbol(&complexInObj->classptr->name)->name, res_cmplx.real(), res_cmplx.imag());
+
+    // TODO: should this be instantiateObject:size be 2?? (if yes, change below as well)
+    
+    PyrObject* obj = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
+    SetObject(a, obj);
+
+    PyrSlot* slots = obj->slots;
+    SetFloat(slots + 0, res_cmplx.real());
+    SetFloat(slots + 1, res_cmplx.imag());
+
+    return errNone;
+}
+
+int prComplexDiv(struct VMGlobals* g, int numArgsPushed) {
+//    postfl("CALLING\n");
+    
+    PyrSlot* a = g->sp - 1; // receiver, Complex (Array)
+    PyrSlot* b = g->sp;     // argument, number
+    
+    PyrObject* complexInObja = slotRawObject(a);
+    PyrObject* complexInObjb = slotRawObject(b);
+//    int size = complexInObj->size; // should be 2: re, im
+//    if (complexInObj->obj_format == obj_float) { // TODO: Check this
+    
+    float inreala, inimaga, inrealb, inimagb;
+    inreala = ((float*)(complexInObja->slots))[0]; // works NOTE: mind type on SC side
+    inimaga = ((float*)(complexInObja->slots))[1];
+    inrealb = ((float*)(complexInObjb->slots))[0]; // works NOTE: mind type on SC side
+    inimagb = ((float*)(complexInObjb->slots))[1];
+//    slotVal(complexInObj->slots + 0, &inreal);
+//    slotVal(complexInObj->slots + 1, &inimag);
+//        inreal = *(float*)slotRawObject(a)->slots;
+//        inimag = *(float*)slotRawObject(a)->slots+1;
+
+//    postfl("In a: %s %f %f\n",
+//           slotRawSymbol(&complexInObj->classptr->name)->name, inreal, inimag);
+
+    std::complex<double> incmplxa (inreala, inimaga);
+    std::complex<double> incmplxb (inrealb, inimagb);
+    auto res_cmplx = incmplxa / incmplxb;
+    
+//    postfl("Cmplx mul res: %f %f\n",
+//           slotRawSymbol(&complexInObj->classptr->name)->name, res_cmplx.real(), res_cmplx.imag());
+    PyrObject* obj = instantiateObject(gMainVMGlobals->gc, getsym("Complex")->u.classobj, 0, true, true);
+    SetObject(a, obj);
     PyrSlot* slots = obj->slots;
     SetFloat(slots + 0, res_cmplx.real());
     SetFloat(slots + 1, res_cmplx.imag());
@@ -1769,8 +1915,11 @@ void initMathPrimitives() {
     
     // Complex
     definePrimitive(base, index++, "_prComplexMul", prComplexMul<double>, 2, 0);
+    definePrimitive(base, index++, "_prComplexMul2", prComplexMul2<double>, 2, 0);
+    definePrimitive(base, index++, "_prComplexMul3", prComplexMul3<double>, 2, 0);
 
     definePrimitive(base, index++, "_AddComplex", prAddComplex, 2, 0);
     definePrimitive(base, index++, "_SubComplex", prSubComplex, 2, 0);
     definePrimitive(base, index++, "_MulComplex", prMulComplex, 2, 0);
+    definePrimitive(base, index++, "_DivComplex", prComplexDiv, 2, 0);
 }

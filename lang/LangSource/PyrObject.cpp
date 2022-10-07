@@ -1555,7 +1555,7 @@ void initClasses() {
     // build intrinsic classes
     class_class = nullptr;
     class_object = makeIntrinsicClass(s_object, nullptr, 0, 4);
-    class_class = makeIntrinsicClass(s_class, s_object, classClassNumInstVars, 1);
+    class_class = makeIntrinsicClass(s_class, s_object, classClassNumInstVars, 1);  // TODO: classClassNumInstVars should be 20? count varNames below, see also struct PyrClass : public PyrObjectHdr { ...
 
     // now fix class_class ptrs that were just previously installed erroneously
     class_object->classptr->classptr = class_class;
@@ -1666,7 +1666,7 @@ void initClasses() {
     addIntrinsicVar(class_process, "schedulerQueue", &o_nil);
     addIntrinsicVar(class_process, "nowExecutingPath", &o_nil);
 
-    class_interpreter = makeIntrinsicClass(s_interpreter, s_object, 29, 0);
+    class_interpreter = makeIntrinsicClass(s_interpreter, s_object, 29, 0); // TODO: should be 30?
     addIntrinsicVar(class_interpreter, "cmdLine", &o_nil);
     addIntrinsicVar(class_interpreter, "context", &o_nil);
     for (int i = 0; i < 26; ++i) {
@@ -1681,7 +1681,7 @@ void initClasses() {
     class_absfunc = makeIntrinsicClass(s_absfunc, s_object, 0, 0);
     class_stream = makeIntrinsicClass(s_stream, s_absfunc, 0, 0);
 
-    class_thread = makeIntrinsicClass(s_thread, s_stream, 27, 0);
+    class_thread = makeIntrinsicClass(s_thread, s_stream, 27, 0); // TODO: should be 28?
     addIntrinsicVar(class_thread, "state", &o_nil);
     addIntrinsicVar(class_thread, "func", &o_nil);
     addIntrinsicVar(class_thread, "stack", &o_nil);
@@ -1737,11 +1737,11 @@ void initClasses() {
 
     class_rawptr = makeIntrinsicClass(s_rawptr, s_object, 0, 0);
 
-    /*
-        class_complex = makeIntrinsicClass(s_complex, s_number, 2, 0);
-            addIntrinsicVar(class_complex, "real", &o_nil);
+        // inherit from something else?
+        class_complex = makeIntrinsicClass(s_complex, s_number, 2, 0); // should be zero size, because...
+            addIntrinsicVar(class_complex, "real", &o_nil); // adding a var increments its slot `size`
             addIntrinsicVar(class_complex, "imag", &o_nil);
-    */
+    
 
     class_rawarray = makeIntrinsicClass(s_rawarray, s_arrayed_collection, 0, 0);
     // SetInt(&class_rawarray->instanceFormat, obj_int8);

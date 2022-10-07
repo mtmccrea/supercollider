@@ -58,7 +58,6 @@ typedef struct pyrslot {
         int64 c; /* char */
         int64 i;
         double f;
-        std::complex<double>* cd;
         void* ptr;
         struct PyrObject* o;
         PyrSymbol* s;
@@ -74,6 +73,7 @@ typedef struct pyrslot {
         struct PyrProcess* op;
         struct PyrThread* ot;
         struct PyrInterpreter* oi;
+        std::complex<double>* cp;
     } u;
 } PyrSlot;
 
@@ -162,9 +162,9 @@ inline void SetFloat(PyrSlot* slot, double val) {
     slot->tag = tagFloat;
     slot->u.f = val;
 }
-inline void SetComplex(PyrSlot* slot, std::complex<double> val) {
+inline void SetComplex(PyrSlot* slot, std::complex<double>* val) {
     slot->tag = tagComplex;
-    slot->u.cd = &val;
+    slot->u.cp = val;
 }
 
 /* raw setter functions, no typecheck */
@@ -179,10 +179,6 @@ inline void SetRaw(PyrSlot* slot, int val) {
 inline void SetRaw(PyrSlot* slot, long val) {
     assert(IsInt(slot));
     slot->u.i = val;
-}
-inline void SetRaw(PyrSlot* slot, std::complex<double> val) {
-    assert(IsComplex(slot));
-    slot->u.cd = &val;
 }
 inline void SetRaw(PyrSlot* slot, PyrObject* val) {
     assert(IsObj(slot));
@@ -223,9 +219,9 @@ inline int slotIntVal(PyrSlot* slot, int* value) { return slotVal<int>(slot, val
 
 inline int slotDoubleVal(PyrSlot* slot, double* value) { return slotVal<double>(slot, value); }
 
-inline std::complex<double> slotComplexVal(const PyrSlot* slot) {
+inline std::complex<double>* slotComplexVal(const PyrSlot* slot) {
     assert(IsComplex(slot));
-    return *slot->u.cd;
+    return slot->u.cp;
 }
 
 /* get symbol */
