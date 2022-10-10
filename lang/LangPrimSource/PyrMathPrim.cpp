@@ -1338,6 +1338,9 @@ int prComplexMul2(struct VMGlobals* g, int numArgsPushed) {
     return errNone;
 }
 
+/* input argument  is an Object, expected to be a DoubleArray of size 2
+ / which are the slots holding real and imaginary doubles
+ */
 template <typename ArgT>
 int prComplexMul3(struct VMGlobals* g, int numArgsPushed) {
     postfl("CALLING 2\n");
@@ -1347,6 +1350,7 @@ int prComplexMul3(struct VMGlobals* g, int numArgsPushed) {
     
     PyrObject* complexInObj = slotRawObject(a);
     int size = complexInObj->size; // should be 2: re, im
+    postfl("In object size: %d\n", size);
 //    if (complexInObj->obj_format == obj_float) { // TODO: Check this
     
 //    float inreal, inimag;
@@ -1359,10 +1363,11 @@ int prComplexMul3(struct VMGlobals* g, int numArgsPushed) {
 //    std::complex<double>* cmplx = reinterpret_cast<std::complex<double>(*)>(incmplx);
 //    postfl("In a: reinterpreted re %f; im %f\n", cmplx[0], cmplx[1]);
 
-    std::complex<double>* cmplx = reinterpret_cast<std::complex<double>(*)>(complexInObj->slots + 0);
-    postfl("In a: reinterpreted re %f; im %f\n", cmplx[0], cmplx[1]);
-    postfl("In a: reinterpreted re %f; im %f\n", (*cmplx).real(), (*cmplx).imag());
-
+    std::complex<ArgT>* cmplxp = reinterpret_cast<std::complex<ArgT>(*)>(complexInObj->slots + 0);
+    postfl("In a: reinterpreted re %f; im %f\n", (*cmplxp).real(), (*cmplxp).imag());
+    
+    ArgT* cmplxArr = reinterpret_cast<ArgT(&)[2]>(*cmplxp);
+    postfl("In a: cast back re %f; im %f\n", cmplxArr[0], cmplxArr[1]);
     
     ArgT arg = {};
     int err = slotVal(b, &arg);
@@ -1371,10 +1376,21 @@ int prComplexMul3(struct VMGlobals* g, int numArgsPushed) {
     
     postfl("In b (arg): %f\n", arg);
     
-    auto res_cmplx = (*cmplx) * arg;
-    
+    auto res_cmplx = (*cmplxp) * arg;
     postfl("Cmplx mul res: %f %f\n",
            slotRawSymbol(&complexInObj->classptr->name)->name, res_cmplx.real(), res_cmplx.imag());
+
+    // this block doesn't work
+//    postfl("slot access re %f; im %f\n",
+//           slotRawFloat(complexInObj->slots + 0),
+//           slotRawFloat(complexInObj->slots + 1) );
+//    // alternatively, construct a complex variable from slot acces
+//    std::complex<ArgT> cmplxobj(
+//                                slotRawFloat(complexInObj->slots + 0),
+//                                slotRawFloat(complexInObj->slots + 1));
+//    auto res_cmplx2 = cmplxobj * arg;
+//    postfl("Cmplx2 mul res: %f %f\n",
+//           slotRawSymbol(&complexInObj->classptr->name)->name, res_cmplx2.real(), res_cmplx2.imag());
 
     // TODO: should this be instantiateObject:size be 2?? (if yes, change below as well)
     
@@ -1916,8 +1932,9 @@ void initMathPrimitives() {
     // Complex
     definePrimitive(base, index++, "_prComplexMul", prComplexMul<double>, 2, 0);
     definePrimitive(base, index++, "_prComplexMul2", prComplexMul2<double>, 2, 0);
-    definePrimitive(base, index++, "_prComplexMul3", prComplexMul3<double>, 2, 0);
-
+    definePrimitive(base, index++, "_prMulCd", prComplexMul3<double>, 2, 0);
+    definePrimitive(base, index++, "_prMulCf", prComplexMul3<float>, 2, 0);
+    
     definePrimitive(base, index++, "_AddComplex", prAddComplex, 2, 0);
     definePrimitive(base, index++, "_SubComplex", prSubComplex, 2, 0);
     definePrimitive(base, index++, "_MulComplex", prMulComplex, 2, 0);
