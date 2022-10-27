@@ -14,38 +14,44 @@ CLASSMETHODS::
 METHOD:: new
 
 argument:: bounds
-The bounds describing the extents of the grid (not including any labels).
-Multiple code::DrawGrid:: may be used to draw grids on a single link::Classes/UserView::.
+A link::Classes/Point:: or link::Classes/Rect:: describing the size and position of the grid within the parent view (not including any labels).
 
 argument:: horzGrid
-
-A grid lines object, such as link::Classes/LinearGridLines:: or link::Classes/ExponentialGridLines:: (which can be instantiated via link::Classes/GridLines::), or link::Classes/BlankGridLines::.
+A grid lines object for the x-axis, instantiated via link::Classes/GridLines:: or the link::Classes/Spec#-grid:: method. Providing code::nil:: results in no grid lines.
 
 argument:: vertGrid
-A grid lines object, such as link::Classes/LinearGridLines:: or link::Classes/ExponentialGridLines:: (which can be instantiated via link::Classes/GridLines::), or link::Classes/BlankGridLines::.
+A grid lines object for the y-axis, see strong::horzGrid::.
 
 returns:: A code::DrawGrid::.
+
+discussion::
+For the strong::horizGrid:: and strong::vertGrid:: arguments, link::Classes/GridLines:: or link::Classes/Spec#-grid:: will instantiate a subclass of link::Classes/AbstractGridLines::, such as link::Classes/LinearGridLines:: or link::Classes/ExponentialGridLines::, based on the code::ControlSpec::'s warp behavior.
+
+Multiple code::DrawGrid:: may be used to draw grids on a single link::Classes/UserView::.
+
 
 METHOD:: test
 For testing a new link::Classes/AbstractGridLines:: object.
 code::
 DrawGrid.test(\freq.asSpec.grid, \amp.asSpec.grid);
+::
+code::
 DrawGrid.test(nil, \lofreq.asSpec.grid);
 ::
 
 See more link::#Testing in a UserView#Examples:: below. See link::#-test:: for testing a code::DrawGrid:: that has already been created.
 
 argument:: horzGrid
-An link::Classes/AbstractGridLines:: subclass.
+A grid lines object for the x-axis, instantiated via link::Classes/GridLines:: or the link::Classes/Spec#-grid:: method. Providing code::nil:: results in no grid lines.
 
 argument:: vertGrid
-An link::Classes/AbstractGridLines:: subclass.
+A grid lines object for the y-axis, see strong::horzGrid::.
 
 argument:: bounds
-Bounds describing the extents of the grid (not including any labels) within the parent view. Can be a link::Classes/Point:: or link::Classes/Rect::.
-Default: code::500 @ 400::. Note: the
+A link::Classes/Point:: or link::Classes/Rect:: describing the size and position of the grid within the parent view (not including any labels).
+Default: code::500 @ 400::.
 
-returns:: A code::DrawGridTest:: (subclass of code::DrawGrid::).
+returns:: A code::DrawGridTest:: (a subclass of code::DrawGrid::).
 
 
 INSTANCEMETHODS::
@@ -57,7 +63,7 @@ returns:: code::nil::
 
 
 METHOD:: horzGrid
-Set the X axis grid lines.
+Set the x-axis grid lines.
 
 argument:: g
 An link::Classes/AbstractGridLines:: subclass.
@@ -66,7 +72,7 @@ returns:: Self.
 
 
 METHOD:: vertGrid
-Set the Y axis grid lines.
+Set the y-axis grid lines.
 
 argument:: g
 An link::Classes/AbstractGridLines:: subclass.
@@ -222,7 +228,8 @@ The returned code::DrawGridTest:: is a subclass of code::DrawGrid::, so you can 
 code::
 ~test.x.numTicks_(23); // update the internal GridLinesX
 ~test.refresh;         // then refresh your test view
-
+::
+code::
 ~test.x.numTicks_(nil); // numTicks = nil: defers to -tickSpacing
 ~test.refresh;
 ::

@@ -4,17 +4,11 @@ categories:: GUI>Accessories
 related:: Classes/GridLines, Reference/plot, Classes/Plotter, Classes/DrawGrid
 
 DESCRIPTION::
-code::AbstractGridLines:: and its subclasses are strategy objects that implements a general strategy for finding a suitable min max range for graphing and suitable intervals for grid lines and labelling.
+code::AbstractGridLines:: and its subclasses are strategy objects that find a suitable intervals for plot grid lines and labels. The data range and warping behavior (e.g. linear or exponential) are derived from the corresponding link::Classes/ControlSpec::. The instance methods of code::AbstractGridLines:: are used by link::Classes/DrawGrid:: (which is in turn used by link::Classes/Plotter::) for getting logically spaced intervals that span the data for drawing grid lines on a plot.
 
-Neither code::AbstractGridLines:: nor its subclasses are to be instantiated directly. Instead, link::Classes/GridLines:: factory class should be used to return the code::AbstractGridLines:: subclass appropriate for the given link::Classes/ControlSpec::.
+Neither code::AbstractGridLines:: nor its subclasses are to be instantiated directly. Instead, the link::Classes/GridLines:: factory class or the link::Classes/ControlSpec#-grid:: method should be used to return the appropriate code::AbstractGridLines:: subclass.
 
-The object that does the actual drawing on a view is link::Classes/DrawGrid::.
-
-An code::AbstractGridLines:: object uses a link::Classes/ControlSpec:: to define the minimum and maximum possible values.  Given a data set's actual minimum and maximum values, the code::AbstractGridLines:: object can choose a logical range for graphing that encompasses the data that will be plotted.
-
-Subclasses of code::AbstractGridLines:: bind more tightly with the data they are representing. E.g. code::LinearGridLines:: represents data on linear scale, while code::ExponentialGridLines:: represents data on exponential scale. Future development work could add other subclasses like e.g. DegreeGridLines to be used to draw pitch degree GridLines behind a frequency plot.
-
-link::Classes/Spec:: has a .grid variable that points to its preferred code::AbstractGridLines:: subclass that should be used for graphing.
+Subclasses of code::AbstractGridLines:: bind more tightly with the data they represent. For example, code::LinearGridLines:: and code::ExponentialGridLines:: represent data on a linear and exponential scale, respectively. Future additions might include subclasses like teletype::DegreeGridLines:: to draw pitch degree grid lines behind a frequency plot.
 
 code::
 \freq.asSpec.grid
@@ -130,5 +124,3 @@ Number of decimal places
 returns:: a string
 
 private:: prCheckWarp
-
-
