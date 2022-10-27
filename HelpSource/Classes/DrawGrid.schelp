@@ -6,7 +6,7 @@ related:: Reference/plot, Classes/AbstractGridLines, Classes/GridLines, Classes/
 DESCRIPTION::
 code::DrawGrid:: is used by link::Classes/Plotter:: to draw the grid lines on a graph. It can also be used to draw link::Classes/GridLines:: on any link::Classes/UserView:: and could even be used to add grid lines to code::UserView::s behind sliders or in any GUI.
 
-Note that code::DrawGrid:: does not hold any reference to the code::UserView:: but is meant to have its code::.draw:: method called inside of the code::UserView::'s code::drawFunc::.  It only needs to know what bounds the grid lines should be drawn within and what the horizontal and vertical code::GridLines:: are.
+Note that code::DrawGrid:: does not hold any reference to the code::UserView:: but is meant to have its code::.draw:: method called inside of the code::-drawFunc:: of the code::UserView::.  It only needs to know what bounds the grid lines should be drawn within and what the horizontal and vertical code::GridLines:: are.
 
 
 CLASSMETHODS::
@@ -17,7 +17,7 @@ argument:: bounds
 A link::Classes/Point:: or link::Classes/Rect:: describing the size and position of the grid within the parent view (not including any labels).
 
 argument:: horzGrid
-A grid lines object for the x-axis, instantiated via link::Classes/GridLines:: or the link::Classes/Spec#-grid:: method. Providing code::nil:: results in no grid lines.
+A grid lines object for the x-axis, instantiated via link::Classes/GridLines::, or link::Classes/ControlSpec#-grid:: method, or code::nil:: (resulting in no grid lines).
 
 argument:: vertGrid
 A grid lines object for the y-axis, see strong::horzGrid::.
@@ -25,7 +25,7 @@ A grid lines object for the y-axis, see strong::horzGrid::.
 returns:: A code::DrawGrid::.
 
 discussion::
-For the strong::horizGrid:: and strong::vertGrid:: arguments, link::Classes/GridLines:: or link::Classes/Spec#-grid:: will instantiate a subclass of link::Classes/AbstractGridLines::, such as link::Classes/LinearGridLines:: or link::Classes/ExponentialGridLines::, based on the code::ControlSpec::'s warp behavior.
+For the strong::horizGrid:: and strong::vertGrid:: arguments, link::Classes/GridLines:: or link::Classes/ControlSpec#-grid:: will instantiate a subclass of link::Classes/AbstractGridLines::, such as link::Classes/LinearGridLines:: or link::Classes/ExponentialGridLines::, based on the code::ControlSpec::'s warp behavior.
 
 Multiple code::DrawGrid:: may be used to draw grids on a single link::Classes/UserView::.
 
@@ -39,10 +39,8 @@ code::
 DrawGrid.test(nil, \lofreq.asSpec.grid);
 ::
 
-See more link::#Testing in a UserView#Examples:: below. See link::#-test:: for testing a code::DrawGrid:: that has already been created.
-
 argument:: horzGrid
-A grid lines object for the x-axis, instantiated via link::Classes/GridLines:: or the link::Classes/Spec#-grid:: method. Providing code::nil:: results in no grid lines.
+A grid lines object for the x-axis, instantiated via link::Classes/GridLines::, or link::Classes/Spec#-grid:: method, or code::nil:: (resulting in a link::Classes/BlankGridLines::).
 
 argument:: vertGrid
 A grid lines object for the y-axis, see strong::horzGrid::.
@@ -52,6 +50,11 @@ A link::Classes/Point:: or link::Classes/Rect:: describing the size and position
 Default: code::500 @ 400::.
 
 returns:: A code::DrawGridTest:: (a subclass of code::DrawGrid::).
+
+discussion::
+See link::#-test:: if you'd like to preview or test modifications of a code::DrawGrid:: that has already been created. Also see link::#Testing in a UserView#Examples:: below.
+
+Inspecting the source code of code::DrawGridTest:makeWindow:: can serve as a guide on how to embed a code::DrawGrid:: in a code::UserView::.
 
 
 INSTANCEMETHODS::
@@ -66,7 +69,7 @@ METHOD:: horzGrid
 Set the x-axis grid lines.
 
 argument:: g
-An link::Classes/AbstractGridLines:: subclass.
+An link::Classes/AbstractGridLines:: subclass, instantiated via link::Classes/GridLines::, or link::Classes/ControlSpec#-grid:: method, or code::nil:: (resulting in no grid lines).
 
 returns:: Self.
 
@@ -75,7 +78,7 @@ METHOD:: vertGrid
 Set the y-axis grid lines.
 
 argument:: g
-An link::Classes/AbstractGridLines:: subclass.
+An link::Classes/AbstractGridLines:: subclass, instantiated via link::Classes/GridLines::, or link::Classes/ControlSpec#-grid:: method, or code::nil:: (resulting in no grid lines).
 
 returns:: Self.
 
@@ -124,42 +127,52 @@ A code::Boolean:: which turns on/off anti-aliasing. See link::Classes/Pen#*smoot
 returns:: A code::Boolean::.
 
 METHOD:: linePattern
-Set the line dash pattern. pattern should be a link::Classes/FloatArray:: of
-values that specify the lengths of the dashes and spaces.
-For example, code::FloatArray[10.0, 3.0, 5.0, 3.0]::, for alternating dashes of lengths code::10.0:: and code::5.0:: pixels, separated by spaces of code::3.0:: pixels.
+Set the line dash pattern. The strong::value:: should be a link::Classes/FloatArray:: of values that specify the lengths of the alternating dashes and spaces.
+For example, code::FloatArray[10.0, 3.0, 5.0, 3.0]::, for dashes of lengths code::10.0:: and code::5.0:: pixels, separated by spaces of code::3.0:: pixels.
 See link::Classes/Pen#*lineDash::.
 
 returns:: Self.
 
 METHOD:: x
-A link::Classes/DrawGridX:: object that draws the x (horizontal) axis. In
+A code::DrawGridX:: object that draws the x (horizontal) axis. In
 general you shouldn't need to set this.
 
-returns:: A link::Classes/DrawGridX::.
+returns:: A code::DrawGridX::.
 
 METHOD:: y
-A link::Classes/DrawGridY:: object that draws the y (vertical) axis. In general
+A code::DrawGridY:: object that draws the y (vertical) axis. In general
 you shouldn't need to set this.
 
-returns:: A link::Classes/DrawGridY::.
+returns:: A code::DrawGridY::.
 
 
 METHOD:: numTicks
-Set the emphasis::approximate:: number of grid lines ("ticks") for each axis.
-If code::nil::, the number of grid lines with change with the view size, constrained by this code::tickSpacing::.
+Set the emphasis::approximate:: number of grid lines ("ticks") for each axis. If set, the number of ticks is fixed and code::numTicks:: takes precedence over link::#-tickSpacing::. If code::nil::, the number of grid lines change with the view size, constrained by the code::tickSpacing::.
 Default: code::nil::.
 
 See link::#Testing in a UserView#Examples:: below.
 
-argument:: xnum
+argument:: numx
 emphasis::Approximate:: number of grid lines ("ticks") for the x-axis.
 
-argument:: ynum
+argument:: numy
 emphasis::Approximate:: number of grid lines for the y-axis.
+
+discussion::
+The resulting number of ticks is approximate because of the underlying algorithm in link::Classes/GridLines#-niceNum::, which tries to find suitable values for the grid lines based on the data range and your requested code::numTicks::. You can observe the behavior of code::GridLines:-niceNum:: with this snippet:
+code::
+(
+g = GridLines([0, 200].asSpec);
+"requested / returned".postln;
+(0, 3 .. 21).do({ |ntck|
+  "% / %\n".postf(ntck, g.niceNum(ntck, true))
+})
+)
+::
 
 
 METHOD:: tickSpacing
-Set the emphasis::minimum:: spacing between grid lines ("ticks") for each axis. If strong::numTicks:: is code::nil::, the number of grid lines with change with the view size, constrained by this code::tickSpacing::, allowing you to control the maximum density of grid lines.
+Set the emphasis::minimum:: spacing between grid lines ("ticks") for each axis. The number of grid lines will change with the view size, but won't be spaced less than this code::tickSpacing::, allowing you to control the density of grid lines. However if link::#-numTicks:: is not code::nil::, it takes precedence over code::tickSpacing::.
 
 See link::#Testing in a UserView#Examples:: below.
 
@@ -171,7 +184,7 @@ emphasis::Minimum:: spacing between grid lines on the y-axis (pixels, default: 6
 
 
 METHOD:: test
-Testing this code::DrawGrid:: object by creating a window with a view showing the code::DrawGrid:: in its current state.
+Test this code::DrawGrid:: object by creating a window with a view showing the code::DrawGrid:: in its current state.
 
 code::
 d = DrawGrid(nil, \freq.asSpec.grid, \amp.asSpec.grid);
@@ -180,8 +193,7 @@ d.test;
 ::
 
 
-
-See more link::#Testing in a UserView#Examples:: below. See link::#*test:: for testing (and creating) a code::DrawGrid:: directly from the provided code::GridLines::.
+See link::#*test:: for creating a code::DrawGrid:: and previewing it immediately. See also link::#Testing in a UserView#Examples:: below.
 
 
 METHOD:: copy
@@ -230,13 +242,16 @@ code::
 ~test.refresh;         // then refresh your test view
 ::
 code::
-~test.x.numTicks_(nil); // numTicks = nil: defers to -tickSpacing
+~test.x.numTicks_(nil); // numTicks = nil: auto, follows -tickSpacing
 ~test.refresh;
 ::
 
 code::DrawGrid:: convenience methods like link::#-numTicks:: and link::#-tickSpacing:: can set both internal code::GridLines:: (link::#-x:: and link::#-y::) together. So link::#-refresh:: can be called directly:
 code::
-~test.numTicks_(nil).tickSpacing_(75).refresh;
+// fixed, numTicks takes precedence over tickSpacing when resizing
+~test.numTicks_(10, 10).tickSpacing_(30, 75).refresh;
+// dynamic, tickSpacing determines min spacing when resizing
+~test.numTicks_(nil, nil).tickSpacing_(30, 75).refresh;
 ~test.linePattern_(FloatArray[10.0, 5.0, 2.0, 5.0]).refresh;
 ::
 
@@ -257,9 +272,9 @@ d.x.tickSpacing_(25);
 Then, subsequently modify its appearance, all code::DrawGrid::'s methods are inherited for use by the test object:
 code::
 // Set axis grid poperties
-~test.x.tickSpacing_(5); // fixed *density* of ticks
-~test.y.numTicks_(5);    // fixed *number* of ticks (approximate)
-~test.refresh;           // refresh the test
+~test.x.tickSpacing_(18); // fixed *density* of ticks
+~test.y.numTicks_(8);     // fixed *number* of ticks (approximate)
+~test.refresh;            // refresh the test
 ::
 
 Or use code::DrawGrid::'s convenience methods to set underlying grid properties, then you can refresh the code::DrawGridTest:: directly.
