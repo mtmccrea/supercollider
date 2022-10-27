@@ -56,9 +56,9 @@ DrawGrid {
 		x.tickSpacing = xpx;
 		y.tickSpacing = ypx;
 	}
-	numTicks_ { arg xnum, ynum;
-		x.numTicks = xnum;
-		y.numTicks = ynum;
+	numTicks_ { arg numx, numy;
+		x.numTicks = numx;
+		y.numTicks = numy;
 	}
 	copy {
 		^DrawGrid(bounds,x.grid,y.grid).x_(x.copy).y_(y.copy).opacity_(opacity).smoothing_(smoothing).linePattern_(linePattern)
@@ -72,12 +72,12 @@ DrawGrid {
 
 DrawGridX {
 
-	var <grid,<>range,<>bounds;
-	var <>font,<>fontColor,<>gridColor,<>labelOffset;
-	var commands,cacheKey;
-	var txtPad = 2; // match with Plot:txtPad
+	var <grid, <>range, <>bounds;
+	var <font, <fontColor, <gridColor, <labelOffset;
+	var commands, cacheKey;
+	var txtPad = 2; 		// match with Plot:txtPad
 	var <tickSpacing = 64;
-	var <numTicks = nil; // nil for dynamic with view size
+	var <numTicks = nil;	// nil for dynamic with view size
 
 	*new { arg grid;
 		^super.newCopyArgs(grid.asGrid).init
@@ -85,10 +85,9 @@ DrawGridX {
 
 	init {
 		range = [grid.spec.minval, grid.spec.maxval];
-		// labelOffset is effectively the bounding rect for a single grid label
 		labelOffset = "20000".bounds.size.asPoint;
 	}
-	grid_ { arg g;
+	grid_ { |g|
 		grid = g.asGrid;
 		range = [grid.spec.minval, grid.spec.maxval];
 		this.clearCache;
@@ -103,8 +102,25 @@ DrawGridX {
 		numTicks = num;
 		this.clearCache;
 	}
-	setZoom { arg min,max;
-		range = [min,max];
+	font_{ |afont|
+		font = afont;
+		this.clearCache;
+	}
+	fontColor_{ |color|
+		fontColor = color;
+		this.clearCache;
+	}
+	gridColor_{ |color|
+		gridColor = color;
+		this.clearCache;
+	}
+	// labelOffset is effectively a point describing the size of a grid label
+	labelOffset_{ |pt|
+		labelOffset = pt;
+		this.clearCache;
+	}
+	setZoom { |min, max|
+		range = [min, max];
 	}
 	commands {
 		var p;
@@ -449,10 +465,9 @@ ExponentialGridLines : AbstractGridLines {
 
 BlankGridLines : AbstractGridLines {
 
-	getParams {
-		^()
-	}
-	prCheckWarp {}
+	getParams { ^() }
+
+	prCheckWarp { }
 }
 
 DrawGridTest : DrawGrid {
