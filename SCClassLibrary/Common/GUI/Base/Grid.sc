@@ -322,7 +322,7 @@ AbstractGridLines {
 			^rf *  10.0
 		});
 	}
-	ideals { arg min,max,ntick=5;
+	ideals { arg min, max, ntick=5;
 		var nfrac,d,graphmin,graphmax,range,x;
 		range = this.niceNum(max - min,false);
 		d = this.niceNum(range / (ntick - 1),true);
@@ -331,8 +331,8 @@ AbstractGridLines {
 		nfrac = max( floor(log10(d)).neg, 0 );
 		^[graphmin,graphmax,nfrac,d];
 	}
-	looseRange { arg min,max,ntick=5;
-		^this.ideals(min,max).at( [ 0,1] )
+	looseRange { arg min, max, ntick=5;
+		^this.ideals(min, max, ntick).at([0, 1])
 	}
 	getParams {
 		^this.subclassResponsibility
