@@ -6,8 +6,8 @@ DrawGrid {
 		^super.new.init(bounds, horzGrid, vertGrid)
 	}
 
-	*test { arg horzGrid, vertGrid, bounds;
-		^DrawGrid(bounds, horzGrid, vertGrid).test
+	*test { arg horzGrid, vertGrid, bounds = (500@400);
+		^DrawGrid(bounds.asRect, horzGrid, vertGrid).test
 	}
 
 	test { ^DrawGridTest(this) }
