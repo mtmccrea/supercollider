@@ -1,7 +1,7 @@
 CLASS:: AbstractGridLines
 summary:: Calculates the numerical values suitable for grid lines to be used for plotting or other UI elements.
 categories:: GUI>Accessories
-related:: Classes/GridLines, Classes/LinearGridLines, Classes/ExponentialGridLines, /DrawGrid, Classes/ControlSpec, Reference/plot, Classes/Plotter
+related:: Classes/GridLines, Classes/LinearGridLines, Classes/ExponentialGridLines, Classes/DrawGrid, Classes/ControlSpec, Classes/Plotter, Reference/plot
 
 DESCRIPTION::
 code::AbstractGridLines:: and its subclasses are strategy objects that find suitable intervals for plotting grid lines and labels. The data range and warping behavior (e.g. linear or exponential) are derived from the corresponding link::Classes/ControlSpec::. The instance methods of code::AbstractGridLines:: are used by link::Classes/DrawGrid:: (which is in turn used by link::Classes/Plotter::) for getting logically spaced intervals that span the data for drawing grid lines on a plot.
