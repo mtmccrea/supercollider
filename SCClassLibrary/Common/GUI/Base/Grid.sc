@@ -284,9 +284,9 @@ AbstractGridLines {
 	}
 
 	prCheckWarp {
-		if(this.class.name != this.spec.gridClass.name) {
-			"% expects a spec with %, but was passed a spec with % instead.".format(
-				this.class.name, this.spec.warp.class.name, spec.asSpec.warp.class.name
+		if(this.class != this.spec.gridClass) {
+			"The ControlSpec 'warp' expected by this % does not match 'warp' of the supplied ControlSpec (%).".format(
+				this.class, this.spec.warp.class
 			).warn;
 		};
 	}
@@ -347,6 +347,7 @@ AbstractGridLines {
 }
 
 LinearGridLines : AbstractGridLines {
+
 	getParams { |valueMin, valueMax, pixelMin, pixelMax, numTicks, tickSpacing = 64|
 		var lines,p,pixRange;
 		var nfrac,d,graphmin,graphmax,range;
