@@ -1,4 +1,5 @@
 DrawGrid {
+
 	var <bounds, <>x, <>y;
 	var <>opacity=0.7, <>smoothing=false, <>linePattern;
 
@@ -72,12 +73,12 @@ DrawGrid {
 
 DrawGridX {
 
-	var <grid, <>range, <>bounds;
-	var <font, <fontColor, <gridColor, <labelOffset;
-	var commands, cacheKey;
-	var txtPad = 2; 		// match with Plot:txtPad
+	var <grid,<>range,<>bounds;
+	var <font,<fontColor,<gridColor,<labelOffset;
+	var commands,cacheKey;
+	var txtPad = 2; // match with Plot:txtPad
 	var <tickSpacing = 64;
-	var <numTicks = nil;	// nil for dynamic with view size
+	var <numTicks = nil; // nil for dynamic with view size
 
 	*new { arg grid;
 		^super.newCopyArgs(grid.asGrid).init
@@ -87,10 +88,13 @@ DrawGridX {
 		range = [grid.spec.minval, grid.spec.maxval];
 		labelOffset = "20000".bounds.size.asPoint;
 	}
-	grid_ { |g|
+	grid_ { arg g;
 		grid = g.asGrid;
 		range = [grid.spec.minval, grid.spec.maxval];
 		this.clearCache;
+	}
+	setZoom { |min, max|
+		range = [min, max];
 	}
 	tickSpacing_{ |px|
 		px !? {
@@ -118,9 +122,6 @@ DrawGridX {
 	labelOffset_{ |pt|
 		labelOffset = pt;
 		this.clearCache;
-	}
-	setZoom { |min, max|
-		range = [min, max];
 	}
 	commands {
 		var p;
@@ -322,7 +323,7 @@ AbstractGridLines {
 			^rf *  10.0
 		});
 	}
-	ideals { arg min, max, ntick=5;
+	ideals { arg min,max,ntick=5;
 		var nfrac,d,graphmin,graphmax,range,x;
 		range = this.niceNum(max - min,false);
 		d = this.niceNum(range / (ntick - 1),true);
@@ -331,8 +332,8 @@ AbstractGridLines {
 		nfrac = max( floor(log10(d)).neg, 0 );
 		^[graphmin,graphmax,nfrac,d];
 	}
-	looseRange { arg min, max, ntick=5;
-		^this.ideals(min, max, ntick).at([0, 1])
+	looseRange { arg min,max,ntick=5;
+		^this.ideals(min,max,ntick).at( [0,1])
 	}
 	getParams {
 		^this.subclassResponsibility
@@ -474,7 +475,7 @@ BlankGridLines : AbstractGridLines {
 DrawGridTest : DrawGrid {
 	var <testView;
 	var insetH = 45, insetV = 35; // left, bottom margins for labels
-	var gridPad = 15; 			  // right, top margin
+	var gridPad = 15;             // right, top margin
 	var txtPad = 2;               // label offset from window's edge
 	var win, winBounds, font, fcolor;
 
