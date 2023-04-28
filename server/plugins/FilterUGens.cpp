@@ -232,7 +232,7 @@ const int kMAXMEDIANSIZE = 32;
 struct Median : public Unit {
     float m_medianValue[kMAXMEDIANSIZE];
     long m_medianAge[kMAXMEDIANSIZE];
-    long m_medianSize, m_medianIndex;
+    long m_medianSize;
 };
 
 struct Compander : public Unit {
@@ -312,6 +312,7 @@ void VarLag_Ctor(VarLag* unit);
 
 void OnePole_next_a(OnePole* unit, int inNumSamples);
 void OnePole_next_k(OnePole* unit, int inNumSamples);
+void OnePole_next_1(OnePole* unit, int inNumSamples);
 void OnePole_Ctor(OnePole* unit);
 
 void OneZero_next(OneZero* unit, int inNumSamples);
@@ -352,7 +353,7 @@ void Slope_Ctor(Slope* unit);
 void Delay1_next(Delay1* unit, int inNumSamples);
 void Delay1_Ctor(Delay1* unit);
 
-void Flip_Ctor(Flip* unit);
+void Flip_Ctor(Flip* unit); // mtm no class definition!
 void Flip_next_even(Flip* unit, int inNumSamples);
 void Flip_next_odd(Flip* unit, int inNumSamples);
 
@@ -444,7 +445,6 @@ void Amplitude_Ctor(Amplitude* unit);
 
 void DetectSilence_next(DetectSilence* unit, int inNumSamples);
 void DetectSilence_next_k(DetectSilence* unit, int inNumSamples);
-// void DetectSilence_done(DetectSilence *unit, int inNumSamples);
 void DetectSilence_Ctor(DetectSilence* unit);
 
 void Hilbert_Ctor(Hilbert* unit);
@@ -458,14 +458,6 @@ void FreqShift_next_ka(FreqShift* unit, int inNumSamples);
 
 void MoogFF_next(MoogFF* unit, int inNumSamples);
 void MoogFF_Ctor(MoogFF* unit);
-
-/*
-    void Lag_next(Lag *unit, int inNumSamples);
-    void Lag_Ctor(Lag* unit);
-
-    void Lag_next(Lag *unit, int inNumSamples);
-    void Lag_Ctor(Lag* unit);
-*/
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -481,7 +473,8 @@ void Ramp_next(Ramp* unit, int inNumSamples) {
     int remain = inNumSamples;
     while (remain) {
         int nsmps = sc_min(remain, counter);
-        LOOP(nsmps, ZXP(out) = level; level += slope;);
+        LOOP(nsmps, printf("[Ramp] next: %f\n", level); // mtm
+             ZXP(out) = level; level += slope;);
         in += nsmps;
         counter -= nsmps;
         remain -= nsmps;
@@ -498,6 +491,7 @@ void Ramp_next(Ramp* unit, int inNumSamples) {
 
 void Ramp_next_1(Ramp* unit, int inNumSamples) {
     float* out = OUT(0);
+    printf("[Ramp] next_1: %f\n", unit->m_level); // mtm
 
     *out = unit->m_level;
     unit->m_level += unit->m_slope;
@@ -521,6 +515,8 @@ void Ramp_Ctor(Ramp* unit) {
     unit->m_level = ZIN0(0);
     unit->m_slope = 0.f;
     ZOUT0(0) = unit->m_level;
+    printf("[Ramp] init sample:\n\t %f", unit->m_level); // mtm
+    printf("[Ramp] first sample:\n\t"); // mtm
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -534,12 +530,15 @@ void Lag_next(Lag* unit, int inNumSamples) {
     double b1 = unit->m_b1;
 
     if (lag == unit->m_lag) {
-        LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * (y1 - y0););
+        LOOP1(inNumSamples, double y0 = ZXP(in); printf("[Lag] next_: %f\n", y0 + b1 * (y1 - y0)); // mtm
+              ZXP(out) = y1 = y0 + b1 * (y1 - y0););
     } else {
         unit->m_b1 = lag == 0.f ? 0.f : exp(log001 / (lag * unit->mRate->mSampleRate));
         double b1_slope = CALCSLOPE(unit->m_b1, b1);
         unit->m_lag = lag;
-        LOOP1(inNumSamples, b1 += b1_slope; double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * (y1 - y0););
+        LOOP1(inNumSamples, b1 += b1_slope; double y0 = ZXP(in);
+              printf("[Lag] next_: %f\n", y0 + b1 * (y1 - y0)); // mtm
+              ZXP(out) = y1 = y0 + b1 * (y1 - y0););
     }
     unit->m_y1 = zapgremlins(y1);
 }
@@ -554,11 +553,13 @@ void Lag_next_1(Lag* unit, int inNumSamples) {
 
     if (lag == unit->m_lag) {
         double y0 = *in;
+        printf("[Lag] next_1: %f\n", y0 + b1 * (y1 - y0)); // mtm
         *out = y1 = y0 + b1 * (y1 - y0);
     } else {
         unit->m_b1 = b1 = lag == 0.f ? 0.f : exp(log001 / (lag * unit->mRate->mSampleRate));
         unit->m_lag = lag;
         double y0 = *in;
+        printf("[Lag] next_1: %f\n", y0 + b1 * (y1 - y0)); // mtm
         *out = y1 = y0 + b1 * (y1 - y0);
     }
     unit->m_y1 = zapgremlins(y1);
@@ -570,10 +571,17 @@ void Lag_Ctor(Lag* unit) {
     else
         SETCALC(Lag_next);
 
-    unit->m_lag = uninitializedControl;
-    unit->m_b1 = 0.f;
-    unit->m_y1 = ZIN0(0);
-    Lag_next(unit, 1);
+    //	unit->m_lag = uninitializedControl;
+    //	unit->m_b1 = 0.f;
+    //	unit->m_y1 = ZIN0(0);
+    //	Lag_next(unit, 1);
+
+    unit->m_lag = uninitializedControl; // triggers initialization in Lag_next_1
+    double y1 = unit->m_y1 = ZIN0(0);
+    printf("[Lag] init sample:\n\t"); // mtm
+    Lag_next_1(unit, 1); // initializes m_b1, m_lag
+    unit->m_y1 = y1;
+    printf("[Lag] first sample:\n\t"); // mtm
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -588,8 +596,14 @@ void LagUD_next(LagUD* unit, int inNumSamples) {
     double b1d = unit->m_b1d;
 
     if ((lagu == unit->m_lagu) && (lagd == unit->m_lagd)) {
-        LOOP1(inNumSamples, double y0 = ZXP(in); if (y0 > y1) ZXP(out) = y1 = y0 + b1u * (y1 - y0);
-              else ZXP(out) = y1 = y0 + b1d * (y1 - y0););
+        LOOP1(
+            inNumSamples, double y0 = ZXP(in); if (y0 > y1) {
+                printf("[LagUD] next-nochange: %f\n", y0 + b1u * (y1 - y0)); // mtm
+                ZXP(out) = y1 = y0 + b1u * (y1 - y0);
+            } else {
+                printf("[LagUD] next-nochange: %f\n", y0 + b1d * (y1 - y0)); // mtm
+                ZXP(out) = y1 = y0 + b1d * (y1 - y0);
+            });
     } else {
         unit->m_b1u = lagu == 0.f ? 0.f : exp(log001 / (lagu * unit->mRate->mSampleRate));
         double b1u_slope = CALCSLOPE(unit->m_b1u, b1u);
@@ -597,8 +611,14 @@ void LagUD_next(LagUD* unit, int inNumSamples) {
         unit->m_b1d = lagd == 0.f ? 0.f : exp(log001 / (lagd * unit->mRate->mSampleRate));
         double b1d_slope = CALCSLOPE(unit->m_b1d, b1d);
         unit->m_lagd = lagd;
-        LOOP1(inNumSamples, b1u += b1u_slope; b1d += b1d_slope; double y0 = ZXP(in);
-              if (y0 > y1) ZXP(out) = y1 = y0 + b1u * (y1 - y0); else ZXP(out) = y1 = y0 + b1d * (y1 - y0););
+        LOOP1(
+            inNumSamples, b1u += b1u_slope; b1d += b1d_slope; double y0 = ZXP(in); if (y0 > y1) {
+                printf("[LagUD] next-sloping: %f\n", y0 + b1u * (y1 - y0)); // mtm
+                ZXP(out) = y1 = y0 + b1u * (y1 - y0);
+            } else {
+                printf("[LagUD] next-sloping: %f\n", y0 + b1d * (y1 - y0)); // mtm
+                ZXP(out) = y1 = y0 + b1d * (y1 - y0);
+            });
     }
     unit->m_y1 = zapgremlins(y1);
 }
@@ -611,7 +631,9 @@ void LagUD_Ctor(LagUD* unit) {
     unit->m_b1u = 0.f;
     unit->m_b1d = 0.f;
     unit->m_y1 = ZIN0(0);
+    printf("[LagUD] init sample:\n\t"); // mtm
     LagUD_next(unit, 1);
+    printf("[LagUD] first sample:\n\t"); // mtm
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -627,13 +649,15 @@ static void Lag2_next_k(Lag2* unit, int inNumSamples) {
 
     if (lag == unit->m_lag) {
         LOOP1(inNumSamples, double y0a = ZXP(in); y1a = y0a + b1 * (y1a - y0a); y1b = y1a + b1 * (y1b - y1a);
+              printf("[Lag2] Lag2_next_k: %f\n", y1b); // mtm
               ZXP(out) = y1b;);
     } else {
         unit->m_b1 = lag == 0.f ? 0.f : exp(log001 / (lag * unit->mRate->mSampleRate));
         double b1_slope = CALCSLOPE(unit->m_b1, b1);
         unit->m_lag = lag;
         LOOP1(inNumSamples, b1 += b1_slope; double y0a = ZXP(in); y1a = y0a + b1 * (y1a - y0a);
-              y1b = y1a + b1 * (y1b - y1a); ZXP(out) = y1b;);
+              y1b = y1a + b1 * (y1b - y1a); printf("[Lag2] Lag2_next_k: %f\n", y1b); // mtm
+              ZXP(out) = y1b;);
     }
     unit->m_y1a = zapgremlins(y1a);
     unit->m_y1b = zapgremlins(y1b);
@@ -648,6 +672,7 @@ static void Lag2_next_i(Lag2* unit, int inNumSamples) {
     double b1 = unit->m_b1;
 
     LOOP1(inNumSamples, double y0a = ZXP(in); y1a = y0a + b1 * (y1a - y0a); y1b = y1a + b1 * (y1b - y1a);
+          printf("[Lag2] Lag2_next_i: %f\n", y1b); // mtm
           ZXP(out) = y1b;);
     unit->m_y1a = zapgremlins(y1a);
     unit->m_y1b = zapgremlins(y1b);
@@ -661,6 +686,7 @@ static void Lag2_next_1_i(Lag2* unit, int inNumSamples) {
     float y0a = ZIN0(0);
     y1a = y0a + b1 * (y1a - y0a);
     y1b = y1a + b1 * (y1b - y1a);
+    printf("[Lag2] Lag2_next_1_i: %f\n", y1b); // mtm
     ZOUT0(0) = y1b;
 
     unit->m_y1a = zapgremlins(y1a);
@@ -681,11 +707,14 @@ void Lag2_Ctor(Lag2* unit) {
             SETCALC(Lag2_next_i);
         break;
     }
-
+    
     unit->m_lag = uninitializedControl;
     unit->m_b1 = 0.f;
     unit->m_y1a = unit->m_y1b = ZIN0(0);
+    printf("[Lag2] init sample:\n\t"); // mtm
     Lag2_next_k(unit, 1);
+    printf("[Lag2] first sample:\n\t"); // mtm
+    
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -706,7 +735,8 @@ void Lag2UD_next(Lag2UD* unit, int inNumSamples) {
             inNumSamples, double y0a = ZXP(in); if (y0a > y1a) { y1a = y0a + b1u * (y1a - y0a); } else {
                 y1a = y0a + b1d * (y1a - y0a);
             } if (y1a > y1b) y1b = y1a + b1u * (y1b - y1a);
-            else y1b = y1a + b1d * (y1b - y1a); ZXP(out) = y1b;);
+            else y1b = y1a + b1d * (y1b - y1a); printf("[Lag2UD] Lag2UD_next-unchanged: %f\n", y1b); // mtm
+            ZXP(out) = y1b;);
     } else {
         unit->m_b1u = lagu == 0.f ? 0.f : exp(log001 / (lagu * unit->mRate->mSampleRate));
         double b1u_slope = CALCSLOPE(unit->m_b1u, b1u);
@@ -718,7 +748,8 @@ void Lag2UD_next(Lag2UD* unit, int inNumSamples) {
             inNumSamples, b1u += b1u_slope; b1d += b1d_slope; double y0a = ZXP(in); if (y0a > y1a) {
                 y1a = y0a + b1u * (y1a - y0a);
             } else { y1a = y0a + b1d * (y1a - y0a); } if (y1a > y1b) y1b = y1a + b1u * (y1b - y1a);
-            else y1b = y1a + b1d * (y1b - y1a); ZXP(out) = y1b;);
+            else y1b = y1a + b1d * (y1b - y1a); printf("[Lag2UD] Lag2UD_next: %f\n", y1b); // mtm
+            ZXP(out) = y1b;);
     }
     unit->m_y1a = zapgremlins(y1a);
     unit->m_y1b = zapgremlins(y1b);
@@ -727,12 +758,14 @@ void Lag2UD_next(Lag2UD* unit, int inNumSamples) {
 void Lag2UD_Ctor(Lag2UD* unit) {
     SETCALC(Lag2UD_next);
 
-    unit->m_lagu = 0.f;
-    unit->m_lagd = 0.f;
+    unit->m_lagu = uninitializedControl;
+    unit->m_lagd = uninitializedControl;
     unit->m_b1u = 0.f;
     unit->m_b1d = 0.f;
     unit->m_y1a = unit->m_y1b = ZIN0(0);
-    Lag2UD_next(unit, 1);
+    printf("[Lag2UD] init sample:\n\t"); // mtm
+    Lag2UD_next(unit, 1); // mtm
+    printf("[Lag2UD] first sample:\n\t"); // mtm
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -749,13 +782,15 @@ void Lag3_next(Lag3* unit, int inNumSamples) {
 
     if (lag == unit->m_lag) {
         LOOP1(inNumSamples, double y0a = ZXP(in); y1a = y0a + b1 * (y1a - y0a); y1b = y1a + b1 * (y1b - y1a);
-              y1c = y1b + b1 * (y1c - y1b); ZXP(out) = y1c;);
+              y1c = y1b + b1 * (y1c - y1b); printf("[Lag3] next_: %f\n", y1c); // mtm
+              ZXP(out) = y1c;);
     } else {
         unit->m_b1 = lag == 0.f ? 0.f : exp(log001 / (lag * unit->mRate->mSampleRate));
         double b1_slope = CALCSLOPE(unit->m_b1, b1);
         unit->m_lag = lag;
         LOOP1(inNumSamples, b1 += b1_slope; double y0a = ZXP(in); y1a = y0a + b1 * (y1a - y0a);
-              y1b = y1a + b1 * (y1b - y1a); y1c = y1b + b1 * (y1c - y1b); ZXP(out) = y1c;);
+              y1b = y1a + b1 * (y1b - y1a); y1c = y1b + b1 * (y1c - y1b); printf("[Lag3] next_: %f\n", y1c); // mtm
+              ZXP(out) = y1c;);
     }
     unit->m_y1a = zapgremlins(y1a);
     unit->m_y1b = zapgremlins(y1b);
@@ -775,6 +810,7 @@ static void Lag3_next_1_i(Lag3* unit, int inNumSamples) {
     y1a = y0a + b1 * (y1a - y0a);
     y1b = y1a + b1 * (y1b - y1a);
     y1c = y1b + b1 * (y1c - y1b);
+    printf("[Lag3] Lag3_next_1_i: %f\n", y1c); // mtm
     ZXP(out) = y1c;
 
     unit->m_y1a = zapgremlins(y1a);
@@ -800,7 +836,9 @@ void Lag3_Ctor(Lag3* unit) {
     unit->m_lag = uninitializedControl;
     unit->m_b1 = 0.f;
     unit->m_y1a = unit->m_y1b = unit->m_y1c = ZIN0(0);
+    printf("[Lag3] init sample:\n\t"); // mtm
     Lag3_next(unit, 1);
+    printf("[Lag3] first sample:\n\t"); // mtm
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -823,7 +861,8 @@ void Lag3UD_next(Lag3UD* unit, int inNumSamples) {
                 y1a = y0a + b1d * (y1a - y0a);
             } if (y1a > y1b) { y1b = y1a + b1u * (y1b - y1a); } else { y1b = y1a + b1d * (y1b - y1a); } if (y1a > y1b) {
                 y1c = y1b + b1u * (y1c - y1b);
-            } else { y1c = y1b + b1d * (y1c - y1b); } ZXP(out) = y1c;);
+            } else { y1c = y1b + b1d * (y1c - y1b); } printf("[Lag3UD] next-unchanging: %f\n", y1c); // mtm
+            ZXP(out) = y1c;);
     } else {
         unit->m_b1u = lagu == 0.f ? 0.f : exp(log001 / (lagu * unit->mRate->mSampleRate));
         double b1u_slope = CALCSLOPE(unit->m_b1u, b1u);
@@ -837,7 +876,8 @@ void Lag3UD_next(Lag3UD* unit, int inNumSamples) {
                 y1b = y1a + b1u * (y1b - y1a);
             } else { y1b = y1a + b1d * (y1b - y1a); } if (y1a > y1b) { y1c = y1b + b1u * (y1c - y1b); } else {
                 y1c = y1b + b1d * (y1c - y1b);
-            } ZXP(out) = y1c;);
+            } printf("[Lag3UD] next_: %f\n", y1c); // mtm
+            ZXP(out) = y1c;);
     }
     unit->m_y1a = zapgremlins(y1a);
     unit->m_y1b = zapgremlins(y1b);
@@ -853,7 +893,9 @@ void Lag3UD_Ctor(Lag3UD* unit) {
     unit->m_b1d = 0.f;
 
     unit->m_y1a = unit->m_y1b = unit->m_y1c = ZIN0(0);
+    printf("[Lag3UD] init sample:\n\t"); // mtm
     Lag3UD_next(unit, 1);
+    printf("[Lag3UD] first sample:\n\t"); // mtm
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -884,12 +926,14 @@ void VarLag_next(VarLag* unit, int inNumSamples) {
     }
     if (counter > 0) {
         LOOP(
-            remain, ZXP(out) = level; if (counter > 0) {
+            remain, printf("[VarLag] next_: %f\n", level); // mtm
+            ZXP(out) = level; if (counter > 0) {
                 level += slope;
                 --counter;
             } else { level = unit->m_in; };)
     } else {
-        LOOP(remain, ZXP(out) = level);
+        LOOP(remain, printf("[VarLag] next_: %f\n", level); // mtm
+             ZXP(out) = level;);
     }
 
     unit->m_level = level;
@@ -921,6 +965,7 @@ void VarLag_next_1(VarLag* unit, int inNumSamples) {
             unit->m_lagTime = lagTime;
         }
     }
+    printf("[VarLag] next_1: %f\n", unit->m_level); // mtm
     *out = unit->m_level;
 
     if (unit->m_counter > 0) {
@@ -945,28 +990,31 @@ void VarLag_Ctor(VarLag* unit) {
     unit->m_slope = (in - unit->m_level) / counter;
     unit->m_in = in;
     unit->m_lagTime = lagTime;
-    ZOUT0(0) = unit->m_level;
+    //	ZOUT0(0) = unit->m_level;
+
+    printf("[VarLag] init sample:\n\t %f", unit->m_level); // mtm
+    ZOUT0(0) = unit->m_level; // mtm
+    printf("[VarLag] first sample:\n\t"); // mtm
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-void OnePole_next_a(OnePole* unit, int inNumSamples) {
-    // printf("OnePole_next_a\n");
-
+void OnePole_next_a(OnePole* unit, int inNumSamples)
+{
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float* b1p = ZIN(1);
-
     double y1 = unit->m_y1;
 
-    LOOP1(inNumSamples, double y0 = ZXP(in); double b1 = ZXP(b1p); ZXP(out) = y1 = y0 + b1 * (y1 - y0););
+    LOOP1(inNumSamples, double y0 = ZXP(in); double b1 = ZXP(b1p);
+//          		  printf("[OnePole] next_a: %f\n", y0 + b1 * (y1 - y0));//mtm
+//          printf("[OnePole] next_a: %f\n", (1.f - std::abs(b1)) * y0 + b1 * y1);//mtm
+          ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;);
     unit->m_y1 = zapgremlins(y1);
 }
 
 void OnePole_next_k(OnePole* unit, int inNumSamples) {
-    // printf("OnePole_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     double b1 = unit->m_b1;
@@ -976,48 +1024,105 @@ void OnePole_next_k(OnePole* unit, int inNumSamples) {
 
     if (b1 == unit->m_b1) {
         if (b1 >= 0.f) {
-            LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * (y1 - y0););
+            LOOP1(inNumSamples, double y0 = ZXP(in);
+                  //				   printf("[OnePole] next_k: %f\n", y0 + b1 * (y1 - y0));//mtm
+                  ZXP(out) = y1 = y0 + b1 * (y1 - y0););
         } else {
-            LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * (y1 + y0););
+            LOOP1(inNumSamples, double y0 = ZXP(in);
+                  //				    printf("[OnePole] next_k: %f\n", y0 + b1 * (y1 + y0));//mtm
+                  ZXP(out) = y1 = y0 + b1 * (y1 + y0););
         }
     } else {
         double b1_slope = CALCSLOPE(unit->m_b1, b1);
         if (b1 >= 0.f && unit->m_b1 >= 0) {
-            LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * (y1 - y0); b1 += b1_slope;);
-        } else if (b1 <= 0.f && unit->m_b1 <= 0) {
-            LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * (y1 + y0); b1 += b1_slope;);
+            LOOP1(inNumSamples, double y0 = ZXP(in);
+                  //				    printf("[OnePole] next_k: %f\n", y0 + b1 * (y1 - y0));//mtm
+                  ZXP(out) = y1 = y0 + b1 * (y1 - y0);
+                  b1 += b1_slope;);
+        } else if (b1 < 0.f && unit->m_b1 < 0) { // mtm remove equality test
+            LOOP1(inNumSamples, double y0 = ZXP(in);
+                  //				    printf("[OnePole] next_k: %f\n", y0 + b1 * (y1 + y0));//mtm
+                  ZXP(out) = y1 = y0 + b1 * (y1 + y0);
+                  b1 += b1_slope;);
         } else {
-            LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
+            LOOP1(inNumSamples, double y0 = ZXP(in);
+                  //				    printf("[OnePole] next_k: %f\n", (1.f - std::abs(b1)) * y0 + b1 * y1);//mtm
+                  ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
                   b1 += b1_slope;);
         }
     }
     unit->m_y1 = zapgremlins(y1);
 }
 
+void OnePole_next_1(OnePole* unit, int inNumSamples) {
+    float y0 = ZIN0(0);
+    float b1 = ZIN0(1);
+    double y1 = unit->m_y1;
+    //		  printf("[OnePole] next_a: %f\n", y0 + b1 * (y1 - y0));//mtm
+    ZOUT0(0) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;
+    unit->m_y1 = zapgremlins(y1);
+}
+
+void OnePole_next_i(OnePole* unit, int inNumSamples) {
+    float* out = ZOUT(0);
+    float* in = ZIN(0);
+    double b1 = unit->m_b1;
+    double y1 = unit->m_y1;
+
+    LOOP1(inNumSamples, double y0 = ZXP(in);
+          ZXP(out) = y1 = (1.f - std::abs(b1)) * y0 + b1 * y1;);
+    unit->m_y1 = zapgremlins(y1);
+}
+
 void OnePole_Ctor(OnePole* unit) {
-    if (INRATE(1) == calc_FullRate) {
-        SETCALC(OnePole_next_a);
+    if (unit->mBufLength == 1) {
+        printf("[OnePole] choosing next_1\n"); // mtm
+        SETCALC(OnePole_next_1);
     } else {
-        SETCALC(OnePole_next_k);
+        if (INRATE(1) == calc_FullRate) {
+            printf("[OnePole] choosing next_a\n"); // mtm
+            SETCALC(OnePole_next_a);
+        } else if (INRATE(1) == calc_ScalarRate) {
+            printf("[OnePole] choosing next_i\n"); // mtm
+            SETCALC(OnePole_next_i);
+        } else {
+            SETCALC(OnePole_next_k);
+            printf("[OnePole] choosing next_k\n"); // mtm
+        }
     }
+    
+//    unit->m_b1 = ZIN0(1);
+//    unit->m_y1 = 0.f;
+//    OnePole_next_a(unit, 1);
+    
+    printf("[OnePole] init sample:\n\t"); // mtm
     unit->m_b1 = ZIN0(1);
     unit->m_y1 = 0.f;
-    OnePole_next_a(unit, 1);
+    OnePole_next_1(unit, 1); // mtm
+    printf("[OnePole] first sample:\n\t"); // mtm
+    unit->m_y1 = 0.f;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 void OneZero_Ctor(OneZero* unit) {
+    //	SETCALC(OneZero_next);
+    //	unit->m_b1 = ZIN0(1);
+    //	unit->m_x1 = ZIN0(0);
+    //	OneZero_next(unit, 1);
+
     SETCALC(OneZero_next);
     unit->m_b1 = ZIN0(1);
-    unit->m_x1 = ZIN0(0);
-    OneZero_next(unit, 1);
+    unit->m_x1 = 0.f; // mtm
+
+    printf("[OneZero] init sample:\n\t"); // mtm
+    OneZero_next(unit, 1); // mtm
+    printf("[OneZero] first sample:\n\t"); // mtm
+    unit->m_x1 = 0.f; // mtm
 }
 
 
 void OneZero_next(OneZero* unit, int inNumSamples) {
-    // printf("OneZero::next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     double b1 = unit->m_b1;
@@ -1026,19 +1131,24 @@ void OneZero_next(OneZero* unit, int inNumSamples) {
     double x1 = unit->m_x1;
     if (b1 == unit->m_b1) {
         if (b1 >= 0.f) {
-            LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = x0 + b1 * (x1 - x0); x1 = x0;);
+            LOOP1(inNumSamples, double x0 = ZXP(in); printf("[OneZero] next: %f\n", x0 + b1 * (x1 - x0)); // mtm
+                  ZXP(out) = x0 + b1 * (x1 - x0); x1 = x0;);
         } else {
-            LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = x0 + b1 * (x1 + x0); x1 = x0;);
+            LOOP1(inNumSamples, double x0 = ZXP(in); printf("[OneZero] next: %f\n", x0 + b1 * (x1 + x0)); // mtm
+                  ZXP(out) = x0 + b1 * (x1 + x0); x1 = x0;);
         }
     } else {
         double b1_slope = CALCSLOPE(unit->m_b1, b1);
         if (b1 >= 0.f && unit->m_b1 >= 0) {
-            LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = x0 + b1 * (x1 - x0); x1 = x0; b1 += b1_slope;);
+            LOOP1(inNumSamples, double x0 = ZXP(in); printf("[OneZero] next: %f\n", x0 + b1 * (x1 - x0)); // mtm
+                  ZXP(out) = x0 + b1 * (x1 - x0); x1 = x0; b1 += b1_slope;);
         } else if (b1 <= 0.f && unit->m_b1 <= 0) {
-            LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = x0 + b1 * (x1 + x0); x1 = x0; b1 += b1_slope;);
+            LOOP1(inNumSamples, double x0 = ZXP(in); printf("[OneZero] next: %f\n", x0 + b1 * (x1 + x0)); // mtm
+                  ZXP(out) = x0 + b1 * (x1 + x0); x1 = x0; b1 += b1_slope;);
         } else {
-            LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = (1.f - std::abs(b1)) * x0 + b1 * x1; x1 = x0;
-                  b1 += b1_slope;);
+            LOOP1(inNumSamples, double x0 = ZXP(in);
+                  printf("[OneZero] next: %f\n", (1.f - std::abs(b1)) * x0 + b1 * x1); // mtm
+                  ZXP(out) = (1.f - std::abs(b1)) * x0 + b1 * x1; x1 = x0; b1 += b1_slope;);
         }
     }
     unit->m_x1 = x1;
@@ -1053,7 +1163,15 @@ void Integrator_Ctor(Integrator* unit) {
         SETCALC(Integrator_next);
     unit->m_b1 = ZIN0(1);
     unit->m_y1 = 0.f;
-    ZOUT0(0) = ZIN0(0); // out = in + (coef * out[-1]); out[-1] = 0
+
+    //    printf("[Integrator] init sample:\n\t"); // mtm
+    //    Integrator_next(unit, 1); // mtm
+    //    printf("[Integrator] first sample:\n\t"); // mtm
+    //    unit->m_y1 = 0.f; // mtm
+
+    OUT0(0) = ZIN0(0); // out = in + (coef * out[-1]); out[-1] = 0
+    printf("[Integrator] init sample: %f\n\t", OUT0(0)); // mtm
+    printf("[Integrator] first sample:\n\t"); // mtm
 }
 
 void Integrator_next_i(Integrator* unit, int inNumSamples) {
@@ -1105,12 +1223,15 @@ void Decay_Ctor(Decay* unit) {
     unit->m_decayTime = uninitializedControl;
     unit->m_b1 = 0.f;
     unit->m_y1 = 0.f;
-    Decay_next(unit, 1);
+    //	Decay_next(unit, 1);
+
+    printf("[Decay] init sample:\n\t"); // mtm
+    Decay_next(unit, 1); // mtm
+    printf("[Decay] first sample:\n\t"); // mtm
+    unit->m_y1 = 0.f; // mtm
 }
 
 void Decay_next(Decay* unit, int inNumSamples) {
-    // printf("Decay_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float decayTime = ZIN0(1);
@@ -1119,16 +1240,19 @@ void Decay_next(Decay* unit, int inNumSamples) {
     double b1 = unit->m_b1;
     if (decayTime == unit->m_decayTime) {
         if (b1 == 0.f) {
-            LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0;);
+            LOOP1(inNumSamples, double y0 = ZXP(in); printf("[Decay] next_: %f\n", y0); // mtm
+                  ZXP(out) = y1 = y0;);
         } else {
-            LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * y1;);
+            LOOP1(inNumSamples, double y0 = ZXP(in); printf("[Decay] next_: %f\n", y0 + b1 * y1); // mtm
+                  ZXP(out) = y1 = y0 + b1 * y1;);
         }
     } else {
         unit->m_b1 = decayTime == 0.f ? 0.f : exp(log001 / (decayTime * SAMPLERATE));
         unit->m_decayTime = decayTime;
         double b1_slope = CALCSLOPE(unit->m_b1, b1);
         // printf("decayTime %g  %g %g\n", unit->m_decayTime, next_b1, b1);
-        LOOP1(inNumSamples, double y0 = ZXP(in); ZXP(out) = y1 = y0 + b1 * y1; b1 += b1_slope;);
+        LOOP1(inNumSamples, double y0 = ZXP(in); printf("[Decay] next_: %f\n", y0 + b1 * y1); // mtm
+              ZXP(out) = y1 = y0 + b1 * y1; b1 += b1_slope;);
     }
     unit->m_y1 = zapgremlins(y1);
 }
@@ -1146,15 +1270,21 @@ void Decay2_Ctor(Decay2* unit) {
     unit->m_decayTime = decayTime;
     unit->m_attackTime = attackTime;
 
-    float y0 = ZIN0(0);
-    unit->m_y1a = y0;
-    unit->m_y1b = y0;
-    ZOUT0(0) = 0.f;
+    //	float y0 = ZIN0(0);
+    //	unit->m_y1a = y0;
+    //	unit->m_y1b = y0;
+    //	ZOUT0(0) = 0.f;
+
+    printf("[Decay2] init sample:\n\t %f\n", 0.f); // mtm
+    unit->m_y1a = 0.f;
+    unit->m_y1b = 0.f;
+    Decay2_next(unit, 1);
+    printf("[Decay2] first sample:\n\t"); // mtm
+    unit->m_y1a = 0.f;
+    unit->m_y1b = 0.f;
 }
 
 void Decay2_next(Decay2* unit, int inNumSamples) {
-    // printf("Decay2_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float attackTime = ZIN0(1);
@@ -1165,7 +1295,9 @@ void Decay2_next(Decay2* unit, int inNumSamples) {
     double b1a = unit->m_b1a;
     double b1b = unit->m_b1b;
     if (decayTime == unit->m_decayTime && attackTime == unit->m_attackTime) {
-        LOOP1(inNumSamples, double y0 = ZXP(in); y1a = y0 + b1a * y1a; y1b = y0 + b1b * y1b; ZXP(out) = y1a - y1b;);
+        LOOP1(inNumSamples, double y0 = ZXP(in); y1a = y0 + b1a * y1a; y1b = y0 + b1b * y1b;
+              printf("[Decay2] next_: %f\n", y1a - y1b); // mtm
+              ZXP(out) = y1a - y1b;);
     } else {
         unit->m_decayTime = decayTime;
         unit->m_attackTime = attackTime;
@@ -1176,8 +1308,9 @@ void Decay2_next(Decay2* unit, int inNumSamples) {
         double b1b_slope = CALCSLOPE(next_b1b, b1b);
         unit->m_b1a = next_b1a;
         unit->m_b1b = next_b1b;
-        LOOP1(inNumSamples, double y0 = ZXP(in); y1a = y0 + b1a * y1a; y1b = y0 + b1b * y1b; ZXP(out) = y1a - y1b;
-              b1a += b1a_slope; b1b += b1b_slope;);
+        LOOP1(inNumSamples, double y0 = ZXP(in); y1a = y0 + b1a * y1a; y1b = y0 + b1b * y1b;
+              printf("[Decay2] next_: %f\n", y1a - y1b); // mtm
+              ZXP(out) = y1a - y1b; b1a += b1a_slope; b1b += b1b_slope;);
     }
     unit->m_y1a = y1a;
     unit->m_y1b = y1b;
@@ -1197,7 +1330,10 @@ void LeakDC_next_i_4(LeakDC* unit, int inNumSamples) {
     LOOP1(inNumSamples / 4, double x00 = ZXP(in); double x01 = ZXP(in); double x02 = ZXP(in); double x03 = ZXP(in);
           float out0 = y1 = x00 - x1 + b1 * y1; float out1 = y1 = x01 - x00 + b1 * y1;
           float out2 = y1 = x02 - x01 + b1 * y1; float out3 = y1 = x03 - x02 + b1 * y1;
-
+          printf("[LeakDC] LeakDC_next_i_4: %f\n", out0); // mtm
+          printf("[LeakDC] LeakDC_next_i_4: %f\n", out1); // mtm
+          printf("[LeakDC] LeakDC_next_i_4: %f\n", out2); // mtm
+          printf("[LeakDC] LeakDC_next_i_4: %f\n", out3); // mtm
           ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2; ZXP(out) = out3;
 
           x1 = x03;);
@@ -1212,7 +1348,8 @@ void LeakDC_next_i(LeakDC* unit, int inNumSamples) {
     double y1 = unit->m_y1;
     double x1 = unit->m_x1;
 
-    LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = y1 = x0 - x1 + b1 * y1; x1 = x0;);
+    LOOP1(inNumSamples, double x0 = ZXP(in); printf("[LeakDC] LeakDC_next_i: %f\n", x0 - x1 + b1 * y1); // mtm
+          ZXP(out) = y1 = x0 - x1 + b1 * y1; x1 = x0;);
     unit->m_x1 = x1;
     unit->m_y1 = zapgremlins(y1);
 }
@@ -1233,7 +1370,8 @@ void LeakDC_next(LeakDC* unit, int inNumSamples) {
         double x1 = unit->m_x1;
 
         double b1_slope = CALCSLOPE(unit->m_b1, b1);
-        LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = y1 = x0 - x1 + b1 * y1; x1 = x0; b1 += b1_slope;);
+        LOOP1(inNumSamples, double x0 = ZXP(in); printf("[LeakDC] LeakDC_next: %f\n", x0 - x1 + b1 * y1); // mtm
+              ZXP(out) = y1 = x0 - x1 + b1 * y1; x1 = x0; b1 += b1_slope;);
         unit->m_x1 = x1;
         unit->m_y1 = zapgremlins(y1);
     }
@@ -1247,6 +1385,7 @@ void LeakDC_next_1(LeakDC* unit, int inNumSamples) {
     double x1 = unit->m_x1;
 
     double x0 = ZIN0(0);
+    printf("[LeakDC] LeakDC_next_1: %f\n", x0 - x1 + b1 * y1); // mtm
     ZOUT0(0) = y1 = x0 - x1 + b1 * y1;
     x1 = x0;
 
@@ -1255,7 +1394,6 @@ void LeakDC_next_1(LeakDC* unit, int inNumSamples) {
 }
 
 void LeakDC_Ctor(LeakDC* unit) {
-    // printf("LeakDC_Ctor\n");
     if (BUFLENGTH == 1)
         SETCALC(LeakDC_next_1);
     else {
@@ -1267,33 +1405,56 @@ void LeakDC_Ctor(LeakDC* unit) {
         } else
             SETCALC(LeakDC_next);
     }
-    unit->m_b1 = 0.0;
-    unit->m_x1 = ZIN0(0);
+    //	unit->m_b1 = 0.0;
+    //	unit->m_x1 = ZIN0(0);
+    //	unit->m_y1 = 0.0;
+    //	LeakDC_next_1(unit, 1);
+
+    printf("[LeakDC] init sample:\n\t"); // mtm
+    unit->m_x1 = 0.0;
     unit->m_y1 = 0.0;
-    LeakDC_next_1(unit, 1);
+    LeakDC_next_1(unit, 1); // initialized m_b1 //mtm
+    unit->m_x1 = 0.0;
+    unit->m_y1 = 0.0;
+    printf("[LeakDC] first sample:\n\t"); // mtm
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void TwoPole_Ctor(TwoPole* unit) {
-    // printf("TwoPole_Reset\n");
+    //	SETCALC(TwoPole_next);
+    //	unit->m_b1 = 0.f;
+    //	unit->m_b2 = 0.f;
+    //	unit->m_y1 = 0.f;
+    //	unit->m_y2 = 0.f;
+    //	unit->m_freq = uninitializedControl;
+    //	unit->m_reson = uninitializedControl;
+    //	PUSH_LOOPVALS
+    //	TwoPole_next(unit, 1);
+    //	POP_LOOPVALS
+
     SETCALC(TwoPole_next);
-    unit->m_b1 = 0.f;
-    unit->m_b2 = 0.f;
+    float freq = ZIN0(1);
+    float reson = ZIN0(2);
+    unit->m_b1 = 2 * reson * cos(freq * unit->mRate->mRadiansPerSample);
+    unit->m_b2 = -(reson * reson);
     unit->m_y1 = 0.f;
     unit->m_y2 = 0.f;
-    unit->m_freq = uninitializedControl;
-    unit->m_reson = uninitializedControl;
+    unit->m_freq = freq;
+    unit->m_reson = reson;
+
+    printf("[TwoPole] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
-    TwoPole_next(unit, 1);
+    TwoPole_next(unit, 1); // mtm
     POP_LOOPVALS
+    printf("[TwoPole] first sample:\n\t"); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
 }
 
 
 void TwoPole_next(TwoPole* unit, int inNumSamples) {
-    // printf("TwoPole_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -1311,10 +1472,13 @@ void TwoPole_next(TwoPole* unit, int inNumSamples) {
         double b1_slope = (b1_next - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (b2_next - b2) * unit->mRate->mFilterSlope;
         LOOP(unit->mRate->mFilterLoops, ZXP(out) = y0 = ZXP(in) + b1 * y1 + b2 * y2;
-             ZXP(out) = y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = y1 = ZXP(in) + b1 * y2 + b2 * y0;
-
+             printf("[TwoPole] next_: %f\n", y0); // mtm
+             ZXP(out) = y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[TwoPole] next_: %f\n", y2); // mtm
+             ZXP(out) = y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[TwoPole] next_: %f\n", y1); // mtm
              b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, ZXP(out) = y0 = ZXP(in) + b1 * y1 + b2 * y2; y2 = y1; y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, ZXP(out) = y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[TwoPole] next_: %f\n", y0); // mtm
+             y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_reson = reson;
@@ -1324,8 +1488,13 @@ void TwoPole_next(TwoPole* unit, int inNumSamples) {
         double b1 = unit->m_b1;
         double b2 = unit->m_b2;
         LOOP(unit->mRate->mFilterLoops, ZXP(out) = y0 = ZXP(in) + b1 * y1 + b2 * y2;
-             ZXP(out) = y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = y1 = ZXP(in) + b1 * y2 + b2 * y0;);
-        LOOP(unit->mRate->mFilterRemain, ZXP(out) = y0 = ZXP(in) + b1 * y1 + b2 * y2; y2 = y1; y1 = y0;);
+             printf("[TwoPole] next_: %f\n", y0); // mtm
+             ZXP(out) = y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[TwoPole] next_: %f\n", y2); // mtm
+             ZXP(out) = y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[TwoPole] next_: %f\n", y1); // mtm
+        );
+        LOOP(unit->mRate->mFilterRemain, ZXP(out) = y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[TwoPole] next_: %f\n", y0); // mtm
+             y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -1336,22 +1505,37 @@ void TwoPole_next(TwoPole* unit, int inNumSamples) {
 
 
 void TwoZero_Ctor(TwoZero* unit) {
-    // printf("TwoZero_Reset\n");
+    //	SETCALC(TwoZero_next);
+    //	unit->m_b1 = 0.f;
+    //	unit->m_b2 = 0.f;
+    //	unit->m_x1 = 0.f;
+    //	unit->m_x2 = 0.f;
+    //	unit->m_freq = uninitializedControl;
+    //	unit->m_reson = uninitializedControl;
+    //	PUSH_LOOPVALS
+    //	TwoZero_next(unit, 1);
+    //	POP_LOOPVALS
+
     SETCALC(TwoZero_next);
-    unit->m_b1 = 0.f;
-    unit->m_b2 = 0.f;
+    float freq = ZIN0(1);
+    float reson = ZIN0(2);
+    unit->m_b1 = -2 * reson * cos(freq * unit->mRate->mRadiansPerSample);
+    unit->m_b2 = reson * reson;
     unit->m_x1 = 0.f;
     unit->m_x2 = 0.f;
-    unit->m_freq = uninitializedControl;
-    unit->m_reson = uninitializedControl;
+    unit->m_freq = freq;
+    unit->m_reson = reson;
+
     PUSH_LOOPVALS
-    TwoZero_next(unit, 1);
+    printf("[TwoZero] init sample:\n\t"); // mtm
+    TwoZero_next(unit, 1); // mtm
+    printf("[TwoZero] first sample:\n\t"); // mtm
     POP_LOOPVALS
+    unit->m_x1 = 0.f;
+    unit->m_x2 = 0.f;
 }
 
 void TwoZero_next(TwoZero* unit, int inNumSamples) {
-    // printf("TwoZero_next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -1368,11 +1552,16 @@ void TwoZero_next(TwoZero* unit, int inNumSamples) {
         double b2_next = (reson * reson);
         double b1_slope = (b1_next - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (b2_next - b2) * unit->mRate->mFilterSlope;
-        LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = ZXP(in);
-             ZXP(out) = x2 + b1 * x0 + b2 * x1; x1 = ZXP(in); ZXP(out) = x1 + b1 * x2 + b2 * x0;
+        LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); printf("[TwoZero] next: %f\n", x0 + b1 * x1 + b2 * x2); // mtm
+             ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = ZXP(in);
+             printf("[TwoZero] next: %f\n", x2 + b1 * x0 + b2 * x1); // mtm
+             ZXP(out) = x2 + b1 * x0 + b2 * x1; x1 = ZXP(in);
+             printf("[TwoZero] next: %f\n", x1 + b1 * x2 + b2 * x0); // mtm
+             ZXP(out) = x1 + b1 * x2 + b2 * x0;
 
              b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = x1; x1 = x0;);
+        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); printf("[TwoZero] next: %f\n", x0 + b1 * x1 + b2 * x2); // mtm
+             ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = x1; x1 = x0;);
 
         unit->m_freq = freq;
         unit->m_reson = reson;
@@ -1381,9 +1570,14 @@ void TwoZero_next(TwoZero* unit, int inNumSamples) {
     } else {
         double b1 = unit->m_b1;
         double b2 = unit->m_b2;
-        LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = ZXP(in);
-             ZXP(out) = x2 + b1 * x0 + b2 * x1; x1 = ZXP(in); ZXP(out) = x1 + b1 * x2 + b2 * x0;);
-        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = x1; x1 = x0;);
+        LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); printf("[TwoZero] next: %f\n", x0 + b1 * x1 + b2 * x2); // mtm
+             ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = ZXP(in);
+             printf("[TwoZero] next: %f\n", x2 + b1 * x0 + b2 * x1); // mtm
+             ZXP(out) = x2 + b1 * x0 + b2 * x1; x1 = ZXP(in);
+             printf("[TwoZero] next: %f\n", x1 + b1 * x2 + b2 * x0); // mtm
+             ZXP(out) = x1 + b1 * x2 + b2 * x0;);
+        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); printf("[TwoZero] next: %f\n", x0 + b1 * x1 + b2 * x2); // mtm
+             ZXP(out) = x0 + b1 * x1 + b2 * x2; x2 = x1; x1 = x0;);
     }
     unit->m_x1 = x1;
     unit->m_x2 = x2;
@@ -1394,25 +1588,44 @@ void TwoZero_next(TwoZero* unit, int inNumSamples) {
 
 
 void APF_Ctor(APF* unit) {
-    // printf("APF_Reset\n");
+    //	SETCALC(APF_next);
+    //	unit->m_b1 = 0.f;
+    //	unit->m_b2 = 0.f;
+    //	unit->m_y1 = 0.f;
+    //	unit->m_y2 = 0.f;
+    //	unit->m_x1 = 0.f;
+    //	unit->m_x2 = 0.f;
+    //	unit->m_freq = uninitializedControl;
+    //	unit->m_reson = uninitializedControl;
+    //	PUSH_LOOPVALS
+    //	APF_next(unit, 1);
+    //	POP_LOOPVALS
+
     SETCALC(APF_next);
-    unit->m_b1 = 0.f;
-    unit->m_b2 = 0.f;
+    float freq = ZIN0(1);
+    float reson = ZIN0(2);
+    unit->m_b1 = 2.f * reson * cos(freq * unit->mRate->mRadiansPerSample);
+    unit->m_b2 = -(reson * reson);
     unit->m_y1 = 0.f;
     unit->m_y2 = 0.f;
     unit->m_x1 = 0.f;
     unit->m_x2 = 0.f;
-    unit->m_freq = uninitializedControl;
-    unit->m_reson = uninitializedControl;
+    unit->m_freq = freq;
+    unit->m_reson = reson;
+
+    printf("[APFxxx] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     APF_next(unit, 1);
     POP_LOOPVALS
+    printf("[APF] first sample:\n\t"); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
+    unit->m_x1 = 0.f;
+    unit->m_x2 = 0.f;
 }
 
 
 void APF_next(APF* unit, int inNumSamples) {
-    // printf("APF_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -1432,12 +1645,14 @@ void APF_next(APF* unit, int inNumSamples) {
         double b1_slope = (b1_next - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (b2_next - b2) * unit->mRate->mFilterSlope;
         LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); ZXP(out) = y0 = x0 + b1 * (y1 - x1) + b2 * (y2 - x2);
-             x2 = ZXP(in); ZXP(out) = y2 = x2 + b1 * (y0 - x0) + b2 * (y2 - x1); x1 = ZXP(in);
-             ZXP(out) = y1 = x1 + b1 * (y2 - x2) + b2 * (y2 - x0);
+             printf("[APF] next: %f\n", y0); // mtm
+             x2 = ZXP(in); ZXP(out) = y2 = x2 + b1 * (y0 - x0) + b2 * (y2 - x1); printf("[APF] next: %f\n", y2); // mtm
+             x1 = ZXP(in); ZXP(out) = y1 = x1 + b1 * (y2 - x2) + b2 * (y2 - x0); printf("[APF] next: %f\n", y1); // mtm
 
              b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = y0 = x0 + b1 * (y1 - x1) + b2 * (y2 - x2); y2 = y1;
-             y1 = y0; x2 = x1; x1 = x0;);
+        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = y0 = x0 + b1 * (y1 - x1) + b2 * (y2 - x2);
+             printf("[APF] next: %f\n", y0); // mtm
+             y2 = y1; y1 = y0; x2 = x1; x1 = x0;);
 
         unit->m_freq = freq;
         unit->m_reson = reson;
@@ -1449,10 +1664,13 @@ void APF_next(APF* unit, int inNumSamples) {
         LOOP(unit->mRate->mFilterLoops, float in0 = ZXP(in); float in1 = ZXP(in); float in2 = ZXP(in); x0 = in0;
              float out0 = y0 = x0 + b1 * (y1 - x1) + b2 * (y2 - x2); x2 = in1;
              float out1 = y2 = x2 + b1 * (y0 - x0) + b2 * (y2 - x1); x1 = in2;
-             float out2 = y1 = x1 + b1 * (y2 - x2) + b2 * (y2 - x0); ZXP(out) = out0; ZXP(out) = out1;
-             ZXP(out) = out2;);
-        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = y0 = x0 + b1 * (y1 - x1) + b2 * (y2 - x2); y2 = y1;
-             y1 = y0; x2 = x1; x1 = x0;);
+             float out2 = y1 = x1 + b1 * (y2 - x2) + b2 * (y2 - x0); printf("[APF] next: %f\n", out0); // mtm
+             printf("[APF] next: %f\n", out1); // mtm
+             printf("[APF] next: %f\n", out2); // mtm
+             ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2;);
+        LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = y0 = x0 + b1 * (y1 - x1) + b2 * (y2 - x2);
+             printf("[APF] next: %f\n", y0); // mtm
+             y2 = y1; y1 = y0; x2 = x1; x1 = x0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -1465,14 +1683,19 @@ void APF_next(APF* unit, int inNumSamples) {
 void LPZ1_Ctor(LPZ1* unit) {
     // printf("LPZ1_Reset\n");
     SETCALC(LPZ1_next);
-    unit->m_x1 = ZIN0(0);
-    LPZ1_next(unit, 1);
+    //	unit->m_x1 = ZIN0(0);
+    //	LPZ1_next(unit, 1);
+
+    printf("[LPZ1] init sample:\n\t"); // mtm
+    unit->m_x1 = 0.f;
+    ZOUT0(0) = 0.5f * ZIN0(0); // out = 0.5 * (x0 + x1);
+//    LPZ1_next(unit, 1); // mtm
+//    unit->m_x1 = 0.f;
+    printf("[LPZ1] first sample:\n\t"); // mtm
 }
 
 
 void LPZ1_next(LPZ1* unit, int inNumSamples) {
-    // printf("LPZ1_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
 
@@ -1481,9 +1704,13 @@ void LPZ1_next(LPZ1* unit, int inNumSamples) {
 
     LOOP(inNumSamples >> 2, x0 = ZXP(in); float out0 = 0.5 * (x0 + x1); x1 = ZXP(in); float out1 = 0.5 * (x1 + x0);
          x0 = ZXP(in); float out2 = 0.5 * (x0 + x1); x1 = ZXP(in); float out3 = 0.5 * (x1 + x0);
-
+         printf("[LPZ1] next_: %f\n", out0); // mtm
+         printf("[LPZ1] next_: %f\n", out1); // mtm
+         printf("[LPZ1] next_: %f\n", out2); // mtm
+         printf("[LPZ1] next_: %f\n", out3); // mtm
          ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2; ZXP(out) = out3;);
-    LOOP(inNumSamples & 3, x0 = ZXP(in); ZXP(out) = 0.5 * (x0 + x1); x1 = x0;);
+    LOOP(inNumSamples & 3, x0 = ZXP(in); printf("[LPZ1] next_: %f\n", 0.5 * (x0 + x1)); // mtm
+         ZXP(out) = 0.5 * (x0 + x1); x1 = x0;);
 
     unit->m_x1 = x1;
 }
@@ -1492,16 +1719,21 @@ void LPZ1_next(LPZ1* unit, int inNumSamples) {
 
 
 void HPZ1_Ctor(HPZ1* unit) {
-    // printf("HPZ1_Reset\n");
     SETCALC(HPZ1_next);
-    unit->m_x1 = ZIN0(0);
-    HPZ1_next(unit, 1);
+    //	unit->m_x1 = ZIN0(0);
+    //	HPZ1_next(unit, 1);
+
+    unit->m_x1 = 0.f;
+    printf("[HPZ1] init sample:\n\t"); // mtm
+    printf("[HPZ1] init out: %f\n", 0.5f * ZIN0(0)); // mtm
+    ZOUT0(0) = 0.5f * ZIN0(0); // out = 0.5f * (x0 - x1);
+//    HPZ1_next(unit, 1); // mtm
+//    unit->m_x1 = 0.f;
+    printf("[HPZ1] first sample:\n\t"); // mtm
 }
 
 
 void HPZ1_next(HPZ1* unit, int inNumSamples) {
-    // printf("HPZ1_next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
 
@@ -1510,12 +1742,14 @@ void HPZ1_next(HPZ1* unit, int inNumSamples) {
 
     LOOP(inNumSamples >> 2, x0 = ZXP(in); float out0 = 0.5 * (x0 - x1); x1 = ZXP(in); float out1 = 0.5 * (x1 - x0);
          x0 = ZXP(in); float out2 = 0.5 * (x0 - x1); x1 = ZXP(in); float out3 = 0.5 * (x1 - x0);
-
+         printf("[HPZ1] next_: %f\n", out0); // mtm
+         printf("[HPZ1] next_: %f\n", out1); // mtm
+         printf("[HPZ1] next_: %f\n", out2); // mtm
+         printf("[HPZ1] next_: %f\n", out3); // mtm
          ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2; ZXP(out) = out3;);
     LOOP(inNumSamples & 3, x0 = ZXP(in);
-         // printf("%d %d %g %g\n", this, inNumSamples, x0, x1);
-         ZXP(out) = 0.5f * (x0 - x1);
-         x1 = x0;);
+         printf("[HPZ1] next_: %f\n", 0.5f * (x0 - x1)); // mtm
+         ZXP(out) = 0.5f * (x0 - x1); x1 = x0;);
 
     unit->m_x1 = x1;
 }
@@ -1523,24 +1757,28 @@ void HPZ1_next(HPZ1* unit, int inNumSamples) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Slope_Ctor(Slope* unit) {
-    // printf("Slope_Reset\n");
     SETCALC(Slope_next);
-    unit->m_x1 = ZIN0(0);
-    // printf("Slope_Reset %g\n", unit->m_x1);
-    Slope_next(unit, 1);
+    //	unit->m_x1 = ZIN0(0);
+    //	Slope_next(unit, 1);
+
+    printf("[Slope] init sample:\n\t"); // mtm
+    unit->m_x1 = 0.f;
+    ZOUT0(0) = SAMPLERATE * ZIN0(0); // out = sr * (x0 - x1);
+//    Slope_next(unit, 1); // mtm
+//    unit->m_x1 = 0.f;
+    printf("[Slope] first sample:\n\t"); // mtm
 }
 
 
 void Slope_next(Slope* unit, int inNumSamples) {
-    // printf("Slope_next_a %g\n", unit->m_x1);
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
 
     double x1 = unit->m_x1;
 
     double sr = SAMPLERATE;
-    LOOP1(inNumSamples, double x0 = ZXP(in); ZXP(out) = sr * (x0 - x1); x1 = x0;);
+    LOOP1(inNumSamples, double x0 = ZXP(in); printf("[Slope] next: %f\n", sr * (x0 - x1)); // mtm
+          ZXP(out) = sr * (x0 - x1); x1 = x0;);
 
     unit->m_x1 = x1;
 }
@@ -1550,8 +1788,11 @@ void Slope_next(Slope* unit, int inNumSamples) {
 void Delay1_Ctor(Delay1* unit) {
     // printf("Delay1_Reset\n");
     SETCALC(Delay1_next);
-    unit->m_x1 = ZIN0(0);
-    Delay1_next(unit, 1);
+    //	unit->m_x1 = ZIN0(0); // mtm temp fix for testing
+    printf("[Delay1] init sample:\n\t"); // mtm
+    unit->m_x1 = 0.f; // mtm
+    ZOUT0(0) = 0.f;
+    printf("[Delay1] first sample:\n\t"); // mtm
 }
 
 
@@ -1564,9 +1805,13 @@ void Delay1_next(Delay1* unit, int inNumSamples) {
     float x0;
     float x1 = unit->m_x1;
 
-    LOOP(inNumSamples >> 2, x0 = ZXP(in); ZXP(out) = x1; x1 = ZXP(in); ZXP(out) = x0; x0 = ZXP(in); ZXP(out) = x1;
-         x1 = ZXP(in); ZXP(out) = x0;);
-    LOOP(inNumSamples & 3, x0 = ZXP(in); ZXP(out) = x1; x1 = x0;);
+    LOOP(inNumSamples >> 2, x0 = ZXP(in); ZXP(out) = x1; printf("[Delay1] next_: %f\n", x1); // mtm
+         x1 = ZXP(in); ZXP(out) = x0; printf("[Delay1] next_: %f\n", x0); // mtm
+         x0 = ZXP(in); ZXP(out) = x1; printf("[Delay1] next_: %f\n", x1); // mtm
+         x1 = ZXP(in); ZXP(out) = x0; printf("[Delay1] next_: %f\n", x0); // mtm
+    );
+    LOOP(inNumSamples & 3, x0 = ZXP(in); ZXP(out) = x1; printf("[Delay1] next_: %f\n", x1); // mtm
+         x1 = x0;);
 
     unit->m_x1 = x1;
 }
@@ -1608,8 +1853,15 @@ void Flip_next_odd(Flip* unit, int inNumSamples) {
 
 void Delay2_Ctor(Delay2* unit) {
     SETCALC(Delay2_next);
-    unit->m_x1 = ZIN0(0);
+    //	unit->m_x1 = ZIN0(0);
+    //	ZOUT0(0) = 0.f;
+
+    unit->m_x1 = 0.f; // MTM
+    unit->m_x2 = 0.f; // mtm
+
+    printf("[Delay2] init sample: %f\n\t\n", 0.f); // mtm
     ZOUT0(0) = 0.f;
+    printf("[Delay2] first sample:\n\t"); // mtm
 }
 
 
@@ -1621,9 +1873,12 @@ void Delay2_next(Delay2* unit, int inNumSamples) {
     double x1 = unit->m_x1;
     double x2 = unit->m_x2;
 
-    LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); ZXP(out) = x2; x2 = ZXP(in); ZXP(out) = x1; x1 = ZXP(in);
+    LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); printf("[Delay2] next: %f\n", x2); // mtm
+         ZXP(out) = x2; x2 = ZXP(in); printf("[Delay2] next: %f\n", x1); // mtm
+         ZXP(out) = x1; x1 = ZXP(in); printf("[Delay2] next: %f\n", x0); // mtm
          ZXP(out) = x0;);
-    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = x2; x2 = x1; x1 = x0;);
+    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); printf("[Delay2] next: %f\n", x2); // mtm
+         ZXP(out) = x2; x2 = x1; x1 = x0;);
 
     unit->m_x1 = x1;
     unit->m_x2 = x2;
@@ -1635,16 +1890,23 @@ void Delay2_next(Delay2* unit, int inNumSamples) {
 void LPZ2_Ctor(LPZ2* unit) {
     // printf("LPZ2_Reset\n");
     SETCALC(LPZ2_next);
-    unit->m_x1 = unit->m_x2 = ZIN0(0);
-    PUSH_LOOPVALS
-    LPZ2_next(unit, 1);
-    POP_LOOPVALS
+    //	unit->m_x1 = unit->m_x2 = ZIN0(0);
+    //	PUSH_LOOPVALS
+    //	LPZ2_next(unit, 1);
+    //	POP_LOOPVALS
+
+    unit->m_x1 = unit->m_x2 = 0.f;
+    ZOUT0(0) = ZIN0(0) * 0.25; // out = (x0 + 2. * x1 + x2) * 0.25
+    printf("[LPZ2] init sample:\n\t%f\n", ZIN0(0) * 0.25); // mtm
+//    PUSH_LOOPVALS
+//    LPZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+    printf("[LPZ2] first sample:\n\t"); // mtm
 }
 
 
 void LPZ2_next(LPZ2* unit, int inNumSamples) {
-    // printf("LPZ2_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
 
@@ -1654,9 +1916,13 @@ void LPZ2_next(LPZ2* unit, int inNumSamples) {
 
     LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); float out0 = (x0 + 2.0 * x1 + x2) * 0.25; x2 = ZXP(in);
          float out1 = (x2 + 2.0 * x0 + x1) * 0.25; x1 = ZXP(in); float out2 = (x1 + 2.0 * x2 + x0) * 0.25;
-
+         printf("[LPZ2] next: %f\n", out0); // mtm
+         printf("[LPZ2] next: %f\n", out1); // mtm
+         printf("[LPZ2] next: %f\n", out2); // mtm
          ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2;);
-    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = (x0 + 2. * x1 + x2) * 0.25; x2 = x1; x1 = x0;);
+    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in);
+         printf("[LPZ2] next: %f\n", (x0 + 2. * x1 + x2) * 0.25); // mtm
+         ZXP(out) = (x0 + 2. * x1 + x2) * 0.25; x2 = x1; x1 = x0;);
 
     unit->m_x1 = x1;
     unit->m_x2 = x2;
@@ -1667,10 +1933,21 @@ void LPZ2_next(LPZ2* unit, int inNumSamples) {
 void HPZ2_Ctor(HPZ2* unit) {
     // printf("HPZ2_Reset\n");
     SETCALC(HPZ2_next);
-    unit->m_x1 = unit->m_x2 = ZIN0(0);
-    PUSH_LOOPVALS
-    HPZ2_next(unit, 1);
-    POP_LOOPVALS
+    //	unit->m_x1 = unit->m_x2 = ZIN0(0);
+    //	PUSH_LOOPVALS
+    //	HPZ2_next(unit, 1);
+    //	POP_LOOPVALS
+    
+    unit->m_x1 = unit->m_x2 = 0.f;
+    ZOUT0(0) = ZIN0(0) * 0.25; // out = (x0 - 2.0 * x1 + x2) * 0.25
+    printf("[HPZ2] init sample:\n\t%f\n", ZIN0(0) * 0.25); // mtm
+    
+//    PUSH_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+//    HPZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+    printf("[HPZ2] first sample:\n\t"); // mtm
 }
 
 
@@ -1686,8 +1963,12 @@ void HPZ2_next(HPZ2* unit, int inNumSamples) {
 
     LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); float out0 = (x0 - 2.0 * x1 + x2) * 0.25; x2 = ZXP(in);
          float out1 = (x2 - 2.0 * x0 + x1) * 0.25; x1 = ZXP(in); float out2 = (x1 - 2.0 * x2 + x0) * 0.25;
+         printf("[HPZ2] next: %f\n", out0); // mtm
+         printf("[HPZ2] next: %f\n", out1); // mtm
+         printf("[HPZ2] next: %f\n", out2); // mtm
          ZXP(out) = out0; ZXP(out) = out1; ZXP(out) = out2;);
-    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = (x0 - 2.0 * x1 + x2) * 0.25; x2 = x1; x1 = x0;);
+    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); printf("[HPZ2] next: %f\n", (x0 - 2.0 * x1 + x2) * 0.25); // mtm
+         ZXP(out) = (x0 - 2.0 * x1 + x2) * 0.25; x2 = x1; x1 = x0;);
 
     unit->m_x1 = x1;
     unit->m_x2 = x2;
@@ -1698,10 +1979,21 @@ void HPZ2_next(HPZ2* unit, int inNumSamples) {
 void BPZ2_Ctor(BPZ2* unit) {
     // printf("BPZ2_Reset\n");
     SETCALC(BPZ2_next);
-    unit->m_x1 = unit->m_x2 = ZIN0(0);
-    PUSH_LOOPVALS
-    BPZ2_next(unit, 1);
-    POP_LOOPVALS
+    //	unit->m_x1 = unit->m_x2 = ZIN0(0);
+    //	PUSH_LOOPVALS
+    //	BPZ2_next(unit, 1);
+    //	POP_LOOPVALS
+
+    unit->m_x1 = unit->m_x2 = 0.f;
+    ZOUT0(0) = ZIN0(0) * 0.5; // out = (x0 - x2) * 0.5
+    printf("[BPZ2] init sample:\n\t%f\n", ZIN0(0) * 0.5); // mtm
+
+//    PUSH_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+//    BPZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+    printf("[BPZ2] first sample:\n\t"); // mtm
 }
 
 
@@ -1715,9 +2007,12 @@ void BPZ2_next(BPZ2* unit, int inNumSamples) {
     double x1 = unit->m_x1;
     double x2 = unit->m_x2;
 
-    LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); ZXP(out) = (x0 - x2) * 0.5; x2 = ZXP(in); ZXP(out) = (x2 - x1) * 0.5;
-         x1 = ZXP(in); ZXP(out) = (x1 - x0) * 0.5;);
-    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = (x0 - x2) * 0.5; x2 = x1; x1 = x0;);
+    LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); printf("[BPZ2] next_: %f\n", (x0 - x2) * 0.5); // mtm
+         ZXP(out) = (x0 - x2) * 0.5; x2 = ZXP(in); printf("[BPZ2] next_: %f\n", (x2 - x1) * 0.5); // mtm
+         ZXP(out) = (x2 - x1) * 0.5; x1 = ZXP(in); printf("[BPZ2] next_: %f\n", (x1 - x0) * 0.5); // mtm
+         ZXP(out) = (x1 - x0) * 0.5;);
+    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); printf("[BPZ2] next_: %f\n", (x0 - x2) * 0.5); // mtm
+         ZXP(out) = (x0 - x2) * 0.5; x2 = x1; x1 = x0;);
 
     unit->m_x1 = x1;
     unit->m_x2 = x2;
@@ -1728,10 +2023,21 @@ void BPZ2_next(BPZ2* unit, int inNumSamples) {
 void BRZ2_Ctor(BRZ2* unit) {
     // printf("BRZ2_Reset\n");
     SETCALC(BRZ2_next);
-    unit->m_x1 = unit->m_x2 = ZIN0(0);
-    PUSH_LOOPVALS
-    BRZ2_next(unit, 1);
-    POP_LOOPVALS
+    //	unit->m_x1 = unit->m_x2 = ZIN0(0);
+    //	PUSH_LOOPVALS
+    //	BRZ2_next(unit, 1);
+    //	POP_LOOPVALS
+
+    unit->m_x1 = unit->m_x2 = 0.f;
+    ZOUT0(0) = ZIN0(0) * 0.5; // out = (x0 + x2) * 0.5
+    printf("[BRZ2] init sample:\n\t%f\n", ZIN0(0) * 0.5); // mtm
+    
+//    unit->m_x1 = unit->m_x2 = 0.f;
+//    PUSH_LOOPVALS
+//    BRZ2_next(unit, 1);
+//    POP_LOOPVALS
+//    unit->m_x1 = unit->m_x2 = 0.f;
+    printf("[BRZ2] first sample:\n\t"); // mtm
 }
 
 
@@ -1745,9 +2051,12 @@ void BRZ2_next(BRZ2* unit, int inNumSamples) {
     double x1 = unit->m_x1;
     double x2 = unit->m_x2;
 
-    LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); ZXP(out) = (x0 + x2) * 0.5; x2 = ZXP(in); ZXP(out) = (x2 + x1) * 0.5;
-         x1 = ZXP(in); ZXP(out) = (x1 + x0) * 0.5;);
-    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); ZXP(out) = (x0 + x2) * 0.5; x2 = x1; x1 = x0;);
+    LOOP(unit->mRate->mFilterLoops, x0 = ZXP(in); printf("[BRZ2] next: %f\n", (x0 + x2) * 0.5); // mtm
+         ZXP(out) = (x0 + x2) * 0.5; x2 = ZXP(in); printf("[BRZ2] next: %f\n", (x2 + x1) * 0.5); // mtm
+         ZXP(out) = (x2 + x1) * 0.5; x1 = ZXP(in); printf("[BRZ2] next: %f\n", (x1 + x0) * 0.5); // mtm
+         ZXP(out) = (x1 + x0) * 0.5;);
+    LOOP(unit->mRate->mFilterRemain, x0 = ZXP(in); printf("[BRZ2] next: %f\n", (x0 + x2) * 0.5); // mtm
+         ZXP(out) = (x0 + x2) * 0.5; x2 = x1; x1 = x0;);
 
     unit->m_x1 = x1;
     unit->m_x2 = x2;
@@ -1758,21 +2067,27 @@ void BRZ2_next(BRZ2* unit, int inNumSamples) {
 void Slew_Ctor(Slew* unit) {
     // printf("Slew_Reset\n");
     SETCALC(Slew_next);
-    unit->mLevel = ZIN0(0);
-    Slew_next(unit, 1);
+    //	unit->mLevel = ZIN0(0);
+    //	Slew_next(unit, 1);
+
+    printf("[Slew] init sample:\n\t"); // mtm
+    unit->mLevel = 0.f;
+    Slew_next(unit, 1); // mtm
+    unit->mLevel = 0.f;
+    printf("[Slew] first sample:\n\t"); // mtm
 }
 
 
 void Slew_next(Slew* unit, int inNumSamples) {
-    // printf("Slew_next_a\n");
-
     float sampleDur = unit->mRate->mSampleDur;
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float upf = ZIN0(1) * sampleDur;
     float dnf = 0.f - ZIN0(2) * sampleDur;
     double level = unit->mLevel;
-    LOOP1(inNumSamples, double slope = ZXP(in) - level; level += sc_clip(slope, dnf, upf); ZXP(out) = level;);
+    LOOP1(inNumSamples, double slope = ZXP(in) - level; level += sc_clip(slope, dnf, upf);
+          printf("[Slew] next: %f\n", level); // mtm
+          ZXP(out) = level;);
     unit->mLevel = level;
 }
 
@@ -1797,7 +2112,6 @@ void Slew_next(Slew* unit, int inNumSamples) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void RLPF_Ctor(RLPF* unit) {
-    // printf("RLPF_Reset\n");
     if (unit->mBufLength == 1) {
         SETCALC(RLPF_next_1);
     } else {
@@ -1809,15 +2123,20 @@ void RLPF_Ctor(RLPF* unit) {
     unit->m_b2 = 0.f;
     unit->m_y1 = 0.f;
     unit->m_y2 = 0.f;
+    // these unitialized controls will trigger re-initialization of a0, b1, b2
     unit->m_freq = uninitializedControl;
     unit->m_reson = uninitializedControl;
+    //	RLPF_next_1(unit, 1);
+
+    printf("[RLPF] init sample:\n\t"); // mtm
     RLPF_next_1(unit, 1);
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
+    printf("[RLPF] first sample:\n\t"); // mtm
 }
 
 
 void RLPF_next(RLPF* unit, int inNumSamples) {
-    // printf("RLPF_next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -1847,15 +2166,20 @@ void RLPF_next(RLPF* unit, int inNumSamples) {
         double a0_slope = (next_a0 - a0) * unit->mRate->mFilterSlope;
         double b1_slope = (next_b1 - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
-        LOOP(unit->mRate->mFilterLoops, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 + 2.0 * y1 + y2;
+        LOOP(unit->mRate->mFilterLoops, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RLPF] next: %f\n", y0 + 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 + 2.0 * y1 + y2;
 
-             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = y2 + 2.0 * y0 + y1;
+             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; printf("[RLPF] next: %f\n", y2 + 2.0 * y0 + y1); // mtm
+             ZXP(out) = y2 + 2.0 * y0 + y1;
 
-             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = y1 + 2.0 * y2 + y0;
+             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; printf("[RLPF] next: %f\n", y1 + 2.0 * y2 + y0); // mtm
+             ZXP(out) = y1 + 2.0 * y2 + y0;
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 + 2.0 * y1 + y2; y2 = y1;
-             y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RLPF] next: %f\n", y0 + 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 + 2.0 * y1 + y2; y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_reson = reson;
@@ -1863,13 +2187,18 @@ void RLPF_next(RLPF* unit, int inNumSamples) {
         unit->m_b1 = next_b1;
         unit->m_b2 = next_b2;
     } else {
-        LOOP(unit->mRate->mFilterLoops, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 + 2.0 * y1 + y2;
+        LOOP(unit->mRate->mFilterLoops, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RLPF] next: %f\n", y0 + 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 + 2.0 * y1 + y2;
 
-             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = y2 + 2.0 * y0 + y1;
+             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; printf("[RLPF] next: %f\n", y2 + 2.0 * y0 + y1); // mtm
+             ZXP(out) = y2 + 2.0 * y0 + y1;
 
-             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = y1 + 2.0 * y2 + y0;);
-        LOOP(unit->mRate->mFilterRemain, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 + 2.0 * y1 + y2; y2 = y1;
-             y1 = y0;);
+             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; printf("[RLPF] next: %f\n", y1 + 2.0 * y2 + y0); // mtm
+             ZXP(out) = y1 + 2.0 * y2 + y0;);
+        LOOP(unit->mRate->mFilterRemain, y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RLPF] next: %f\n", y0 + 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 + 2.0 * y1 + y2; y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -1877,8 +2206,6 @@ void RLPF_next(RLPF* unit, int inNumSamples) {
 
 
 void RLPF_next_1(RLPF* unit, int inNumSamples) {
-    // printf("RLPF_next_1\n");
-
     float in = ZIN0(0);
     float freq = ZIN0(1);
     float reson = ZIN0(2);
@@ -1903,6 +2230,7 @@ void RLPF_next_1(RLPF* unit, int inNumSamples) {
         a0 = (1.0 + C - b1) * .25;
 
         y0 = a0 * in + b1 * y1 + b2 * y2;
+        printf("[RLPF] next_1: %f\n", y0 + 2.0 * y1 + y2); // mtm
         ZOUT0(0) = y0 + 2.0 * y1 + y2;
         y2 = y1;
         y1 = y0;
@@ -1914,6 +2242,7 @@ void RLPF_next_1(RLPF* unit, int inNumSamples) {
         unit->m_b2 = b2;
     } else {
         y0 = a0 * in + b1 * y1 + b2 * y2;
+        printf("[RLPF] next_1: %f\n", y0 + 2.0 * y1 + y2); // mtm
         ZOUT0(0) = y0 + 2.0 * y1 + y2;
         y2 = y1;
         y1 = y0;
@@ -1931,20 +2260,24 @@ void RHPF_Ctor(RHPF* unit) {
     else
         SETCALC(RHPF_next);
 
-    unit->m_a0 = 0.;
-    unit->m_b1 = 0.;
-    unit->m_b2 = 0.;
-    unit->m_y1 = 0.;
-    unit->m_y2 = 0.;
+    unit->m_a0 = 0.f;
+    unit->m_b1 = 0.f;
+    unit->m_b2 = 0.f;
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
     unit->m_freq = uninitializedControl;
     unit->m_reson = uninitializedControl;
-    RHPF_next_1(unit, 1);
+    //	RHPF_next_1(unit, 1);
+
+    printf("[RHPF] init sample:\n\t"); // mtm
+    RHPF_next_1(unit, 1); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
+    printf("[RHPF] first sample:\n\t"); // mtm
 }
 
 
 void RHPF_next(RHPF* unit, int inNumSamples) {
-    // printf("RHPFs_next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -1974,15 +2307,20 @@ void RHPF_next(RHPF* unit, int inNumSamples) {
         double a0_slope = (next_a0 - a0) * unit->mRate->mFilterSlope;
         double b1_slope = (next_b1 - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
-        LOOP(unit->mRate->mFilterLoops, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 - 2.0 * y1 + y2;
+        LOOP(unit->mRate->mFilterLoops, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RHPF] next: %f\n", y0 - 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 - 2.0 * y1 + y2;
 
-             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = y2 - 2.0 * y0 + y1;
+             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; printf("[RHPF] next: %f\n", y2 - 2.0 * y0 + y1); // mtm
+             ZXP(out) = y2 - 2.0 * y0 + y1;
 
-             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = y1 - 2.0 * y2 + y0;
+             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; printf("[RHPF] next: %f\n", y1 - 2.0 * y2 + y0); // mtm
+             ZXP(out) = y1 - 2.0 * y2 + y0;
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 - 2.0 * y1 + y2;
-             y2 = y1; y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RHPF] next: %f\n", y0 - 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 - 2.0 * y1 + y2; y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_reson = reson;
@@ -1990,13 +2328,18 @@ void RHPF_next(RHPF* unit, int inNumSamples) {
         unit->m_b1 = next_b1;
         unit->m_b2 = next_b2;
     } else {
-        LOOP(unit->mRate->mFilterLoops, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 - 2.0 * y1 + y2;
+        LOOP(unit->mRate->mFilterLoops, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RHPF] next: %f\n", y0 - 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 - 2.0 * y1 + y2;
 
-             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = y2 - 2.0 * y0 + y1;
+             y2 = a0 * ZXP(in) + b1 * y0 + b2 * y1; printf("[RHPF] next: %f\n", y2 - 2.0 * y0 + y1); // mtm
+             ZXP(out) = y2 - 2.0 * y0 + y1;
 
-             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = y1 - 2.0 * y2 + y0;);
-        LOOP(unit->mRate->mFilterRemain, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = y0 - 2.0 * y1 + y2;
-             y2 = y1; y1 = y0;);
+             y1 = a0 * ZXP(in) + b1 * y2 + b2 * y0; printf("[RHPF] next: %f\n", y1 - 2.0 * y2 + y0); // mtm
+             ZXP(out) = y1 - 2.0 * y2 + y0;);
+        LOOP(unit->mRate->mFilterRemain, double y0 = a0 * ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[RHPF] next: %f\n", y0 - 2.0 * y1 + y2); // mtm
+             ZXP(out) = y0 - 2.0 * y1 + y2; y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -2028,6 +2371,7 @@ void RHPF_next_1(RHPF* unit, int inNumSamples) {
         a0 = (1. + C + b1) * .25;
 
         double y0 = a0 * in + b1 * y1 + b2 * y2;
+        printf("[RHPF] next: %f\n", y0 - 2.0 * y1 + y2); // mtm
         ZOUT0(0) = y0 - 2.0 * y1 + y2;
         y2 = y1;
         y1 = y0;
@@ -2039,6 +2383,7 @@ void RHPF_next_1(RHPF* unit, int inNumSamples) {
         unit->m_b2 = b2;
     } else {
         double y0 = a0 * in + b1 * y1 + b2 * y2;
+        printf("[RHPF] next: %f\n", y0 - 2.0 * y1 + y2); // mtm
         ZOUT0(0) = y0 - 2.0 * y1 + y2;
         y2 = y1;
         y1 = y0;
@@ -2062,7 +2407,13 @@ void LPF_Ctor(LPF* unit) {
     unit->m_y1 = 0.f;
     unit->m_y2 = 0.f;
     unit->m_freq = uninitializedControl;
-    LPF_next_1(unit, 1);
+    //	LPF_next_1(unit, 1);
+
+    printf("[LPF] init sample:\n\t"); // mtm
+    LPF_next_1(unit, 1); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
+    printf("[LPF] first sample:\n\t"); // mtm
 }
 
 
@@ -2096,15 +2447,20 @@ void LPF_next(LPF* unit, int inNumSamples) {
         double a0_slope = (next_a0 - a0) * unit->mRate->mFilterSlope;
         double b1_slope = (next_b1 - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
-        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 + 2. * y1 + y2);
+        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[LPF] next: %f\n", a0 * (y0 + 2. * y1 + y2)); // mtm
+             ZXP(out) = a0 * (y0 + 2. * y1 + y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 + 2. * y0 + y1);
+             y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[LPF] next: %f\n", a0 * (y2 + 2. * y0 + y1)); // mtm
+             ZXP(out) = a0 * (y2 + 2. * y0 + y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 + 2.f * y2 + y0);
+             y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[LPF] next: %f\n", a0 * (y1 + 2.f * y2 + y0)); // mtm
+             ZXP(out) = a0 * (y1 + 2.f * y2 + y0);
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 + 2. * y1 + y2); y2 = y1;
-             y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[LPF] next: %f\n", a0 * (y0 + 2. * y1 + y2)); // mtm
+             ZXP(out) = a0 * (y0 + 2. * y1 + y2); y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_a0 = next_a0;
@@ -2116,16 +2472,20 @@ void LPF_next(LPF* unit, int inNumSamples) {
              y2 = ZXP(in) + b1 * y0 + b2 * y1; float out1 = a0 * (y2 + 2. * y0 + y1);
 
              y1 = ZXP(in) + b1 * y2 + b2 * y0; float out2 = a0 * (y1 + 2. * y2 + y0); ZXP(out) = out0; ZXP(out) = out1;
-             ZXP(out) = out2;);
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 + 2. * y1 + y2); y2 = y1;
-             y1 = y0;);
+             ZXP(out) = out2; printf("[LPF] next: %f\n", out0); // mtm
+             printf("[LPF] next: %f\n", out1); // mtm
+             printf("[LPF] next: %f\n", out2); // mtm
+
+        );
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[LPF] next: %f\n", a0 * (y0 + 2. * y1 + y2)); // mtm
+             ZXP(out) = a0 * (y0 + 2. * y1 + y2); y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
 }
 
 void LPF_next_1(LPF* unit, int inNumSamples) {
-    // printf("LPF_next\n");
     float in = ZIN0(0);
     float freq = ZIN0(1);
 
@@ -2147,6 +2507,7 @@ void LPF_next_1(LPF* unit, int inNumSamples) {
         b2 = -(1.f - sqrt2C + C2) * a0;
 
         y0 = in + b1 * y1 + b2 * y2;
+        printf("[LPF] next_1: %f\n", a0 * (y0 + 2. * y1 + y2)); // mtm
         ZOUT0(0) = a0 * (y0 + 2. * y1 + y2);
         y2 = y1;
         y1 = y0;
@@ -2157,6 +2518,7 @@ void LPF_next_1(LPF* unit, int inNumSamples) {
         unit->m_b2 = b2;
     } else {
         y0 = in + b1 * y1 + b2 * y2;
+        printf("[LPF] next_1: %f\n", a0 * (y0 + 2. * y1 + y2)); // mtm
         ZOUT0(0) = a0 * (y0 + 2. * y1 + y2);
         y2 = y1;
         y1 = y0;
@@ -2180,7 +2542,13 @@ void HPF_Ctor(HPF* unit) {
     unit->m_y2 = 0.;
     unit->m_freq = uninitializedControl;
 
-    HPF_next_1(unit, 1);
+    //	HPF_next_1(unit, 1);
+
+//    printf("[HPF] init sample:\n\t"); // mtm
+    HPF_next_1(unit, 1); // mtm
+    unit->m_y1 = 0.;
+    unit->m_y2 = 0.;
+//    printf("[HPF] first sample:\n\t"); // mtm
 }
 
 
@@ -2213,15 +2581,22 @@ void HPF_next(HPF* unit, int inNumSamples) {
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
         LOOP(unit->mRate->mFilterLoops, double in0 = ZXP(in); double in1 = ZXP(in); double in2 = ZXP(in);
 
-             double y0 = in0 + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - 2. * y1 + y2);
+             double y0 = in0 + b1 * y1 + b2 * y2;
+//             printf("[HPF] next: %f\n", a0 * (y0 - 2. * y1 + y2)); // mtm
+             ZXP(out) = a0 * (y0 - 2. * y1 + y2);
 
-             y2 = in1 + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - 2. * y0 + y1);
+             y2 = in1 + b1 * y0 + b2 * y1;
+//             printf("[HPF] next: %f\n", a0 * (y2 - 2. * y0 + y1)); // mtm
+             ZXP(out) = a0 * (y2 - 2. * y0 + y1);
 
-             y1 = in2 + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - 2. * y2 + y0);
+             y1 = in2 + b1 * y2 + b2 * y0;
+//             printf("[HPF] next: %f\n", a0 * (y1 - 2. * y2 + y0)); // mtm
+             ZXP(out) = a0 * (y1 - 2. * y2 + y0);
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - 2. * y1 + y2);
-             y2 = y1; y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2;
+//             printf("[HPF] next: %f\n", a0 * (y0 - 2. * y1 + y2)); // mtm
+             ZXP(out) = a0 * (y0 - 2. * y1 + y2); y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_a0 = next_a0;
@@ -2230,13 +2605,20 @@ void HPF_next(HPF* unit, int inNumSamples) {
     } else {
         LOOP(unit->mRate->mFilterLoops, double in0 = ZXP(in); double in1 = ZXP(in); double in2 = ZXP(in);
 
-             double y0 = in0 + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - 2. * y1 + y2);
+             double y0 = in0 + b1 * y1 + b2 * y2;
+//             printf("[HPF] next: %f\n", a0 * (y0 - 2. * y1 + y2)); // mtm
+             ZXP(out) = a0 * (y0 - 2. * y1 + y2);
 
-             y2 = in1 + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - 2. * y0 + y1);
+             y2 = in1 + b1 * y0 + b2 * y1;
+//             printf("[HPF] next: %f\n", a0 * (y2 - 2. * y0 + y1)); // mtm
+             ZXP(out) = a0 * (y2 - 2. * y0 + y1);
 
-             y1 = in2 + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - 2. * y2 + y0););
-        LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - 2. * y1 + y2);
-             y2 = y1; y1 = y0;);
+             y1 = in2 + b1 * y2 + b2 * y0;
+//             printf("[HPF] next: %f\n", a0 * (y1 - 2. * y2 + y0)); // mtm
+             ZXP(out) = a0 * (y1 - 2. * y2 + y0););
+        LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2;
+//             printf("[HPF] next: %f\n", a0 * (y0 - 2. * y1 + y2)); // mtm
+             ZXP(out) = a0 * (y0 - 2. * y1 + y2); y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -2263,6 +2645,7 @@ void HPF_next_1(HPF* unit, int inNumSamples) {
         b2 = -(1. - sqrt2C + C2) * a0;
 
         double y0 = in + b1 * y1 + b2 * y2;
+//        printf("[HPF] next_1: %f\n", a0 * (y0 - 2. * y1 + y2)); // mtm
         ZOUT0(0) = a0 * (y0 - 2. * y1 + y2);
         y2 = y1;
         y1 = y0;
@@ -2273,6 +2656,7 @@ void HPF_next_1(HPF* unit, int inNumSamples) {
         unit->m_b2 = b2;
     } else {
         double y0 = in + b1 * y1 + b2 * y2;
+//        printf("[HPF] next_1: %f\n", a0 * (y0 - 2. * y1 + y2)); // mtm
         ZOUT0(0) = a0 * (y0 - 2. * y1 + y2);
         y2 = y1;
         y1 = y0;
@@ -2299,12 +2683,16 @@ void BPF_Ctor(BPF* unit) {
     unit->m_freq = uninitializedControl;
     unit->m_bw = uninitializedControl;
 
-    BPF_next_1(unit, 1);
+    //	BPF_next_1(unit, 1);
+
+    printf("[BPF] init sample:\n\t"); // mtm
+    BPF_next_1(unit, 1); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
+    printf("[BPF] first sample:\n\t"); // mtm
 }
 
 void BPF_next(BPF* unit, int inNumSamples) {
-    // printf("BPF_next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -2331,15 +2719,20 @@ void BPF_next(BPF* unit, int inNumSamples) {
         double a0_slope = (next_a0 - a0) * unit->mRate->mFilterSlope;
         double b1_slope = (next_b1 - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
-        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[BPF] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - y1);
+             y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BPF] next: %f\n", a0 * (y2 - y1)); // mtm
+             ZXP(out) = a0 * (y2 - y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - y0);
+             y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BPF] next: %f\n", a0 * (y1 - y0)); // mtm
+             ZXP(out) = a0 * (y1 - y0);
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2); y2 = y1;
-             y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[BPF] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2); y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_bw = bw;
@@ -2347,21 +2740,24 @@ void BPF_next(BPF* unit, int inNumSamples) {
         unit->m_b1 = next_b1;
         unit->m_b2 = next_b2;
     } else {
-        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[BPF] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - y1);
+             y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BPF] next: %f\n", a0 * (y2 - y1)); // mtm
+             ZXP(out) = a0 * (y2 - y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - y0););
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2); y2 = y1;
-             y1 = y0;);
+             y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BPF] next: %f\n", a0 * (y1 - y0)); // mtm
+             ZXP(out) = a0 * (y1 - y0););
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[BPF] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2); y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
 }
 
 void BPF_next_1(BPF* unit, int inNumSamples) {
-    // printf("BPF_next_1\n");
-
     float in = ZIN0(0);
     float freq = ZIN0(1);
     float bw = ZIN0(2);
@@ -2385,6 +2781,7 @@ void BPF_next_1(BPF* unit, int inNumSamples) {
         double b2 = (1.f - C) * a0;
 
         y0 = in + b1 * y1 + b2 * y2;
+        printf("[BPF] next_1: %f\n", a0 * (y0 - y2)); // mtm
         ZOUT0(0) = a0 * (y0 - y2);
         y2 = y1;
         y1 = y0;
@@ -2396,6 +2793,7 @@ void BPF_next_1(BPF* unit, int inNumSamples) {
         unit->m_b2 = b2;
     } else {
         y0 = in + b1 * y1 + b2 * y2;
+        printf("[BPF] next_1: %f\n", a0 * (y0 - y2)); // mtm
         ZOUT0(0) = a0 * (y0 - y2);
         y2 = y1;
         y1 = y0;
@@ -2421,13 +2819,17 @@ void BRF_Ctor(BRF* unit) {
     unit->m_y2 = 0.f;
     unit->m_freq = uninitializedControl;
     unit->m_bw = uninitializedControl;
-    BRF_next_1(unit, 1);
+    //	BRF_next_1(unit, 1);
+
+    printf("[BRF] init sample:\n\t"); // mtm
+    BRF_next_1(unit, 1); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
+    printf("[BRF] first sample:\n\t"); // mtm
 }
 
 
 void BRF_next(BRF* unit, int inNumSamples) {
-    // printf("BRF_next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -2456,15 +2858,24 @@ void BRF_next(BRF* unit, int inNumSamples) {
         double a1_slope = (next_a1 - a1) * unit->mRate->mFilterSlope;
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
 
-        LOOP(unit->mRate->mFilterLoops, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2; ZXP(out) = a0 * (y0 + y2) + ay;
+        LOOP(unit->mRate->mFilterLoops, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2;
+             printf("[BRF] next: %f\n", a0 * (y0 + y2) + ay); // mtm
+             ZXP(out) = a0 * (y0 + y2) + ay;
 
-             ay = a1 * y0; y2 = ZXP(in) - ay - b2 * y1; ZXP(out) = a0 * (y2 + y1) + ay;
+             ay = a1 * y0; y2 = ZXP(in) - ay - b2 * y1; printf("[BRF] next: %f\n", a0 * (y2 + y1) + ay); // mtm
+             ZXP(out) = a0 * (y2 + y1) + ay;
 
-             ay = a1 * y2; y1 = ZXP(in) - ay - b2 * y0; ZXP(out) = a0 * (y1 + y0) + ay;
+             ay = a1 * y2; y1 = ZXP(in) - ay - b2 * y0; printf("[BRF] next: %f\n", a0 * (y1 + y0) + ay); // mtm
+             ZXP(out) = a0 * (y1 + y0) + ay;
 
              a0 += a0_slope; a1 += a1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2; ZXP(out) = a0 * (y0 + y2) + ay;
-             y2 = y1; y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain,
+             ay = a1 * y1; // ay = a1*0 = 0
+             y0 = ZXP(in) - ay - b2 * y2; // y0 = in - 0 - (b2*0) = in
+             ZXP(out) = a0 * (y0 + y2) + ay; // out = a0 * (y0+0) + 0 = a0*in;
+             printf("[BRF] next: %f\n", a0 * (y0 + y2) + ay); // mtm
+             y2 = y1;
+             y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_bw = bw;
@@ -2472,13 +2883,18 @@ void BRF_next(BRF* unit, int inNumSamples) {
         unit->m_a1 = next_a1;
         unit->m_b2 = next_b2;
     } else {
-        LOOP(unit->mRate->mFilterLoops, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2; ZXP(out) = a0 * (y0 + y2) + ay;
+        LOOP(unit->mRate->mFilterLoops, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2;
+             printf("[BRF] next: %f\n", a0 * (y0 + y2) + ay); // mtm
+             ZXP(out) = a0 * (y0 + y2) + ay;
 
-             ay = a1 * y0; y2 = ZXP(in) - ay - b2 * y1; ZXP(out) = a0 * (y2 + y1) + ay;
+             ay = a1 * y0; y2 = ZXP(in) - ay - b2 * y1; printf("[BRF] next: %f\n", a0 * (y2 + y1) + ay); // mtm
+             ZXP(out) = a0 * (y2 + y1) + ay;
 
-             ay = a1 * y2; y1 = ZXP(in) - ay - b2 * y0; ZXP(out) = a0 * (y1 + y0) + ay;);
-        LOOP(unit->mRate->mFilterRemain, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2; ZXP(out) = a0 * (y0 + y2) + ay;
-             y2 = y1; y1 = y0;);
+             ay = a1 * y2; y1 = ZXP(in) - ay - b2 * y0; printf("[BRF] next: %f\n", a0 * (y1 + y0) + ay); // mtm
+             ZXP(out) = a0 * (y1 + y0) + ay;);
+        LOOP(unit->mRate->mFilterRemain, ay = a1 * y1; y0 = ZXP(in) - ay - b2 * y2;
+             printf("[BRF] next: %f\n", a0 * (y0 + y2) + ay); // mtm
+             ZXP(out) = a0 * (y0 + y2) + ay; y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -2513,6 +2929,7 @@ void BRF_next_1(BRF* unit, int inNumSamples) {
 
         ay = a1 * y1;
         y0 = in - ay - b2 * y2;
+        printf("[BRF] next_1: %f\n", a0 * (y0 + y2) + ay); // mtm
         ZOUT0(0) = a0 * (y0 + y2) + ay;
         y2 = y1;
         y1 = y0;
@@ -2525,6 +2942,7 @@ void BRF_next_1(BRF* unit, int inNumSamples) {
     } else {
         ay = a1 * y1;
         y0 = in - ay - b2 * y2;
+        printf("[BRF] next_1: %f\n", a0 * (y0 + y2) + ay); // mtm
         ZOUT0(0) = a0 * (y0 + y2) + ay;
         y2 = y1;
         y1 = y0;
@@ -2536,26 +2954,85 @@ void BRF_next_1(BRF* unit, int inNumSamples) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//void MidEQ_Ctor(MidEQ* unit) {
+//    SETCALC(MidEQ_next);
+//
+//    float freq = ZIN0(1);
+//    float bw = ZIN0(2);
+//    float db = ZIN0(3);
+//
+//    double amp = sc_dbamp(db) - 1.0f;
+//    double pfreq = freq * unit->mRate->mRadiansPerSample;
+//    double pbw = bw * pfreq * 0.5f;
+//    double C = 1.f / tan(pbw);
+//    double D = 2.f * cos(pfreq);
+//
+//    double init_a0 = 1.f / (1.f + C);
+//    double init_b1 = C * D * init_a0;
+//    double init_b2 = (1.f - C) * init_a0;
+//    init_a0 *= amp;
+//
+//    unit->m_a0 = init_a0;
+//    unit->m_b1 = init_b1;
+//    unit->m_b2 = init_b2;
+//    unit->m_y1 = 0.f;
+//    unit->m_y2 = 0.f;
+//    unit->m_freq = freq;
+//    unit->m_bw = bw;
+//    unit->m_db = db;
+//
+//    printf("[MidEQ] init sample:\n\t"); // mtm
+//    PUSH_LOOPVALS
+//    MidEQ_next(unit, 1);
+//    POP_LOOPVALS
+//    printf("[MidEQ] first sample:\n\t"); // mtm
+//    // roll back advance done in initialization
+//    unit->m_y1 = 0.f;
+//    unit->m_y2 = 0.f;
+//}
+
+static inline void MidEQ_calcCoeffs(MidEQ* unit, double& a0, double& b1, double& b2, float freq, float bw, float db) {
+    double amp = sc_dbamp(db) - 1.0f;
+    double pfreq = freq * unit->mRate->mRadiansPerSample;
+    double pbw = bw * pfreq * 0.5f;
+    double C = 1.f / tan(pbw);
+    double D = 2.f * cos(pfreq);
+    
+    a0 = 1.f / (1.f + C);
+    b1 = C * D * a0;
+    b2 = (1.f - C) * a0;
+    a0 *= amp;
+}
+
 void MidEQ_Ctor(MidEQ* unit) {
-    // printf("MidEQ_Reset\n");
     SETCALC(MidEQ_next);
-    unit->m_a0 = 0.f;
-    unit->m_b1 = 0.f;
-    unit->m_b2 = 0.f;
+    
+    float freq = ZIN0(1);
+    float bw = ZIN0(2);
+    float db = ZIN0(3);
+    
+    double init_a0, init_b1, init_b2;
+    MidEQ_calcCoeffs(unit, init_a0, init_b1, init_b2, freq, bw, db);
+        
+    unit->m_a0 = init_a0;
+    unit->m_b1 = init_b1;
+    unit->m_b2 = init_b2;
     unit->m_y1 = 0.f;
     unit->m_y2 = 0.f;
-    unit->m_freq = uninitializedControl;
-    unit->m_bw = uninitializedControl;
-    unit->m_db = uninitializedControl;
-    PUSH_LOOPVALS
-    MidEQ_next(unit, 1);
-    POP_LOOPVALS
+    unit->m_freq = freq;
+    unit->m_bw = bw;
+    unit->m_db = db;
+    
+    // NOTE: given y1=y2=0, so first sample out = in + a0*in
+    float out1 = ZIN0(0) * (1 + init_a0); printf("[MidEQ] out1: %f\n", out1);
+    ZOUT0(0) = out1; printf("[MidEQ] first sample:\n\t"); // mtm
+    // roll back advance done in initialization
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
 }
 
 
 void MidEQ_next(MidEQ* unit, int inNumSamples) {
-    // printf("MidEQ_next\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(0);
     float freq = ZIN0(1);
@@ -2569,30 +3046,40 @@ void MidEQ_next(MidEQ* unit, int inNumSamples) {
     double b1 = unit->m_b1;
     double b2 = unit->m_b2;
     if (freq != unit->m_freq || bw != unit->m_bw || db != unit->m_db) {
-        double amp = sc_dbamp(db) - 1.0f;
-        double pfreq = freq * unit->mRate->mRadiansPerSample;
-        double pbw = bw * pfreq * 0.5f;
-
-        double C = 1.f / tan(pbw);
-        double D = 2.f * cos(pfreq);
-
-        double next_a0 = 1.f / (1.f + C);
-        double next_b1 = C * D * next_a0;
-        double next_b2 = (1.f - C) * next_a0;
-        next_a0 *= amp;
+//        double amp = sc_dbamp(db) - 1.0f;
+//        double pfreq = freq * unit->mRate->mRadiansPerSample;
+//        double pbw = bw * pfreq * 0.5f;
+//
+//        double C = 1.f / tan(pbw);
+//        double D = 2.f * cos(pfreq);
+//
+//        double next_a0 = 1.f / (1.f + C);
+//        double next_b1 = C * D * next_a0;
+//        double next_b2 = (1.f - C) * next_a0;
+//        next_a0 *= amp;
+        double next_a0, next_b1, next_b2;
+        MidEQ_calcCoeffs(unit, next_a0, next_b1, next_b2, freq, bw, db);
+        
         double a0_slope = (next_a0 - a0) * unit->mRate->mFilterSlope;
         double b1_slope = (next_b1 - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
         double zin;
-        LOOP(unit->mRate->mFilterLoops, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2; ZXP(out) = zin + a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;
+             printf("[MidEQ] next_: %f\n", zin + a0 * (y0 - y2)); // mtm
+             ZXP(out) = zin + a0 * (y0 - y2);
 
-             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1; ZXP(out) = zin + a0 * (y2 - y1);
+             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1;
+//             printf("[MidEQ] next_: %f\n", zin + a0 * (y2 - y1)); // mtm
+             ZXP(out) = zin + a0 * (y2 - y1);
 
-             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0; ZXP(out) = zin + a0 * (y1 - y0);
+             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0;
+//             printf("[MidEQ] next_: %f\n", zin + a0 * (y1 - y0)); // mtm
+             ZXP(out) = zin + a0 * (y1 - y0);
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2; ZXP(out) = zin + a0 * (y0 - y2);
-             y2 = y1; y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;
+             printf("[MidEQ] next_remain: %f\n", zin + a0 * (y0 - y2)); // mtm
+             ZXP(out) = zin + a0 * (y0 - y2); y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_bw = bw;
@@ -2602,12 +3089,22 @@ void MidEQ_next(MidEQ* unit, int inNumSamples) {
         unit->m_b2 = next_b2;
     } else {
         double zin;
-        LOOP(unit->mRate->mFilterLoops, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2; ZXP(out) = zin + a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops,
+             zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;
+             printf("[MidEQ] next_nochangeloop: %f\n", zin + a0 * (y0 - y2)); // mtm
+             ZXP(out) = zin + a0 * (y0 - y2);
 
-             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1; ZXP(out) = zin + a0 * (y2 - y1);
+             zin = ZXP(in); y2 = zin + b1 * y0 + b2 * y1;
+//             printf("[MidEQ] next_nochangeloop: %f\n", zin + a0 * (y2 - y1)); // mtm
+             ZXP(out) = zin + a0 * (y2 - y1);
 
-             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0; ZXP(out) = zin + a0 * (y1 - y0););
-        LOOP(unit->mRate->mFilterRemain, zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2; ZXP(out) = zin + a0 * (y0 - y2);
+             zin = ZXP(in); y1 = zin + b1 * y2 + b2 * y0;
+//             printf("[MidEQ] next_nochangeloop: %f\n", zin + a0 * (y1 - y0)); // mtm
+             ZXP(out) = zin + a0 * (y1 - y0););
+        LOOP(unit->mRate->mFilterRemain,
+             zin = ZXP(in); y0 = zin + b1 * y1 + b2 * y2;  // y0 = in +0+0;
+             printf("[MidEQ] next_nochangeremain: %f\n", zin + a0 * (y0 - y2)); // mtm
+             ZXP(out) = zin + a0 * (y0 - y2); // out = in + a0*(in-0)
              y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
@@ -2623,9 +3120,19 @@ void Median_Ctor(Median* unit) {
     // printf("Median_Reset\n");
     SETCALC(Median_next);
     float in = ZIN0(1);
-    unit->m_medianSize = sc_clip((int)ZIN0(0), 0, kMAXMEDIANSIZE);
+    //	unit->m_medianSize = sc_clip((int)ZIN0(0), 0, kMAXMEDIANSIZE);
+    //	Median_InitMedian(unit, unit->m_medianSize, in);
+    //	ZOUT0(0) = Median_InsertMedian(unit, in);
+
+    long medianSize = sc_clip((int)ZIN0(0), 1, kMAXMEDIANSIZE);
+    unit->m_medianSize = medianSize;
+    printf("[Median] init sample: %f\n\t", 0.f); // mtm
+    // median is always 0.f because values before n = 0 are 0.f
+    // unless median size is 1, in which case y(0) = x(0)
+    ZOUT0(0) = medianSize > 1 ? 0.f : in; // mtm
+    // initialize
     Median_InitMedian(unit, unit->m_medianSize, in);
-    ZOUT0(0) = Median_InsertMedian(unit, in);
+    printf("[Median] first sample:\n\t"); // mtm
 }
 
 
@@ -2670,25 +3177,26 @@ void Median_InitMedian(Median* unit, long size, float value) {
     // initialize the arrays with the first value
     unit->m_medianSize = size;
     for (int i = 0; i < size; ++i) {
-        unit->m_medianValue[i] = value;
+        //		unit->m_medianValue[i] = value;
+        unit->m_medianValue[i] = 0.f; // fill with history of silence
         unit->m_medianAge[i] = i;
     }
 }
 
 void Median_next(Median* unit, int inNumSamples) {
-    // printf("Median_next_a\n");
-
     float* out = ZOUT(0);
     float* in = ZIN(1);
 
-    LOOP1(inNumSamples, ZXP(out) = Median_InsertMedian(unit, ZXP(in)););
+    LOOP1(inNumSamples, float val = Median_InsertMedian(unit, ZXP(in)); printf("[Median] next_: %f\n", val); // mtm
+          ZXP(out) = val;
+          //		ZXP(out) = Median_InsertMedian(unit, ZXP(in));
+    );
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void Resonz_Ctor(Resonz* unit) {
-    // printf("Resonz_Reset\n");
     SETCALC(Resonz_next);
     unit->m_a0 = 0.f;
     unit->m_b1 = 0.f;
@@ -2697,9 +3205,18 @@ void Resonz_Ctor(Resonz* unit) {
     unit->m_y2 = 0.f;
     unit->m_freq = uninitializedControl;
     unit->m_rq = 0.f;
+    //	PUSH_LOOPVALS
+    //	Resonz_next(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[Resonz] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     Resonz_next(unit, 1);
     POP_LOOPVALS
+    printf("[Resonz] first sample:\n\t"); // mtm
+    // roll back advance done in initialization
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
 }
 
 
@@ -2731,15 +3248,20 @@ void Resonz_next(Resonz* unit, int inNumSamples) {
         double a0_slope = (a0_next - a0) * unit->mRate->mFilterSlope;
         double b1_slope = (b1_next - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (b2_next - b2) * unit->mRate->mFilterSlope;
-        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Resonz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - y1);
+             y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[Resonz] next: %f\n", a0 * (y2 - y1)); // mtm
+             ZXP(out) = a0 * (y2 - y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - y0);
+             y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[Resonz] next: %f\n", a0 * (y1 - y0)); // mtm
+             ZXP(out) = a0 * (y1 - y0);
 
              a0 += a0_slope; b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2); y2 = y1;
-             y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Resonz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2); y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_rq = rq;
@@ -2747,13 +3269,20 @@ void Resonz_next(Resonz* unit, int inNumSamples) {
         unit->m_b1 = b1_next;
         unit->m_b2 = b2_next;
     } else {
-        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Resonz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - y1);
+             y2 = ZXP(in) + b1 * y0 + b2 * y1;
+             printf("[Resonz] next: %f\n", a0 * (y2 - y1)); // mtm
+             ZXP(out) = a0 * (y2 - y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - y0););
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2); y2 = y1;
-             y1 = y0;);
+             y1 = ZXP(in) + b1 * y2 + b2 * y0;
+             printf("[Resonz] next: %f\n", a0 * (y1 - y0)); // mtm
+             ZXP(out) = a0 * (y1 - y0););
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Resonz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2); y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -2771,9 +3300,18 @@ void Ringz_Ctor(Ringz* unit) {
     unit->m_y2 = 0.f;
     unit->m_freq = uninitializedControl;
     unit->m_decayTime = 0.f;
+    //	PUSH_LOOPVALS
+    //	Ringz_next(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[Ringz] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     Ringz_next(unit, 1);
     POP_LOOPVALS
+    printf("[Ringz] first sample:\n\t"); // mtm
+    // roll back advance done in initialization
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
 }
 
 
@@ -2802,28 +3340,38 @@ void Ringz_next(Ringz* unit, int inNumSamples) {
         double b2_next = -R2;
         double b1_slope = (b1_next - b1) * unit->mRate->mFilterSlope;
         double b2_slope = (b2_next - b2) * unit->mRate->mFilterSlope;
-        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Ringz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - y1);
+             y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[Ringz] next: %f\n", a0 * (y2 - y1)); // mtm
+             ZXP(out) = a0 * (y2 - y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - y0);
+             y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[Ringz] next: %f\n", a0 * (y1 - y0)); // mtm
+             ZXP(out) = a0 * (y1 - y0);
 
              b1 += b1_slope; b2 += b2_slope;);
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2); y2 = y1;
-             y1 = y0;);
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Ringz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2); y2 = y1; y1 = y0;);
 
         unit->m_freq = freq;
         unit->m_decayTime = decayTime;
         unit->m_b1 = b1_next;
         unit->m_b2 = b2_next;
     } else {
-        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2);
+        LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Ringz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2);
 
-             y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * (y2 - y1);
+             y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[Ringz] next: %f\n", a0 * (y2 - y1)); // mtm
+             ZXP(out) = a0 * (y2 - y1);
 
-             y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * (y1 - y0););
-        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * (y0 - y2); y2 = y1;
-             y1 = y0;);
+             y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[Ringz] next: %f\n", a0 * (y1 - y0)); // mtm
+             ZXP(out) = a0 * (y1 - y0););
+        LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+             printf("[Ringz] next: %f\n", a0 * (y0 - y2)); // mtm
+             ZXP(out) = a0 * (y0 - y2); y2 = y1; y1 = y0;);
     }
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -2849,7 +3397,16 @@ void Formlet_Ctor(Formlet* unit) {
     unit->m_freq = uninitializedControl;
     unit->m_attackTime = uninitializedControl;
     unit->m_decayTime = uninitializedControl;
-    Formlet_next_1(unit, 1);
+    //	Formlet_next_1(unit, 1);
+
+    printf("[Formlet] init sample:\n\t"); // mtm
+    Formlet_next_1(unit, 1); // mtm
+    printf("[Formlet] first sample:\n\t"); // mtm
+    // roll back advance done in initialization
+    unit->m_y01 = 0.f;
+    unit->m_y02 = 0.f;
+    unit->m_y11 = 0.f;
+    unit->m_y12 = 0.f;
 }
 
 void Formlet_next(Formlet* unit, int inNumSamples) {
@@ -2896,18 +3453,23 @@ void Formlet_next(Formlet* unit, int inNumSamples) {
         double b12_slope = (b12_next - b12) * unit->mRate->mFilterSlope;
 
         LOOP(unit->mRate->mFilterLoops, ain = ZXP(in); y00 = ain + b01 * y01 + b02 * y02;
-             y10 = ain + b11 * y11 + b12 * y12; ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12));
+             y10 = ain + b11 * y11 + b12 * y12;
+             printf("[Formlet] next: %f\n", 0.25 * ((y00 - y02) - (y10 - y12))); // mtm
+             ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12));
 
              ain = ZXP(in); y02 = ain + b01 * y00 + b02 * y01; y12 = ain + b11 * y10 + b12 * y11;
+             printf("[Formlet] next: %f\n", 0.25 * ((y02 - y01) - (y12 - y11))); // mtm
              ZXP(out) = 0.25 * ((y02 - y01) - (y12 - y11));
 
              ain = ZXP(in); y01 = ain + b01 * y02 + b02 * y00; y11 = ain + b11 * y12 + b12 * y10;
+             printf("[Formlet] next: %f\n", 0.25 * ((y01 - y00) - (y11 - y10))); // mtm
              ZXP(out) = 0.25 * ((y01 - y00) - (y11 - y10));
 
              b01 += b01_slope; b02 += b02_slope; b11 += b11_slope; b12 += b12_slope;);
         LOOP(unit->mRate->mFilterRemain, ain = ZXP(in); y00 = ain + b01 * y01 + b02 * y02;
-             y10 = ain + b11 * y11 + b12 * y12; ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12)); y02 = y01; y01 = y00;
-             y12 = y11; y11 = y10;);
+             y10 = ain + b11 * y11 + b12 * y12;
+             printf("[Formlet] next: %f\n", 0.25 * ((y00 - y02) - (y10 - y12))); // mtm
+             ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12)); y02 = y01; y01 = y00; y12 = y11; y11 = y10;);
 
         unit->m_freq = freq;
         unit->m_attackTime = attackTime;
@@ -2918,16 +3480,21 @@ void Formlet_next(Formlet* unit, int inNumSamples) {
         unit->m_b12 = b12_next;
     } else {
         LOOP(unit->mRate->mFilterLoops, ain = ZXP(in); y00 = ain + b01 * y01 + b02 * y02;
-             y10 = ain + b11 * y11 + b12 * y12; ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12));
+             y10 = ain + b11 * y11 + b12 * y12;
+             printf("[Formlet] next: %f\n", 0.25 * ((y00 - y02) - (y10 - y12))); // mtm
+             ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12));
 
              ain = ZXP(in); y02 = ain + b01 * y00 + b02 * y01; y12 = ain + b11 * y10 + b12 * y11;
+             printf("[Formlet] next: %f\n", 0.25 * ((y02 - y01) - (y12 - y11))); // mtm
              ZXP(out) = 0.25 * ((y02 - y01) - (y12 - y11));
 
              ain = ZXP(in); y01 = ain + b01 * y02 + b02 * y00; y11 = ain + b11 * y12 + b12 * y10;
+             printf("[Formlet] next: %f\n", 0.25 * ((y01 - y00) - (y11 - y10))); // mtm
              ZXP(out) = 0.25 * ((y01 - y00) - (y11 - y10)););
         LOOP(unit->mRate->mFilterRemain, ain = ZXP(in); y00 = ain + b01 * y01 + b02 * y02;
-             y10 = ain + b11 * y11 + b12 * y12; ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12)); y02 = y01; y01 = y00;
-             y12 = y11; y11 = y10;);
+             y10 = ain + b11 * y11 + b12 * y12;
+             printf("[Formlet] next: %f\n", 0.25 * ((y00 - y02) - (y10 - y12))); // mtm
+             ZXP(out) = 0.25 * ((y00 - y02) - (y10 - y12)); y02 = y01; y01 = y00; y12 = y11; y11 = y10;);
     }
     unit->m_y01 = y01;
     unit->m_y02 = y02;
@@ -2976,6 +3543,7 @@ void Formlet_next_1(Formlet* unit, int inNumSamples) {
         ain = in;
         y00 = ain + b01 * y01 + b02 * y02;
         y10 = ain + b11 * y11 + b12 * y12;
+        printf("[Formlet] next_1: %f\n", 0.25f * ((y00 - y02) - (y10 - y12))); // mtm
         ZOUT0(0) = 0.25f * ((y00 - y02) - (y10 - y12));
 
         y02 = y01;
@@ -2994,6 +3562,7 @@ void Formlet_next_1(Formlet* unit, int inNumSamples) {
         ain = in;
         y00 = ain + b01 * y01 + b02 * y02;
         y10 = ain + b11 * y11 + b12 * y12;
+        printf("[Formlet] next_1: %f\n", 0.25f * ((y00 - y02) - (y10 - y12))); // mtm
         ZOUT0(0) = 0.25f * ((y00 - y02) - (y10 - y12));
 
         y02 = y01;
@@ -3025,7 +3594,12 @@ void FOS_Ctor(FOS* unit) {
     unit->m_a0 = ZIN0(1);
     unit->m_a1 = ZIN0(2);
     unit->m_b1 = ZIN0(3);
-    FOS_next_1(unit, 1);
+    //	FOS_next_1(unit, 1);
+
+//    printf("[FOS] init sample:\n\t"); // mtm
+    FOS_next_1(unit, 1); // mtm
+    unit->m_y1 = 0.f; // mtm
+//    printf("[FOS] first sample:\n\t"); // mtm
 }
 
 void FOS_next_a(FOS* unit, int inNumSamples) {
@@ -3036,7 +3610,13 @@ void FOS_next_a(FOS* unit, int inNumSamples) {
     float* b1 = ZIN(3);
 
     double y1 = unit->m_y1;
-    LOOP1(inNumSamples, double y0 = ZXP(in) + ZXP(b1) * y1; ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1; y1 = y0;);
+    LOOP1(inNumSamples,
+          double y0 = ZXP(in) + ZXP(b1) * y1;
+          float val = ZXP(a0) * y0 + ZXP(a1) * y1; // mtm
+          //		  printf("[FOS] next_a: %f\n", val);//mtm
+          ZXP(out) = val;
+          //		ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1;
+          y1 = y0;);
     unit->m_y1 = zapgremlins(y1);
 }
 
@@ -3049,6 +3629,7 @@ void FOS_next_1(FOS* unit, int inNumSamples) {
     double y1 = unit->m_y1;
 
     double y0 = in + b1 * y1;
+    //	printf("[FOS] next_1: %f\n", a0 * y0 + a1 * y1);//mtm
     ZOUT0(0) = a0 * y0 + a1 * y1;
     y1 = y0;
 
@@ -3070,7 +3651,10 @@ void FOS_next_k(FOS* unit, int inNumSamples) {
     double a0_slope = CALCSLOPE(next_a0, a0);
     double a1_slope = CALCSLOPE(next_a1, a1);
     double b1_slope = CALCSLOPE(next_b1, b1);
-    LOOP1(inNumSamples, double y0 = ZXP(in) + b1 * y1; ZXP(out) = a0 * y0 + a1 * y1; y1 = y0;
+    LOOP1(inNumSamples, double y0 = ZXP(in) + b1 * y1;
+          //          printf("[FOS] next_k: %f\n", a0 * y0 + a1 * y1);//mtm
+          ZXP(out) = a0 * y0 + a1 * y1;
+          y1 = y0;
 
           a0 += a0_slope; a1 += a1_slope; b1 += b1_slope;);
     unit->m_y1 = zapgremlins(y1);
@@ -3104,7 +3688,13 @@ void SOS_Ctor(SOS* unit) {
     unit->m_a2 = ZIN0(3);
     unit->m_b1 = ZIN0(4);
     unit->m_b2 = ZIN0(5);
-    SOS_next_1(unit, 1);
+    //	SOS_next_1(unit, 1);
+
+//    printf("[SOS] init sample:\n\t"); // mtm
+    SOS_next_1(unit, 1); // mtm
+    unit->m_y1 = 0.f;
+    unit->m_y2 = 0.f;
+//    printf("[SOS] first sample:\n\t"); // mtm
 }
 
 void SOS_next_a(SOS* unit, int inNumSamples) {
@@ -3120,13 +3710,30 @@ void SOS_next_a(SOS* unit, int inNumSamples) {
     double y1 = unit->m_y1;
     double y2 = unit->m_y2;
     LOOP(unit->mRate->mFilterLoops, y0 = ZXP(in) + ZXP(b1) * y1 + ZXP(b2) * y2;
-         ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
+         float val = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
+//         printf("[SOS] next_a: %f\n", val); // mtm
+         ZXP(out) = val;
+         //		ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
 
-         y2 = ZXP(in) + ZXP(b1) * y0 + ZXP(b2) * y1; ZXP(out) = ZXP(a0) * y2 + ZXP(a1) * y0 + ZXP(a2) * y1;
+         y2 = ZXP(in) + ZXP(b1) * y0 + ZXP(b2) * y1;
+         val = ZXP(a0) * y2 + ZXP(a1) * y0 + ZXP(a2) * y1;
+//         printf("[SOS] next_a: %f\n", val); // mtm
+         ZXP(out) = val;
+         //		ZXP(out) = ZXP(a0) * y2 + ZXP(a1) * y0 + ZXP(a2) * y1;
 
-         y1 = ZXP(in) + ZXP(b1) * y2 + ZXP(b2) * y0; ZXP(out) = ZXP(a0) * y1 + ZXP(a1) * y2 + ZXP(a2) * y0;);
+         y1 = ZXP(in) + ZXP(b1) * y2 + ZXP(b2) * y0;
+         val = ZXP(a0) * y1 + ZXP(a1) * y2 + ZXP(a2) * y0;
+//         printf("[SOS] next_a: %f\n", val); // mtm
+         ZXP(out) = val;
+         //		ZXP(out) = ZXP(a0) * y1 + ZXP(a1) * y2 + ZXP(a2) * y0;
+    );
     LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + ZXP(b1) * y1 + ZXP(b2) * y2;
-         ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2; y2 = y1; y1 = y0;);
+         float val = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
+//         printf("[SOS] next_a: %f\n", val); // mtm
+         ZXP(out) = val;
+         //		ZXP(out) = ZXP(a0) * y0 + ZXP(a1) * y1 + ZXP(a2) * y2;
+         y2 = y1;
+         y1 = y0;);
 
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -3155,15 +3762,22 @@ void SOS_next_k(SOS* unit, int inNumSamples) {
     double b1_slope = (next_b1 - b1) * unit->mRate->mFilterSlope;
     double b2_slope = (next_b2 - b2) * unit->mRate->mFilterSlope;
     LOOP(unit->mRate->mFilterLoops, float in0 = ZXP(in); float in1 = ZXP(in); float in2 = ZXP(in);
-         y0 = in0 + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
+         y0 = in0 + b1 * y1 + b2 * y2;
+//         printf("[SOS] next_k: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-         y2 = in1 + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+         y2 = in1 + b1 * y0 + b2 * y1;
+//         printf("[SOS] next_k: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+         ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-         y1 = in2 + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;
+         y1 = in2 + b1 * y2 + b2 * y0;
+//         printf("[SOS] next_k: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+         ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;
 
          a0 += a0_slope; a1 += a1_slope; a2 += a2_slope; b1 += b1_slope; b2 += b2_slope;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+//         printf("[SOS] next_k: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0;);
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -3187,13 +3801,20 @@ void SOS_next_i(SOS* unit, int inNumSamples) {
     double b1 = unit->m_b1;
     double b2 = unit->m_b2;
     LOOP(unit->mRate->mFilterLoops, float in0 = ZXP(in); float in1 = ZXP(in); float in2 = ZXP(in);
-         y0 = in0 + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
+         y0 = in0 + b1 * y1 + b2 * y2;
+//         printf("[SOS] next_i: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-         y2 = in1 + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+         y2 = in1 + b1 * y0 + b2 * y1;
+//         printf("[SOS] next_i: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+         ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-         y1 = in2 + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0;);
+         y1 = in2 + b1 * y2 + b2 * y0;
+//         printf("[SOS] next_i: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+         ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+//         printf("[SOS] next_i: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0;);
 
     unit->m_y1 = zapgremlins(y1);
     unit->m_y2 = zapgremlins(y2);
@@ -3214,6 +3835,7 @@ void SOS_next_1(SOS* unit, int inNumSamples) // optimized for SOS.kr
     double y2 = unit->m_y2;
 
     y0 = in + b1 * y1 + b2 * y2;
+//    printf("[SOS] next_1: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
     ZOUT0(0) = a0 * y0 + a1 * y1 + a2 * y2;
     y2 = y1;
     y1 = y0;
@@ -3233,7 +3855,11 @@ void Compander_Ctor(Compander* unit) {
     unit->m_relaxcoef = 0.f;
     unit->m_prevmaxval = 0.f;
     unit->m_gain = 0.f;
-    Compander_next(unit, 1);
+    //	Compander_next(unit, 1);
+
+    printf("[Compander] init sample:\n\t"); // mtm
+    Compander_next(unit, 1); // mtm
+    printf("[Compander] first sample:\n\t"); // mtm
 }
 
 void Compander_next(Compander* unit, int inNumSamples) {
@@ -3290,7 +3916,10 @@ void Compander_next(Compander* unit, int inNumSamples) {
     }
 
     float gain_slope = CALCSLOPE(next_gain, gain);
-    LOOP1(inNumSamples, ZXP(out) = ZXP(in) * gain; gain += gain_slope;);
+    LOOP1(inNumSamples, float val = ZXP(in) * gain; gain += gain_slope; printf("[Compander] next: %f\n", val); // mtm
+          ZXP(out) = val;
+          //		  ZXP(out) = ZXP(in) * gain; gain += gain_slope;
+    );
     unit->m_gain = gain;
 }
 
@@ -3322,7 +3951,11 @@ void Normalizer_Ctor(Normalizer* unit) {
     unit->m_xinbuf = unit->m_table - ZOFF;
     unit->m_xmidbuf = unit->m_xinbuf + unit->m_bufsize;
     unit->m_xoutbuf = unit->m_xmidbuf + unit->m_bufsize;
-    Normalizer_next(unit, 1);
+    //	Normalizer_next(unit, 1);
+
+    printf("[Normalizer] init sample:\n\t"); // mtm
+    Normalizer_next(unit, 1); // mtm
+    printf("[Normalizer] first sample:\n\t"); // mtm
 }
 
 
@@ -3346,11 +3979,15 @@ void Normalizer_next(Normalizer* unit, int inNumSamples) {
         float* xinbuf = unit->m_xinbuf + pos;
         float* xoutbuf = unit->m_xoutbuf + pos;
         if (unit->m_flips >= 2) {
-            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); ZXP(out) = level * ZXP(xoutbuf); level += slope;
+            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); float val = level * ZXP(xoutbuf);
+                 printf("[Normalizer] next: %f\n", val); // mtm
+                 ZXP(out) = val;
+                 //				ZXP(out) = level * ZXP(xoutbuf);
+                 level += slope;
                  val = std::abs(val); if (val > curmaxval) curmaxval = val;);
         } else {
-            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); ZXP(out) = 0.f; level += slope; val = std::abs(val);
-                 if (val > curmaxval) curmaxval = val;);
+            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); printf("[Normalizer] next: %f\n", 0.f); // mtm
+                 ZXP(out) = 0.f; level += slope; val = std::abs(val); if (val > curmaxval) curmaxval = val;);
         }
         pos += nsmps;
         if (pos >= bufsize) {
@@ -3411,7 +4048,11 @@ void Limiter_Ctor(Limiter* unit) {
     unit->m_xinbuf = unit->m_table - ZOFF;
     unit->m_xmidbuf = unit->m_xinbuf + unit->m_bufsize;
     unit->m_xoutbuf = unit->m_xmidbuf + unit->m_bufsize;
-    Limiter_next(unit, 1);
+    //	Limiter_next(unit, 1);
+
+    printf("[Limiter] init sample:\n\t"); // mtm
+    Limiter_next(unit, 1); // mtm
+    printf("[Limiter] first sample:\n\t"); // mtm
 }
 
 
@@ -3435,11 +4076,15 @@ void Limiter_next(Limiter* unit, int inNumSamples) {
         float* xinbuf = unit->m_xinbuf + pos;
         float* xoutbuf = unit->m_xoutbuf + pos;
         if (unit->m_flips >= 2) {
-            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); ZXP(out) = level * ZXP(xoutbuf); level += slope;
+            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); float val = level * ZXP(xoutbuf);
+                 printf("[Limiter] next: %f\n", val); // mtm
+                 ZXP(out) = val;
+                 //				ZXP(out) = level * ZXP(xoutbuf);
+                 level += slope;
                  val = std::abs(val); if (val > curmaxval) curmaxval = val;);
         } else {
-            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); ZXP(out) = 0.f; level += slope; val = std::abs(val);
-                 if (val > curmaxval) curmaxval = val;);
+            LOOP(nsmps, ZXP(xinbuf) = val = ZXP(in); printf("[Limiter] next: %f\n", 0.f); // mtm
+                 ZXP(out) = 0.f; level += slope; val = std::abs(val); if (val > curmaxval) curmaxval = val;);
         }
         pos += nsmps;
         if (pos >= bufsize) {
@@ -3498,7 +4143,11 @@ void Amplitude_Ctor(Amplitude* unit) {
     unit->m_relaxcoef = relax == 0.0 ? 0.0 : exp(log1 / (relax * SAMPLERATE));
 
     unit->m_previn = std::abs(ZIN0(0));
-    Amplitude_next(unit, 1);
+    //	Amplitude_next(unit, 1);
+
+    printf("[Amplitude] init sample:\n\t"); // mtm
+    Amplitude_next(unit, 1); // mtm
+    printf("[Amplitude] first sample:\n\t"); // mtm
 }
 
 void Amplitude_next(Amplitude* unit, int inNumSamples) {
@@ -3513,7 +4162,8 @@ void Amplitude_next(Amplitude* unit, int inNumSamples) {
     LOOP1(
         inNumSamples, val = std::abs(ZXP(in)); if (val < previn) { val = val + (previn - val) * relaxcoef; } else {
             val = val + (previn - val) * clampcoef;
-        } ZXP(out) = previn = val;);
+        } printf("[Amplitude] next: %f\n", val); // mtm
+        ZXP(out) = previn = val;);
 
     unit->m_previn = previn;
 }
@@ -3530,6 +4180,7 @@ void Amplitude_next_atok(Amplitude* unit, int inNumSamples) {
         FULLBUFLENGTH, val = std::abs(ZXP(in)); if (val < previn) { val = val + (previn - val) * relaxcoef; } else {
             val = val + (previn - val) * clampcoef;
         } previn = val;);
+    printf("[Amplitude] next_atok: %f\n", val); // mtm
     ZOUT0(0) = val;
 
     unit->m_previn = previn;
@@ -3560,7 +4211,8 @@ void Amplitude_next_kk(Amplitude* unit, int inNumSamples) {
     LOOP1(
         inNumSamples, val = std::abs(ZXP(in)); if (val < previn) { val = val + (previn - val) * relaxcoef; } else {
             val = val + (previn - val) * clampcoef;
-        } ZXP(out) = previn = val;);
+        } printf("[Amplitude] next_kk: %f\n", val); // mtm
+        ZXP(out) = previn = val;);
 
     unit->m_previn = previn;
 }
@@ -3590,6 +4242,7 @@ void Amplitude_next_atok_kk(Amplitude* unit, int inNumSamples) {
         FULLBUFLENGTH, val = std::abs(ZXP(in)); if (val < previn) { val = val + (previn - val) * relaxcoef; } else {
             val = val + (previn - val) * clampcoef;
         } previn = val;);
+    printf("[Amplitude] atok_kk: %f\n", val); // mtm
     ZOUT0(0) = val;
 
     unit->m_previn = previn;
@@ -3608,6 +4261,10 @@ void DetectSilence_Ctor(DetectSilence* unit) {
     }
     unit->mCounter = -1;
     ClearUnitOutputs(unit, 1);
+
+    printf("[DetectSilence] init sample: %f\n\t\n", 0.f); // mtm
+    // mtm
+    printf("[DetectSilence] first sample:\n\t"); // mtm
 }
 
 
@@ -3622,16 +4279,21 @@ void DetectSilence_next(DetectSilence* unit, int inNumSamples) {
         val = std::abs(*in++);
         if (val > thresh) {
             counter = 0;
+            printf("[DetectSilence] next: %f\n", 0.f); // mtm
             *out++ = 0.f;
         } else if (counter >= 0) {
             if (++counter >= unit->mEndCounter) {
                 DoneAction((int)ZIN0(3), unit);
+                printf("[DetectSilence] next: %f\n", 1.f); // mtm
                 *out++ = 1.f;
             } else {
+                printf("[DetectSilence] next: %f\n", 0.f); // mtm
                 *out++ = 0.f;
             }
-        } else
+        } else {
+            printf("[DetectSilence] next: %f\n", 0.f); // mtm
             *out++ = 0.f;
+        }
     }
     unit->mCounter = counter;
 }
@@ -3648,16 +4310,21 @@ void DetectSilence_next_k(DetectSilence* unit, int inNumSamples) {
         val = std::abs(*in++);
         if (val > thresh) {
             counter = 0;
+            printf("[DetectSilence] next_k: %f\n", 0.f); // mtm
             *out++ = 0.f;
         } else if (counter >= 0) {
             if (++counter >= endCounter) {
                 DoneAction((int)ZIN0(3), unit);
+                printf("[DetectSilence] next_k: %f\n", 1.f); // mtm
                 *out++ = 1.f;
             } else {
+                printf("[DetectSilence] next_k: %f\n", 0.f); // mtm
                 *out++ = 0.f;
             }
-        } else
+        } else {
+            printf("[DetectSilence] next_k: %f\n", 0.f); // mtm
             *out++ = 0.f;
+        }
     }
     unit->mCounter = counter;
 }
@@ -3740,7 +4407,11 @@ void Hilbert_Ctor(Hilbert* unit) {
     unit->m_coefs[10] = (gamma11 - 1.f) / (gamma11 + 1.f);
     unit->m_coefs[11] = (gamma12 - 1.f) / (gamma12 + 1.f);
     Clear(12, unit->m_y1);
-    Hilbert_next(unit, 1);
+    //	Hilbert_next(unit, 1);
+
+    printf("[Hilbert] init sample:\n\t"); // mtm
+    Hilbert_next(unit, 1); // mtm
+    printf("[Hilbert] first sample:\n\t"); // mtm
 }
 
 void Hilbert_next(Hilbert* unit, int inNumSamples) {
@@ -3764,7 +4435,8 @@ void Hilbert_next(Hilbert* unit, int inNumSamples) {
 
     LOOP1(inNumSamples, float thisin = ZXP(in);
 
-          HILBERT_FILTER ZXP(outcos) = ay6; ZXP(outsin) = ay12;)
+          HILBERT_FILTER printf("[Hilbert] next: %f, %f\n", ay6, ay12); // mtm
+          ZXP(outcos) = ay6; ZXP(outsin) = ay12;)
 
     for (int i = 0; i < 12; ++i)
         unit->m_y1[i] = zapgremlins(y1[i]);
@@ -3825,7 +4497,11 @@ void FreqShift_Ctor(FreqShift* unit) {
     unit->m_coefs[11] = (gamma12 - 1.f) / (gamma12 + 1.f);
 
     Clear(12, unit->m_y1);
-    FreqShift_next_kk(unit, 1);
+    //	FreqShift_next_kk(unit, 1);
+
+    printf("[FreqShift] init sample:\n\t"); // mtm
+    FreqShift_next_kk(unit, 1); // mtm
+    printf("[FreqShift] first sample:\n\t"); // mtm
 }
 
 void FreqShift_next_kk(FreqShift* unit, int inNumSamples) {
@@ -3869,7 +4545,7 @@ void FreqShift_next_kk(FreqShift* unit, int inNumSamples) {
 
           outsinosc = lookupi1(table0, table1, phase, lomask);
           outsinoscHalfPi = lookupi1(table0, table1, phase + halfPi, lomask);
-
+          printf("[FreqShift] next_kk: %f\n", (outcos * outsinoscHalfPi) + (outsinosc * outsin)); // mtm
           ZXP(out) = (outcos * outsinoscHalfPi) + (outsinosc * outsin);
 
           phase += phaseinc;)
@@ -3919,7 +4595,7 @@ void FreqShift_next_aa(FreqShift* unit, int inNumSamples) {
           outsinosc = lookupi1(table0, table1, phaseoffset, lomask);
           outsinoscHalfPi = lookupi1(table0, table1, phaseoffset + halfPi, lomask);
           phase += (int32)(unit->m_cpstoinc * ZXP(freqin));
-
+          printf("[FreqShift] next_aa: %f\n", (outcos * outsinoscHalfPi) + (outsinosc * outsin)); // mtm
           ZXP(out) = (outcos * outsinoscHalfPi) + (outsinosc * outsin);)
 
     unit->m_phase = phase;
@@ -3969,7 +4645,7 @@ void FreqShift_next_ak(FreqShift* unit, int inNumSamples) {
           outsinosc = lookupi1(table0, table1, pphase, lomask);
           outsinoscHalfPi = lookupi1(table0, table1, pphase + halfPi, lomask);
           phase += (int32)(unit->m_cpstoinc * ZXP(freqin));
-
+          printf("[FreqShift] next_ak: %f\n", (outcos * outsinoscHalfPi) + (outsinosc * outsin)); // mtm
           ZXP(out) = (outcos * outsinoscHalfPi) + (outsinosc * outsin);)
 
     unit->m_phase = phase;
@@ -4019,7 +4695,7 @@ void FreqShift_next_ka(FreqShift* unit, int inNumSamples) {
           int32 phaseoffset = phase + (int32)(unit->m_radtoinc * ZXP(phasein));
           outsinosc = lookupi1(table0, table1, phaseoffset, lomask);
           outsinoscHalfPi = lookupi1(table0, table1, phaseoffset + halfPi, lomask); phase += freq;
-
+          printf("[FreqShift] next_ka: %f\n", (outcos * outsinoscHalfPi) + (outsinosc * outsin)); // mtm
           ZXP(out) = (outcos * outsinoscHalfPi) + (outsinosc * outsin);)
 
     unit->m_phase = phase;
@@ -4070,7 +4746,11 @@ void MoogFF_Ctor(MoogFF* unit) {
     unit->m_s4 = 0.f;
 
     // calculate one sample of output.
-    MoogFF_next(unit, 1);
+    //	MoogFF_next(unit, 1);
+
+    printf("[MoogFF] init sample:\n\t"); // mtm
+    MoogFF_next(unit, 1); // mtm
+    printf("[MoogFF] first sample:\n\t"); // mtm
 }
 
 void MoogFF_next(MoogFF* unit, int inNumSamples) {
@@ -4114,8 +4794,9 @@ void MoogFF_next(MoogFF* unit, int inNumSamples) {
               // compute loop values
               double o = s4 + b0 * (s3 + b0 * (s2 + b0 * s1));
               double ins = ZXP(in);
-              double outs = (b0 * b0 * b0 * b0 * ins + o) * sc_reciprocal(1.0 + b0 * b0 * b0 * b0 * k); ZXP(out) = outs;
-              double u = ins - k * outs;
+              double outs = (b0 * b0 * b0 * b0 * ins + o) * sc_reciprocal(1.0 + b0 * b0 * b0 * b0 * k);
+              printf("[MoogFF] next: %f\n", outs); // mtm
+              ZXP(out) = outs; double u = ins - k * outs;
 
               // update 1st order filter states
               double past = u;
@@ -4136,8 +4817,9 @@ void MoogFF_next(MoogFF* unit, int inNumSamples) {
               // compute loop values
               double o = s4 + b0 * (s3 + b0 * (s2 + b0 * s1));
               double ins = ZXP(in);
-              double outs = (b0 * b0 * b0 * b0 * ins + o) * sc_reciprocal(1.0 + b0 * b0 * b0 * b0 * k); ZXP(out) = outs;
-              double u = ins - k * outs;
+              double outs = (b0 * b0 * b0 * b0 * ins + o) * sc_reciprocal(1.0 + b0 * b0 * b0 * b0 * k);
+              printf("[MoogFF] next: %f\n", outs); // mtm
+              ZXP(out) = outs; double u = ins - k * outs;
 
               // update 1st order filter states
               double past = u;
@@ -4165,13 +4847,17 @@ static void inline BPerformFilterLoop(const Unit* unit, float* out, const float*
                                       double a1, double a2, double b1, double b2) {
     LOOP(unit->mRate->mFilterLoops, double in0 = ZXP(in); double in1 = ZXP(in); double in2 = ZXP(in);
 
-         double y0 = in0 + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
+         double y0 = in0 + b1 * y1 + b2 * y2; printf("[BPerformFilterLoop]: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-         y2 = in1 + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+         y2 = in1 + b1 * y0 + b2 * y1; printf("[BPerformFilterLoop]: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+         ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-         y1 = in2 + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
-         y2 = y1; y1 = y0;);
+         y1 = in2 + b1 * y2 + b2 * y0; printf("[BPerformFilterLoop]: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+         ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BPerformFilterLoop]: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0;);
 }
 
 static void inline BPerformFilterLoop(const Unit* unit, float* out, const float* in, double& y1, double& y2, double a0,
@@ -4179,15 +4865,19 @@ static void inline BPerformFilterLoop(const Unit* unit, float* out, const float*
                                       double a2slope, double b1slope, double b2slope) {
     LOOP(unit->mRate->mFilterLoops, double in0 = ZXP(in); double in1 = ZXP(in); double in2 = ZXP(in);
 
-         double y0 = in0 + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
+         double y0 = in0 + b1 * y1 + b2 * y2; printf("[BPerformFilterLoop]: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-         y2 = in1 + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+         y2 = in1 + b1 * y0 + b2 * y1; printf("[BPerformFilterLoop]: %f\n", a0 * y2 + a1 * y0 + a2 * y1);
+         ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-         y1 = in2 + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;
+         y1 = in2 + b1 * y2 + b2 * y0; printf("[BPerformFilterLoop]: %f\n", a0 * y1 + a1 * y2 + a2 * y0);
+         ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;
 
          a0 += a0slope; a1 += a1slope; a2 += a2slope; b1 += b1slope; b2 += b2slope;);
-    LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
-         y2 = y1; y1 = y0;);
+    LOOP(unit->mRate->mFilterRemain, double y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BPerformFilterLoop]: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0;);
 }
 
 struct BLowPass : public Unit {
@@ -4227,9 +4917,15 @@ void BLowPass_Ctor(BLowPass* unit) {
     unit->m_y1 = 0.;
 
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BLowPass_next_kk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BLowPass] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BLowPass_next_kk(unit, 1);
     POP_LOOPVALS
+    printf("[BLowPass] first sample:\n\t"); // mtm
 }
 
 void BLowPass_next_aa(BLowPass* unit, int inNumSamples) {
@@ -4267,14 +4963,18 @@ void BLowPass_next_aa(BLowPass* unit, int inNumSamples) {
             unit->m_freq = nextfreq;
             unit->m_rq = nextrq;
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BLowPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BLowPass] next_aa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BLowPass] next_aa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
 
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0; unit->m_freq = ZXP(freq); unit->m_rq = ZXP(rq););
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BLowPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0; unit->m_freq = ZXP(freq); unit->m_rq = ZXP(rq););
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -4395,9 +5095,15 @@ void BHiPass_Ctor(BHiPass* unit) {
     unit->m_y1 = 0.;
 
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BHiPass_next_kk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BHiPass] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BHiPass_next_kk(unit, 1);
     POP_LOOPVALS
+    printf("[BHiPass] first sample:\n\t"); // mtm
 }
 
 void BHiPass_next_aa(BHiPass* unit, int inNumSamples) {
@@ -4435,13 +5141,17 @@ void BHiPass_next_aa(BHiPass* unit, int inNumSamples) {
             unit->m_freq = nextfreq;
             unit->m_rq = nextrq;
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BHiPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BHiPass] next_aa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0;);
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BHiPass] next_aa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BHiPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0;);
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -4560,9 +5270,15 @@ void BBandPass_Ctor(BBandPass* unit) {
     unit->m_y1 = 0.;
 
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BBandPass_next_kk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BBandPass] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BBandPass_next_kk(unit, 1);
     POP_LOOPVALS
+    printf("[BBandPass] first sample:\n\t"); // mtm
 }
 
 void BBandPass_next_aa(BBandPass* unit, int inNumSamples) {
@@ -4599,13 +5315,17 @@ void BBandPass_next_aa(BBandPass* unit, int inNumSamples) {
             unit->m_freq = ZXP(freq);
             unit->m_bw = ZXP(bw);
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BBandPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BBandPass] next_aa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0; unit->m_freq = nextfreq; unit->m_bw = nextbw;);
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BBandPass] next_aa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BBandPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0; unit->m_freq = nextfreq; unit->m_bw = nextbw;);
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -4699,9 +5419,16 @@ void BBandStop_Ctor(BBandStop* unit) {
     unit->m_y1 = 0.;
 
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BBandStop_next_kk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BBandStop] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BBandStop_next_kk(unit, 1);
     POP_LOOPVALS
+    // mtm
+    printf("[BBandStop] first sample:\n\t"); // mtm
 }
 
 void BBandStop_next_aa(BBandStop* unit, int inNumSamples) {
@@ -4738,13 +5465,17 @@ void BBandStop_next_aa(BBandStop* unit, int inNumSamples) {
             unit->m_freq = ZXP(freq);
             unit->m_bw = ZXP(bw);
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BBandStop] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BBandStop] next_aa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0; unit->m_freq = nextfreq; unit->m_bw = nextbw;);
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BBandStop] next_aa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BBandStop] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0; unit->m_freq = nextfreq; unit->m_bw = nextbw;);
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -4839,9 +5570,16 @@ void BPeakEQ_Ctor(BPeakEQ* unit) {
 
     unit->m_y1 = 0.;
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BPeakEQ_next_kkk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BPeakEQ] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BPeakEQ_next_kkk(unit, 1);
     POP_LOOPVALS
+    // mtm
+    printf("[BPeakEQ] first sample:\n\t"); // mtm
 }
 
 void BPeakEQ_next_aaa(BPeakEQ* unit, int inNumSamples) {
@@ -4881,13 +5619,18 @@ void BPeakEQ_next_aaa(BPeakEQ* unit, int inNumSamples) {
             unit->m_rq = nextrq;
             unit->m_db = nextdb;
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BPeakEQ] next_aaa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BPeakEQ] next_aaa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0; unit->m_freq = ZXP(freq); unit->m_rq = ZXP(rq); unit->m_db = ZXP(db););
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BPeakEQ] next_aaa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BPeakEQ] next_aaa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0; unit->m_freq = ZXP(freq); unit->m_rq = ZXP(rq);
+         unit->m_db = ZXP(db););
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -4987,9 +5730,16 @@ void BAllPass_Ctor(BAllPass* unit) {
     unit->m_y1 = 0.;
 
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BAllPass_next_kk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BAllPass] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BAllPass_next_kk(unit, 1);
     POP_LOOPVALS
+    // mtm
+    printf("[BAllPass] first sample:\n\t"); // mtm
 }
 
 void BAllPass_next_aa(BAllPass* unit, int inNumSamples) {
@@ -5025,13 +5775,17 @@ void BAllPass_next_aa(BAllPass* unit, int inNumSamples) {
             unit->m_freq = nextfreq;
             unit->m_rq = nextrq;
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BAllPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BAllPass] next_aa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0; unit->m_freq = ZXP(freq); unit->m_rq = ZXP(rq););
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BAllPass] next_aa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BAllPass] next_aa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0; unit->m_freq = ZXP(freq); unit->m_rq = ZXP(rq););
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -5133,9 +5887,16 @@ void BLowShelf_Ctor(BLowShelf* unit) {
     unit->m_y1 = 0.;
 
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BLowShelf_next_kkk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BLowShelf] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BLowShelf_next_kkk(unit, 1);
     POP_LOOPVALS
+    // mtm
+    printf("[BLowShelf] first sample:\n\t"); // mtm
 }
 
 void BLowShelf_next_aaa(BLowShelf* unit, int inNumSamples) {
@@ -5179,13 +5940,18 @@ void BLowShelf_next_aaa(BLowShelf* unit, int inNumSamples) {
             unit->m_rs = nextrs;
             unit->m_db = nextdb;
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BLowShelf] next_aaa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BLowShelf] next_aaa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0; unit->m_freq = ZXP(freq); unit->m_rs = ZXP(rs); unit->m_db = ZXP(db););
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BLowShelf] next_aaa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BLowShelf] next_aaa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0; unit->m_freq = ZXP(freq); unit->m_rs = ZXP(rs);
+         unit->m_db = ZXP(db););
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
@@ -5292,11 +6058,17 @@ void BHiShelf_Ctor(BHiShelf* unit) {
     unit->m_b2 = ((a + 1.) - j - k) * -b0rz;
 
     unit->m_y1 = 0.;
-
     unit->m_y2 = 0.;
+    //	PUSH_LOOPVALS
+    //	BHiShelf_next_kkk(unit, 1);
+    //	POP_LOOPVALS
+
+    printf("[BHiShelf] init sample:\n\t"); // mtm
     PUSH_LOOPVALS
     BHiShelf_next_kkk(unit, 1);
     POP_LOOPVALS
+    // mtm
+    printf("[BHiShelf] first sample:\n\t"); // mtm
 }
 
 void BHiShelf_next_aaa(BHiShelf* unit, int inNumSamples) {
@@ -5340,13 +6112,18 @@ void BHiShelf_next_aaa(BHiShelf* unit, int inNumSamples) {
             unit->m_rs = ZXP(rs);
             unit->m_db = ZXP(db);
         } y0 = ZXP(in) + b1 * y1 + b2 * y2;
+        printf("[BHiShelf] next_aaa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2;
 
-        y2 = ZXP(in) + b1 * y0 + b2 * y1; ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
+        y2 = ZXP(in) + b1 * y0 + b2 * y1; printf("[BHiShelf] next_aaa: %f\n", a0 * y2 + a1 * y0 + a2 * y1); // mtm
+        ZXP(out) = a0 * y2 + a1 * y0 + a2 * y1;
 
-        y1 = ZXP(in) + b1 * y2 + b2 * y0; ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
-    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2; ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1;
-         y1 = y0; unit->m_freq = ZXP(freq); unit->m_rs = ZXP(rs); unit->m_db = ZXP(db););
+        y1 = ZXP(in) + b1 * y2 + b2 * y0; printf("[BHiShelf] next_aaa: %f\n", a0 * y1 + a1 * y2 + a2 * y0); // mtm
+        ZXP(out) = a0 * y1 + a1 * y2 + a2 * y0;);
+    LOOP(unit->mRate->mFilterRemain, y0 = ZXP(in) + b1 * y1 + b2 * y2;
+         printf("[BHiShelf] next_aaa: %f\n", a0 * y0 + a1 * y1 + a2 * y2); // mtm
+         ZXP(out) = a0 * y0 + a1 * y1 + a2 * y2; y2 = y1; y1 = y0; unit->m_freq = ZXP(freq); unit->m_rs = ZXP(rs);
+         unit->m_db = ZXP(db););
 
     unit->m_a0 = a0;
     unit->m_a1 = a1;
