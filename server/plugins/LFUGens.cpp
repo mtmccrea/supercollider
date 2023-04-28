@@ -140,7 +140,7 @@ struct InRect : public Unit {
 
 // struct Trapezoid : public Unit
 //{
-//  float m_leftScale, m_rightScale, m_a, m_b, m_c, m_d;
+//	float m_leftScale, m_rightScale, m_a, m_b, m_c, m_d;
 //};
 
 struct A2K : public Unit {};
@@ -402,23 +402,34 @@ void Vibrato_next(Vibrato* unit, int inNumSamples) {
 
 void Vibrato_Ctor(Vibrato* unit) {
     unit->mFreqMul = 4.0 * SAMPLEDUR;
-    unit->mPhase = 4.0 * sc_wrap(ZIN0(7), 0.f, 1.f) - 1.0;
+    double initphase = 4.0 * sc_wrap(ZIN0(7), 0.f, 1.f) - 1.0;
 
     RGen& rgen = *unit->mParent->mRGen;
     float rate = ZIN0(1) * unit->mFreqMul;
     float depth = ZIN0(2);
     float rateVariation = ZIN0(5);
     float depthVariation = ZIN0(6);
-    unit->mFreq = rate * (1.f + rateVariation * rgen.frand2());
-    unit->m_scaleA = depth * (1.f + depthVariation * rgen.frand2());
-    unit->m_scaleB = depth * (1.f + depthVariation * rgen.frand2());
+    float initffreq = rate * (1.f + rateVariation * rgen.frand2());
+    float initscaleA = depth * (1.f + depthVariation * rgen.frand2());
+    float initscaleB = depth * (1.f + depthVariation * rgen.frand2());
     unit->m_delay = (int)(ZIN0(3) * SAMPLERATE);
     unit->m_attack = (int)(ZIN0(4) * SAMPLERATE);
     unit->m_attackSlope = 1. / (double)(1 + unit->m_attack);
     unit->m_attackLevel = unit->m_attackSlope;
     unit->trig = 0.0f;
+    unit->mPhase = initphase;
+    unit->mFreq = initffreq;
+    unit->m_scaleA = initscaleA;
+    unit->m_scaleB = initscaleB;
     SETCALC(Vibrato_next);
+
     Vibrato_next(unit, 1);
+
+    unit->mPhase = initphase;
+    unit->mFreq = initffreq;
+    unit->m_scaleA = initscaleA;
+    unit->m_scaleB = initscaleB;
+    unit->trig = 0.0f;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -475,6 +486,9 @@ void LFPulse_Ctor(LFPulse* unit) {
     unit->mDuty = ZIN0(2);
 
     LFPulse_next_k(unit, 1);
+
+    unit->mPhase = ZIN0(1);
+    unit->mDuty = ZIN0(2);
 }
 
 
@@ -518,6 +532,8 @@ void LFSaw_Ctor(LFSaw* unit) {
     unit->mPhase = ZIN0(1);
 
     LFSaw_next_k(unit, 1);
+
+    unit->mPhase = ZIN0(1);
 }
 
 
@@ -582,6 +598,8 @@ void LFPar_Ctor(LFPar* unit) {
     unit->mPhase = ZIN0(1);
 
     LFPar_next_k(unit, 1);
+
+    unit->mPhase = ZIN0(1);
 }
 
 
@@ -628,6 +646,8 @@ void LFCub_Ctor(LFCub* unit) {
     unit->mPhase = ZIN0(1) + 0.5;
 
     LFCub_next_k(unit, 1);
+
+    unit->mPhase = ZIN0(1) + 0.5;
 }
 
 
@@ -667,6 +687,8 @@ void LFTri_Ctor(LFTri* unit) {
     unit->mPhase = ZIN0(1);
 
     LFTri_next_k(unit, 1);
+
+    unit->mPhase = ZIN0(1);
 }
 
 
@@ -790,7 +812,7 @@ void LFGauss_Ctor(LFGauss* unit) {
     unit->mPhase = -1.0;
 
     LFGauss_next_k(unit, 1);
-    // reset phase
+
     unit->mPhase = -1.0;
 }
 
@@ -1087,7 +1109,9 @@ void VarSaw_Ctor(VarSaw* unit) {
     unit->mInvDuty = 2.f / duty;
     unit->mInv1Duty = 2.f / (1.f - duty);
 
-    ZOUT0(0) = 0.f;
+    VarSaw_next_k(unit, 1);
+
+    unit->mPhase = ZIN0(1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1189,6 +1213,9 @@ void SyncSaw_Ctor(SyncSaw* unit) {
     unit->mPhase2 = 0.;
 
     SyncSaw_next_kk(unit, 1);
+
+    unit->mPhase1 = 0.;
+    unit->mPhase2 = 0.;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1237,6 +1264,11 @@ void T2K_next(T2K* unit, int inNumSamples) {
 
 void T2K_Ctor(T2K* unit) {
     SETCALC(T2K_next);
+
+    // NOTE: this initialization sample may not be consistent
+    // with the actual first sample output because a larger
+    // value than ZIN0(0) may occur in the remainder of the
+    // block which can't be seen at the time of initialization.
     ZOUT0(0) = ZIN0(0);
 }
 
@@ -1290,7 +1322,11 @@ void T2A_Ctor(T2A* unit) {
     else
 #endif
         SETCALC(T2A_next);
+    unit->mLevel = 0.f;
+
     T2A_next(unit, 1);
+
+    unit->mLevel = 0.f;
 }
 
 
@@ -1401,7 +1437,7 @@ FLATTEN void Line_next_nova_64(Line* unit, int inNumSamples) {
 void Line_Ctor(Line* unit) {
 #ifdef NOVA_SIMD
     if (BUFLENGTH == 64)
-        SETCALC(Line_next_nova);
+        SETCALC(Line_next_nova_64); // mtm add _64 - otherwise Line_next_nova_64 isn't called? see XLine
     else if (boost::alignment::is_aligned(BUFLENGTH, 16))
         SETCALC(Line_next_nova);
     else
@@ -1419,7 +1455,6 @@ void Line_Ctor(Line* unit) {
     } else {
         unit->mLevel = start;
         unit->mSlope = (end - start) / unit->mCounter;
-        unit->mLevel += unit->mSlope;
     }
     unit->mEndLevel = end;
     ZOUT0(0) = unit->mLevel;
@@ -1528,7 +1563,7 @@ void XLine_Ctor(XLine* unit) {
         ZOUT0(0) = start;
         unit->mCounter = counter;
         unit->mGrowth = pow(end / start, 1.0 / counter);
-        unit->mLevel = start * unit->mGrowth;
+        unit->mLevel = start;
     }
 }
 
@@ -2038,6 +2073,7 @@ void Unwrap_Ctor(Unwrap* unit) {
     float in = ZIN0(0);
     float lo = ZIN0(1);
     float hi = ZIN0(2);
+    float offset;
 
     if (lo > hi) {
         float temp = lo;
@@ -2048,11 +2084,17 @@ void Unwrap_Ctor(Unwrap* unit) {
     unit->m_half = unit->m_range * 0.5f;
 
     if (in < lo || in >= hi)
-        unit->m_offset = floor((lo - in) / unit->m_range) * unit->m_range;
+        offset = floor((lo - in) / unit->m_range) * unit->m_range;
     else
-        unit->m_offset = 0.f;
+        offset = 0.f;
+
+    unit->m_offset = offset;
+    unit->m_prev = in;
 
     Unwrap_next(unit, 1);
+
+    unit->m_offset = offset;
+    unit->m_prev = in;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2405,15 +2447,6 @@ static void LinExp_SetCalc(LinExp* unit) {
 
     if (!allScalar)
         return;
-
-    float srclo = ZIN0(1);
-    float srchi = ZIN0(2);
-    float dstlo = ZIN0(3);
-    float dsthi = ZIN0(4);
-    unit->m_dstlo = dstlo;
-    unit->m_dstratio = dsthi / dstlo;
-    unit->m_rsrcrange = sc_reciprocal(srchi - srclo);
-    unit->m_rrminuslo = unit->m_rsrcrange * -srclo;
 }
 
 void LinExp_Ctor(LinExp* unit) {
@@ -2503,106 +2536,17 @@ void EnvGen_Ctor(EnvGen* unit) {
         unit->m_level = *envPtr[0]; // we start at the end level;
 
     EnvGen_next_k(unit, 1);
-}
 
-// called by nextSegment and check_gate:
-// - counter: num samples to next segment
-// - level: current envelope value
-// - dur: if supplied and >= 0, stretch segment to last dur seconds (used in forced release)
-static bool EnvGen_initSegment(EnvGen* unit, int& counter, double& level, double dur = -1) {
-    // Print("stage %d\n", unit->m_stage);
-    // Print("initSegment\n");
-    // out = unit->m_level;
-    int stageOffset = (unit->m_stage << 2) + kEnvGen_nodeOffset;
-
-    if (stageOffset + 4 > unit->mNumInputs) {
-        // oops.
-        Print("envelope went past end of inputs.\n");
-        ClearUnitOutputs(unit, 1);
-        NodeEnd(&unit->mParent->mNode);
-        return false;
-    }
-
-    float previousEndLevel = unit->m_endLevel;
-    if (unit->m_shape == shape_Hold)
-        level = previousEndLevel;
-    float** envPtr = unit->mInBuf + stageOffset;
-    double endLevel = *envPtr[0] * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias); // scale levels
-    if (dur < 0)
-        dur = *envPtr[1] * ZIN0(kEnvGen_timeScale);
-    unit->m_shape = (int32)*envPtr[2];
-    double curve = *envPtr[3];
-    unit->m_endLevel = endLevel;
-
-    counter = (int32)(dur * SAMPLERATE);
-    counter = sc_max(1, counter);
-    // Print("counter %d stageOffset %d   level %g   endLevel %g   dur %g   shape %d   curve %g\n", counter,
-    // stageOffset, level, endLevel, dur, unit->m_shape, curve); Print("SAMPLERATE %g\n", SAMPLERATE);
-    if (counter == 1)
-        unit->m_shape = 1; // shape_Linear
-    // Print("new counter = %d  shape = %d\n", counter, unit->m_shape);
-    switch (unit->m_shape) {
-    case shape_Step: {
-        level = endLevel;
-    } break;
-    case shape_Hold: {
-        level = previousEndLevel;
-    } break;
-    case shape_Linear: {
-        unit->m_grow = (endLevel - level) / counter;
-        // Print("grow %g\n", unit->m_grow);
-    } break;
-    case shape_Exponential: {
-        unit->m_grow = pow(endLevel / level, 1.0 / counter);
-    } break;
-    case shape_Sine: {
-        double w = pi / counter;
-
-        unit->m_a2 = (endLevel + level) * 0.5;
-        unit->m_b1 = 2. * cos(w);
-        unit->m_y1 = (endLevel - level) * 0.5;
-        unit->m_y2 = unit->m_y1 * sin(pi * 0.5 - w);
-        level = unit->m_a2 - unit->m_y1;
-    } break;
-    case shape_Welch: {
-        double w = (pi * 0.5) / counter;
-
-        unit->m_b1 = 2. * cos(w);
-
-        if (endLevel >= level) {
-            unit->m_a2 = level;
-            unit->m_y1 = 0.;
-            unit->m_y2 = -sin(w) * (endLevel - level);
-        } else {
-            unit->m_a2 = endLevel;
-            unit->m_y1 = level - endLevel;
-            unit->m_y2 = cos(w) * (level - endLevel);
-        }
-        level = unit->m_a2 + unit->m_y1;
-    } break;
-    case shape_Curve: {
-        if (fabs(curve) < 0.001) {
-            unit->m_shape = 1; // shape_Linear
-            unit->m_grow = (endLevel - level) / counter;
-        } else {
-            double a1 = (endLevel - level) / (1.0 - exp(curve));
-            unit->m_a2 = level + a1;
-            unit->m_b1 = a1;
-            unit->m_grow = exp(curve / counter);
-        }
-    } break;
-    case shape_Squared: {
-        unit->m_y1 = sqrt(level);
-        unit->m_y2 = sqrt(endLevel);
-        unit->m_grow = (unit->m_y2 - unit->m_y1) / counter;
-    } break;
-    case shape_Cubed: {
-        unit->m_y1 = pow(level, 1.0 / 3.0); // 0.33333333);
-        unit->m_y2 = pow(endLevel, 1.0 / 3.0);
-        unit->m_grow = (unit->m_y2 - unit->m_y1) / counter;
-    } break;
-    };
-    return true;
+    // restore initial conditions
+    unit->m_endLevel = unit->m_level = ZIN0(kEnvGen_initLevel) * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias);
+    unit->m_counter = 0;
+    unit->m_stage = ENVGEN_NOT_STARTED;
+    unit->m_shape = shape_Hold;
+    unit->m_prevGate = 0.f;
+    unit->m_released = false;
+    unit->m_releaseNode = (int)ZIN0(kEnvGen_releaseNode);
+    if (initialShape == shape_Hold)
+        unit->m_level = *envPtr[0]; // we start at the end level;
 }
 
 static bool check_gate(EnvGen* unit, float prevGate, float gate, int& counter, double level, int counterOffset = 0) {
@@ -2612,14 +2556,18 @@ static bool check_gate(EnvGen* unit, float prevGate, float gate, int& counter, d
         unit->mDone = false;
         counter = counterOffset;
         return false;
-    } else if (gate <= -1.f && prevGate > -1.f) {
-        // forced release: jump to last segment overriding its duration
-        double dur = -gate - 1.f;
+    } else if (gate <= -1.f && prevGate > -1.f && !unit->m_released) {
+        // cutoff
+        int numstages = (int)ZIN0(kEnvGen_numStages);
+        float dur = -gate - 1.f;
         counter = (int32)(dur * SAMPLERATE);
         counter = sc_max(1, counter) + counterOffset;
-        unit->m_stage = static_cast<int>(ZIN0(kEnvGen_numStages) - 1);
+        unit->m_stage = numstages;
+        unit->m_shape = shape_Linear;
+        // first ZIN0 gets the last envelope node's level, then apply levelScale and levelBias
+        unit->m_endLevel = ZIN0(unit->mNumInputs - 4) * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias);
+        unit->m_grow = (unit->m_endLevel - level) / counter;
         unit->m_released = true;
-        EnvGen_initSegment(unit, counter, level, dur);
         return false;
     } else if (prevGate > 0.f && gate <= 0.f && unit->m_releaseNode >= 0 && !unit->m_released) {
         counter = counterOffset;
@@ -2627,6 +2575,7 @@ static bool check_gate(EnvGen* unit, float prevGate, float gate, int& counter, d
         unit->m_released = true;
         return false;
     }
+
     return true;
 }
 
@@ -2643,6 +2592,9 @@ static inline bool check_gate_ar(EnvGen* unit, int i, float& prevGate, float*& g
 }
 
 static inline bool EnvGen_nextSegment(EnvGen* unit, int& counter, double& level) {
+    // if (unit->m_stage == ENVGEN_NOT_STARTED) { return true; } // this fixes doneAction 14, but breaks with
+    // EnvGen_next_aa
+
     // Print("stage %d rel %d\n", unit->m_stage, (int)ZIN0(kEnvGen_releaseNode));
     int numstages = (int)ZIN0(kEnvGen_numStages);
 
@@ -2655,14 +2607,11 @@ static inline bool EnvGen_nextSegment(EnvGen* unit, int& counter, double& level)
         unit->mDone = true;
         int doneAction = (int)ZIN0(kEnvGen_doneAction);
         DoneAction(doneAction, unit);
-    } else if (unit->m_stage == ENVGEN_NOT_STARTED) {
-        counter = INT_MAX;
-        return true;
     } else if (unit->m_stage + 1 == (int)ZIN0(kEnvGen_releaseNode) && !unit->m_released) { // sustain stage
         int loopNode = (int)ZIN0(kEnvGen_loopNode);
         if (loopNode >= 0 && loopNode < numstages) {
             unit->m_stage = loopNode;
-            return EnvGen_initSegment(unit, counter, level);
+            goto initSegment;
         } else {
             counter = INT_MAX;
             unit->m_shape = shape_Sustain;
@@ -2671,7 +2620,96 @@ static inline bool EnvGen_nextSegment(EnvGen* unit, int& counter, double& level)
         // Print("sustain\n");
     } else {
         unit->m_stage++;
-        return EnvGen_initSegment(unit, counter, level);
+    initSegment:
+        // Print("stage %d\n", unit->m_stage);
+        // Print("initSegment\n");
+        // out = unit->m_level;
+        int stageOffset = (unit->m_stage << 2) + kEnvGen_nodeOffset;
+
+        if (stageOffset + 4 > unit->mNumInputs) {
+            // oops.
+            Print("envelope went past end of inputs.\n");
+            ClearUnitOutputs(unit, 1);
+            NodeEnd(&unit->mParent->mNode);
+            return false;
+        }
+
+        float previousEndLevel = unit->m_endLevel;
+        float** envPtr = unit->mInBuf + stageOffset;
+        double endLevel = *envPtr[0] * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias); // scale levels
+        double dur = *envPtr[1] * ZIN0(kEnvGen_timeScale);
+        unit->m_shape = (int32)*envPtr[2];
+        double curve = *envPtr[3];
+        unit->m_endLevel = endLevel;
+
+        counter = (int32)(dur * SAMPLERATE);
+        counter = sc_max(1, counter);
+        // Print("stageOffset %d   level %g   endLevel %g   dur %g   shape %d   curve %g\n", stageOffset, level,
+        // endLevel, dur, unit->m_shape, curve); Print("SAMPLERATE %g\n", SAMPLERATE);
+        if (counter == 1)
+            unit->m_shape = 1; // shape_Linear
+        // Print("new counter = %d  shape = %d\n", counter, unit->m_shape);
+        switch (unit->m_shape) {
+        case shape_Step: {
+            level = endLevel;
+        } break;
+        case shape_Hold: {
+            level = previousEndLevel;
+        } break;
+        case shape_Linear: {
+            unit->m_grow = (endLevel - level) / counter;
+            // Print("grow %g\n", unit->m_grow);
+        } break;
+        case shape_Exponential: {
+            unit->m_grow = pow(endLevel / level, 1.0 / counter);
+        } break;
+        case shape_Sine: {
+            double w = pi / counter;
+
+            unit->m_a2 = (endLevel + level) * 0.5;
+            unit->m_b1 = 2. * cos(w);
+            unit->m_y1 = (endLevel - level) * 0.5;
+            unit->m_y2 = unit->m_y1 * sin(pi * 0.5 - w);
+            level = unit->m_a2 - unit->m_y1;
+        } break;
+        case shape_Welch: {
+            double w = (pi * 0.5) / counter;
+
+            unit->m_b1 = 2. * cos(w);
+
+            if (endLevel >= level) {
+                unit->m_a2 = level;
+                unit->m_y1 = 0.;
+                unit->m_y2 = -sin(w) * (endLevel - level);
+            } else {
+                unit->m_a2 = endLevel;
+                unit->m_y1 = level - endLevel;
+                unit->m_y2 = cos(w) * (level - endLevel);
+            }
+            level = unit->m_a2 + unit->m_y1;
+        } break;
+        case shape_Curve: {
+            if (fabs(curve) < 0.001) {
+                unit->m_shape = 1; // shape_Linear
+                unit->m_grow = (endLevel - level) / counter;
+            } else {
+                double a1 = (endLevel - level) / (1.0 - exp(curve));
+                unit->m_a2 = level + a1;
+                unit->m_b1 = a1;
+                unit->m_grow = exp(curve / counter);
+            }
+        } break;
+        case shape_Squared: {
+            unit->m_y1 = sqrt(level);
+            unit->m_y2 = sqrt(endLevel);
+            unit->m_grow = (unit->m_y2 - unit->m_y1) / counter;
+        } break;
+        case shape_Cubed: {
+            unit->m_y1 = pow(level, 1.0 / 3.0); // 0.33333333);
+            unit->m_y2 = pow(endLevel, 1.0 / 3.0);
+            unit->m_grow = (unit->m_y2 - unit->m_y1) / counter;
+        } break;
+        }
     }
 
     return true;
@@ -2945,7 +2983,15 @@ void Linen_Ctor(Linen* unit) {
     if (ZIN0(0) <= -1.f) {
         unit->m_stage = 1;
     } // early release
+
     Linen_next_k(unit, 1);
+
+    unit->m_level = 0.f;
+    unit->m_stage = 4;
+    unit->m_prevGate = 0.f;
+    if (ZIN0(0) <= -1.f) {
+        unit->m_stage = 1;
+    }
 }
 
 void Linen_next_k(Linen* unit, int inNumSamples) {
@@ -3238,15 +3284,21 @@ void IEnvGen_Ctor(IEnvGen* unit) {
     unit->m_envvals = (float*)RTAlloc(unit->mWorld, (int)(numvals + 1.) * sizeof(float));
     ClearUnitIfMemFailed(unit->m_envvals);
 
-    unit->m_envvals[0] = IN0(2);
-    //  Print("offset of and initial  values %3,3f, %3.3f\n", offset, unit->m_envvals[0]);
+		if (INRATE(0) == calc_FullRate) {
+			SETCALC(IEnvGen_next_a);
+		} else {
+			SETCALC(IEnvGen_next_k);
+		}
+
+		unit->m_envvals[0] = IN0(2);
+    //	Print("offset of and initial  values %3,3f, %3.3f\n", offset, unit->m_envvals[0]);
     // fill m_envvals with the values;
     for (int i = 1; i <= numvals; i++) {
         unit->m_envvals[i] = IN0(4 + i);
-        //      Print("val for: %d, %3.3f\n", i, unit->m_envvals[i]);
+        //	    Print("val for: %d, %3.3f\n", i, unit->m_envvals[i]);
     }
 
-    //  float out = OUT0(0);
+    //	float out = OUT0(0);
     float totalDur = IN0(4);
     float level = 0.f;
     float newtime = 0.f;
