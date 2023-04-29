@@ -1437,7 +1437,7 @@ FLATTEN void Line_next_nova_64(Line* unit, int inNumSamples) {
 void Line_Ctor(Line* unit) {
 #ifdef NOVA_SIMD
     if (BUFLENGTH == 64)
-        SETCALC(Line_next_nova_64); // mtm add _64 - otherwise Line_next_nova_64 isn't called? see XLine
+        SETCALC(Line_next_nova_64);
     else if (boost::alignment::is_aligned(BUFLENGTH, 16))
         SETCALC(Line_next_nova);
     else
