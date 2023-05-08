@@ -475,13 +475,13 @@ void LFPulse_Ctor(LFPulse* unit) {
     }
 
     unit->mFreqMul = unit->mRate->mSampleDur;
-    unit->mPhase = ZIN0(1);
-    unit->mDuty = ZIN0(2);
+    double initPhase = unit->mPhase = ZIN0(1);
+    float initDuty = unit->mDuty = ZIN0(2);
 
     LFPulse_next_k(unit, 1);
 
-    unit->mPhase = ZIN0(1);
-    unit->mDuty = ZIN0(2);
+    unit->mPhase = initPhase;
+    unit->mDuty = initDuty;
 }
 
 
@@ -522,11 +522,11 @@ void LFSaw_Ctor(LFSaw* unit) {
         SETCALC(LFSaw_next_k);
 
     unit->mFreqMul = 2.0 * unit->mRate->mSampleDur;
-    unit->mPhase = ZIN0(1);
+    double initPhase = unit->mPhase = ZIN0(1);
 
     LFSaw_next_k(unit, 1);
 
-    unit->mPhase = ZIN0(1);
+    unit->mPhase = initPhase;
 }
 
 
@@ -588,11 +588,11 @@ void LFPar_Ctor(LFPar* unit) {
         SETCALC(LFPar_next_k);
 
     unit->mFreqMul = 4.0 * unit->mRate->mSampleDur;
-    unit->mPhase = ZIN0(1);
+    double initPhase = unit->mPhase = ZIN0(1);
 
     LFPar_next_k(unit, 1);
 
-    unit->mPhase = ZIN0(1);
+    unit->mPhase = initPhase;
 }
 
 
@@ -636,11 +636,11 @@ void LFCub_Ctor(LFCub* unit) {
         SETCALC(LFCub_next_k);
 
     unit->mFreqMul = 2.0 * unit->mRate->mSampleDur;
-    unit->mPhase = ZIN0(1) + 0.5;
+    double initPhase = unit->mPhase = ZIN0(1) + 0.5;
 
     LFCub_next_k(unit, 1);
 
-    unit->mPhase = ZIN0(1) + 0.5;
+    unit->mPhase = initPhase;
 }
 
 
@@ -677,11 +677,11 @@ void LFTri_Ctor(LFTri* unit) {
     }
 
     unit->mFreqMul = 4.0 * unit->mRate->mSampleDur;
-    unit->mPhase = ZIN0(1);
+    double initPhase = unit->mPhase = ZIN0(1);
 
     LFTri_next_k(unit, 1);
 
-    unit->mPhase = ZIN0(1);
+    unit->mPhase = initPhase;
 }
 
 
