@@ -477,7 +477,7 @@ void LFPulse_Ctor(LFPulse* unit) {
     unit->mFreqMul = unit->mRate->mSampleDur;
     double initPhase = unit->mPhase = ZIN0(1);
     float initDuty = unit->mDuty = ZIN0(2);
-
+    
     LFPulse_next_k(unit, 1);
 
     unit->mPhase = initPhase;
@@ -496,7 +496,9 @@ void LFSaw_next_a(LFSaw* unit, int inNumSamples) {
     LOOP1(inNumSamples,
           float z = phase; // out must be written last for in place operation
           phase += ZXP(freq) * freqmul; if (phase >= 1.f) phase -= 2.f; else if (phase <= -1.f) phase += 2.f;
-          ZXP(out) = z;);
+          ZXP(out) = z;
+          printf("[LFSaw_next_a] next: %f\n", z); // mtm
+          );
 
     unit->mPhase = phase;
 }
@@ -507,9 +509,13 @@ void LFSaw_next_k(LFSaw* unit, int inNumSamples) {
 
     double phase = unit->mPhase;
     if (freq >= 0.f) {
-        LOOP1(inNumSamples, ZXP(out) = phase; phase += freq; if (phase >= 1.f) phase -= 2.f;);
+        LOOP1(inNumSamples, ZXP(out) = phase;
+              printf("[LFSaw_next_k] next: %f\n", phase); // mtm
+              phase += freq; if (phase >= 1.f) phase -= 2.f;);
     } else {
-        LOOP1(inNumSamples, ZXP(out) = phase; phase += freq; if (phase <= -1.f) phase += 2.f;);
+        LOOP1(inNumSamples, ZXP(out) = phase;
+              printf("[LFSaw_next_k] next: %f\n", phase); // mtm
+              phase += freq; if (phase <= -1.f) phase += 2.f;);
     }
 
     unit->mPhase = phase;
@@ -523,9 +529,9 @@ void LFSaw_Ctor(LFSaw* unit) {
 
     unit->mFreqMul = 2.0 * unit->mRate->mSampleDur;
     double initPhase = unit->mPhase = ZIN0(1);
-
+    printf("[LFSaw_Ctor] init samp:\n"); // mtm
     LFSaw_next_k(unit, 1);
-
+    printf("[LFSaw_Ctor] first samp:\n"); // mtm
     unit->mPhase = initPhase;
 }
 
@@ -554,7 +560,9 @@ void LFPar_next_a(LFPar* unit, int inNumSamples) {
         }
         // Note: the following two lines were originally one, but seems to compile wrong on mac
         float phaseadd = ZXP(freq);
-        phase += phaseadd * freqmul; ZXP(out) = y;);
+        phase += phaseadd * freqmul; ZXP(out) = y;
+          printf("[LFPar_next_a] next: %f\n", y); // mtm
+          );
 
     unit->mPhase = phase;
 }
@@ -569,13 +577,16 @@ void LFPar_next_k(LFPar* unit, int inNumSamples) {
         if (phase < 1.f) {
             float z = phase;
             ZXP(out) = 1.f - z * z;
+            printf("[LFPar_next_k] next: %f\n", 1.f - z * z); // mtm
         } else if (phase < 3.f) {
             float z = phase - 2.f;
             ZXP(out) = z * z - 1.f;
+            printf("[LFPar_next_k] next: %f\n", z * z - 1.f); // mtm
         } else {
             phase -= 4.f;
             float z = phase;
             ZXP(out) = 1.f - z * z;
+            printf("[LFPar_next_k] next: %f\n", 1.f - z * z); // mtm
         } phase += freq;);
 
     unit->mPhase = phase;
@@ -589,9 +600,9 @@ void LFPar_Ctor(LFPar* unit) {
 
     unit->mFreqMul = 4.0 * unit->mRate->mSampleDur;
     double initPhase = unit->mPhase = ZIN0(1);
-
+    printf("[LFPar_Ctor] init samp:\n"); // mtm
     LFPar_next_k(unit, 1);
-
+    printf("[LFPar_Ctor] first samp:\n"); // mtm
     unit->mPhase = initPhase;
 }
 
@@ -609,7 +620,9 @@ void LFCub_next_a(LFCub* unit, int inNumSamples) {
             phase -= 2.f;
             z = phase;
         } float phaseadd = ZXP(freq);
-        phase += phaseadd * freqmul; ZXP(out) = z * z * (6.f - 4.f * z) - 1.f;);
+        phase += phaseadd * freqmul; ZXP(out) = z * z * (6.f - 4.f * z) - 1.f;
+          printf("[LFCub_next_a] next: %f\n", z * z * (6.f - 4.f * z) - 1.f); // mtm
+          );
 
     unit->mPhase = phase;
 }
@@ -624,6 +637,7 @@ void LFCub_next_k(LFCub* unit, int inNumSamples) {
             phase -= 2.f;
             z = phase;
         } ZXP(out) = z * z * (6.f - 4.f * z) - 1.f;
+          printf("[LFCub_next_k] next: %f\n", z * z * (6.f - 4.f * z) - 1.f); // mtm
         phase += freq;);
 
     unit->mPhase = phase;
@@ -637,9 +651,9 @@ void LFCub_Ctor(LFCub* unit) {
 
     unit->mFreqMul = 2.0 * unit->mRate->mSampleDur;
     double initPhase = unit->mPhase = ZIN0(1) + 0.5;
-
+    printf("[LFCub_Ctor] init samp:\n"); // mtm
     LFCub_next_k(unit, 1);
-
+    printf("[LFCub_Ctor] first samp:\n"); // mtm
     unit->mPhase = initPhase;
 }
 
@@ -653,7 +667,9 @@ void LFTri_next_a(LFTri* unit, int inNumSamples) {
     float freqmul = unit->mFreqMul;
     double phase = unit->mPhase;
     LOOP1(inNumSamples, float z = phase > 1.f ? 2.f - phase : phase; phase += ZXP(freq) * freqmul;
-          if (phase >= 3.f) phase -= 4.f; ZXP(out) = z;);
+          if (phase >= 3.f) phase -= 4.f; ZXP(out) = z;
+          printf("[LFTri_next_a] next: %f\n", z); // mtm
+          );
 
     unit->mPhase = phase;
 }
@@ -664,7 +680,9 @@ void LFTri_next_k(LFTri* unit, int inNumSamples) {
 
     double phase = unit->mPhase;
     LOOP1(inNumSamples, float z = phase > 1.f ? 2.f - phase : phase; phase += freq; if (phase >= 3.f) phase -= 4.f;
-          ZXP(out) = z;);
+          ZXP(out) = z;
+          printf("[LFTri_next_k] next: %f\n", z); // mtm
+          );
 
     unit->mPhase = phase;
 }
@@ -678,9 +696,9 @@ void LFTri_Ctor(LFTri* unit) {
 
     unit->mFreqMul = 4.0 * unit->mRate->mSampleDur;
     double initPhase = unit->mPhase = ZIN0(1);
-
+    printf("[LFTri_Ctor] init samp:\n"); // mtm
     LFTri_next_k(unit, 1);
-
+    printf("[LFTri_Ctor] first samp:\n"); // mtm
     unit->mPhase = initPhase;
 }
 
