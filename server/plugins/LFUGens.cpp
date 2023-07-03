@@ -732,6 +732,7 @@ void LFGauss_next_k(LFGauss* unit, int inNumSamples) {
                 DoneAction(ZIN0(4), unit);
             }
         } ZXP(out) = exp(x * x * factor);
+          printf("[LFGauss_next_k] next: %f\n", exp(x * x * factor)); // mtm
         x += step;);
 
     unit->mPhase = x + b;
@@ -766,7 +767,7 @@ void LFGauss_next_a(LFGauss* unit, int inNumSamples) {
         float step = 2.f / (ZXP(dur) * sr);
 
         ZXP(out) = exp(x * x * factor);
-
+          printf("[LFGauss_next_k] next: %f\n", exp(x * x * factor)); // mtm
         x += step;);
 
     unit->mPhase = x + b;
@@ -803,7 +804,7 @@ void LFGauss_next_aa(LFGauss* unit, int inNumSamples) {
         float cval = ZXP(c);
 
         float factor = -1.f / (2.f * cval * cval); ZXP(out) = exp(x * x * factor);
-
+          printf("[LFGauss_next_k] next: %f\n", exp(x * x * factor)); // mtm
         x += step;);
 
     unit->mPhase = x + b;
@@ -821,8 +822,9 @@ void LFGauss_Ctor(LFGauss* unit) {
         SETCALC(LFGauss_next_k);
     }
     unit->mPhase = -1.0;
-
+    printf("[LFGauss_Ctor] init samp:\n"); // mtm
     LFGauss_next_k(unit, 1);
+    printf("[LFGauss_Ctor] first samp:\n"); // mtm
 
     unit->mPhase = -1.0;
 }
