@@ -1080,7 +1080,9 @@ void VarSaw_next_a(VarSaw* unit, int inNumSamples) {
             invduty = unit->mInvDuty = 2.f / duty;
             inv1duty = unit->mInv1Duty = 2.f / (1.f - duty);
         } float z = phase < duty ? phase * invduty : (1.f - phase) * inv1duty;
-        phase += ZXP(freq) * freqmul; ZXP(out) = z - 1.f;);
+        phase += ZXP(freq) * freqmul; ZXP(out) = z - 1.f;
+          printf("[VarSaw_next_a] next: %f\n", z - 1.f);
+          );
 
     unit->mPhase = phase;
 }
@@ -1103,7 +1105,9 @@ void VarSaw_next_k(VarSaw* unit, int inNumSamples) {
             invduty = unit->mInvDuty = 2.f / duty;
             inv1duty = unit->mInv1Duty = 2.f / (1.f - duty);
         } float z = phase < duty ? phase * invduty : (1.f - phase) * inv1duty;
-        phase += freq; ZXP(out) = z - 1.f;);
+        phase += freq; ZXP(out) = z - 1.f;
+          printf("[VarSaw_next_k] next: %f\n", z - 1.f);
+          );
 
     unit->mPhase = phase;
 }
@@ -1116,15 +1120,20 @@ void VarSaw_Ctor(VarSaw* unit) {
     }
 
     unit->mFreqMul = unit->mRate->mSampleDur;
-    unit->mPhase = ZIN0(1);
+    double phase = ZIN0(1);
+    phase = unit->mPhase = sc_clip(phase, 0.f, 1.f);
     float duty = ZIN0(2);
     duty = unit->mDuty = sc_clip(duty, 0.001, 0.999);
     unit->mInvDuty = 2.f / duty;
     unit->mInv1Duty = 2.f / (1.f - duty);
 
+    printf("[VarSaw] init sample:\n\t");//mtm
     VarSaw_next_k(unit, 1);
+    printf("[VarSaw] first sample:\n\t");//mtm
 
-    unit->mPhase = ZIN0(1);
+    unit->mPhase = phase;
+    // other members need not be reset,
+    // duty is unchanged because phase is guaranteed to be in range
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
