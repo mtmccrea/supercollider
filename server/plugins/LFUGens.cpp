@@ -2322,7 +2322,11 @@ void LinExp_next(LinExp* unit, int inNumSamples) {
     float rsrcrange = unit->m_rsrcrange;
     float rrminuslo = unit->m_rrminuslo;
 
-    LOOP1(inNumSamples, ZXP(out) = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
+    LOOP1(inNumSamples,
+          float tmp = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo);
+//          ZXP(out) = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
+          printf("[LinExp] %.4f\n", tmp); // mtm
+          ZXP(out) = tmp);
 }
 
 #ifdef NOVA_SIMD
@@ -2339,7 +2343,7 @@ static inline void LinExp_next_nova_loop(float* out, const float* in, int inNumS
 
         val0 = dstlo * pow(dstratio, val0 * rsrcrange + rrminuslo);
         val1 = dstlo * pow(dstratio, val1 * rsrcrange + rrminuslo);
-
+        printf("[LinExp_next_nova_loop] %.4f\n", val0.get(0)); // mtm
         val0.store_aligned(out);
         val1.store_aligned(out + vecSize);
 
@@ -2383,7 +2387,12 @@ void LinExp_next_kk(LinExp* unit, int inNumSamples) {
     float rsrcrange = sc_reciprocal(srchi - srclo);
     float rrminuslo = rsrcrange * -srclo;
 
-    LOOP1(inNumSamples, ZXP(out) = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
+    LOOP1(inNumSamples,
+          float tmp = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo);
+          printf("[LinExp_next_kk] %.4f\n", tmp); // mtm
+//          ZXP(out) = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
+          ZXP(out) = tmp;
+          );
 }
 
 void LinExp_next_aa(LinExp* unit, int inNumSamples) {
@@ -2412,7 +2421,11 @@ void LinExp_next_ak(LinExp* unit, int inNumSamples) {
     LOOP1(inNumSamples, float zsrchi = ZXP(srchi); float zsrclo = ZXP(srclo);
 
           float rsrcrange = sc_reciprocal(zsrchi - zsrclo); float rrminuslo = rsrcrange * -zsrclo;
-          ZXP(out) = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
+          float tmp = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo);
+          printf("[LinExp_next_kk] %.4f\n", tmp); // mtm
+          ZXP(out) = tmp;
+          );
+//          ZXP(out) = dstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
 }
 
 void LinExp_next_ka(LinExp* unit, int inNumSamples) {
@@ -2426,7 +2439,11 @@ void LinExp_next_ka(LinExp* unit, int inNumSamples) {
     float rrminuslo = rsrcrange * -srclo;
 
     LOOP1(inNumSamples, float zdsthi = ZXP(dsthi); float zdstlo = ZXP(dstlo); float dstratio = zdsthi / zdstlo;
-          ZXP(out) = zdstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
+          float tmp = zdstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo);
+          printf("[LinExp_next_ka] %.4f\n", tmp); // mtm
+          ZXP(out) = tmp;
+          );
+//          ZXP(out) = zdstlo * pow(dstratio, ZXP(in) * rsrcrange + rrminuslo););
 }
 
 
@@ -2481,7 +2498,9 @@ void LinExp_Ctor(LinExp* unit) {
     unit->m_dstratio = dsthi / dstlo;
     unit->m_rsrcrange = 1. / (srchi - srclo);
     unit->m_rrminuslo = unit->m_rsrcrange * -srclo;
+    printf("[LinExp] init samp:\n\t"); // mtm
     LinExp_next(unit, 1);
+    printf("[LinExp] FIRST samp:\n\t"); // mtm
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
