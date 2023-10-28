@@ -1172,7 +1172,9 @@ void SyncSaw_next_ak(SyncSaw* unit, int inNumSamples) {
         if (phase2 >= 1.f) phase2 -= 2.f; phase1 += freq1x; if (phase1 >= 1.f) {
             phase1 -= 2.f;
             phase2 = (phase1 + 1.f) * freq2x / freq1x - 1.f;
-        } ZXP(out) = z;);
+        } ZXP(out) = z;
+          printf("\tSyncSaw_next_ak: %.4f\n", z);//mtm
+          );
 
     unit->mPhase1 = phase1;
     unit->mPhase2 = phase2;
@@ -1192,7 +1194,9 @@ void SyncSaw_next_ka(SyncSaw* unit, int inNumSamples) {
         if (phase2 >= 1.f) phase2 -= 2.f; phase1 += freq1x; if (phase1 >= 1.f) {
             phase1 -= 2.f;
             phase2 = (phase1 + 1.f) * freq2x / freq1x - 1.f;
-        } ZXP(out) = z;);
+        } ZXP(out) = z;
+          printf("\tSyncSaw_next_ka: %.4f\n", z);//mtm
+          );
 
     unit->mPhase1 = phase1;
     unit->mPhase2 = phase2;
@@ -1210,7 +1214,9 @@ void SyncSaw_next_kk(SyncSaw* unit, int inNumSamples) {
         if (phase1 >= 1.f) {
             phase1 -= 2.f;
             phase2 = (phase1 + 1.f) * freq2x / freq1x - 1.f;
-        } ZXP(out) = z;);
+        } ZXP(out) = z;
+          printf("\tSyncSaw_next_kk: %.4f\n", z);//mtm
+          );
 
     unit->mPhase1 = phase1;
     unit->mPhase2 = phase2;
@@ -1234,7 +1240,10 @@ void SyncSaw_Ctor(SyncSaw* unit) {
     unit->mPhase1 = 0.;
     unit->mPhase2 = 0.;
 
+    printf("[SyncSaw] init sample:\n\t");//mtm
     SyncSaw_next_kk(unit, 1);
+    printf("[SyncSaw] first sample:\n\t");//mtm
+    
 
     unit->mPhase1 = 0.;
     unit->mPhase2 = 0.;
