@@ -1599,38 +1599,6 @@ void XLine_Ctor(XLine* unit) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-void Wrap_next(Wrap* unit, int inNumSamples)
-{
-    float *out = ZOUT(0);
-    float *in   = ZIN(0);
-    float lo = unit->m_lo;
-    float hi = unit->m_hi;
-    float range = unit->m_range;
-
-    LOOP1(inNumSamples,
-        ZXP(out) = sc_wrap(ZXP(in), lo, hi, range);
-    );
-}
-
-void Wrap_Ctor(Wrap* unit)
-{
-
-    SETCALC(Wrap_next);
-    unit->m_lo = ZIN0(1);
-    unit->m_hi = ZIN0(2);
-
-    if (unit->m_lo > unit->m_hi) {
-        float temp = unit->m_lo;
-        unit->m_lo = unit->m_hi;
-        unit->m_hi = temp;
-    }
-    unit->m_range = unit->m_hi - unit->m_lo;
-
-    Wrap_next(unit, 1);
-}
-*/
-
 
 void Wrap_next_kk(Wrap* unit, int inNumSamples) {
     float* out = ZOUT(0);
@@ -1641,7 +1609,13 @@ void Wrap_next_kk(Wrap* unit, int inNumSamples) {
     float lo_slope = CALCSLOPE(next_lo, lo);
     float hi = unit->m_hi;
     float hi_slope = CALCSLOPE(next_hi, hi);
-    LOOP1(inNumSamples, float range = hi - lo; ZXP(out) = sc_wrap(ZXP(in), lo, hi, range); lo += lo_slope;
+//    LOOP1(inNumSamples, float range = hi - lo; ZXP(out) = sc_wrap(ZXP(in), lo, hi, range); lo += lo_slope;
+//          hi += hi_slope;);
+    LOOP1(inNumSamples, float range = hi - lo;
+          float y = sc_wrap(ZXP(in), lo, hi, range);
+          printf("Wrap_next_kk, %.4f\n", y);
+          ZXP(out) = y;
+          lo += lo_slope;
           hi += hi_slope;);
     unit->m_lo = lo;
     unit->m_hi = hi;
@@ -1677,7 +1651,10 @@ void Wrap_next_aa(Wrap* unit, int inNumSamples) {
     float* hi = ZIN(2);
 
     LOOP1(inNumSamples, float curhi = ZXP(hi); float curlo = ZXP(lo);
-          ZXP(out) = sc_wrap(ZXP(in), curlo, curhi, curhi - curlo););
+          float y = sc_wrap(ZXP(in), curlo, curhi, curhi - curlo);
+          printf("Wrap_next_aa, %.4f\n", y);
+          ZXP(out) = y);
+//          ZXP(out) = sc_wrap(ZXP(in), curlo, curhi, curhi - curlo););
 }
 
 void Wrap_Ctor(Wrap* unit) {
@@ -1702,44 +1679,14 @@ void Wrap_Ctor(Wrap* unit) {
     unit->m_lo = ZIN0(1);
     unit->m_hi = ZIN0(2);
 
+    printf("Wrap_Ctor, init sample\n\t");
     Wrap_next_kk(unit, 1);
+    printf("Wrap_Ctor, first sample\n\t");
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-void Fold_next(Fold* unit, int inNumSamples)
-{
-    float *out = ZOUT(0);
-    float *in   = ZIN(0);
-    float lo = unit->m_lo;
-    float hi = unit->m_hi;
-    float range = unit->m_range;
-    float range2 = unit->m_range2;
 
-    LOOP1(inNumSamples,
-        ZXP(out) = sc_fold(ZXP(in), lo, hi, range, range2);
-    );
-}
-
-void Fold_Ctor(Fold* unit)
-{
-
-    SETCALC(Fold_next);
-    unit->m_lo = ZIN0(1);
-    unit->m_hi = ZIN0(2);
-
-    if (unit->m_lo > unit->m_hi) {
-        float temp = unit->m_lo;
-        unit->m_lo = unit->m_hi;
-        unit->m_hi = temp;
-    }
-    unit->m_range = unit->m_hi - unit->m_lo;
-    unit->m_range2 = 2.f * unit->m_range;
-
-    Fold_next(unit, 1);
-}
-*/
 void Fold_next_kk(Fold* unit, int inNumSamples) {
     float* out = ZOUT(0);
     float* in = ZIN(0);
@@ -1750,10 +1697,17 @@ void Fold_next_kk(Fold* unit, int inNumSamples) {
     float hi = unit->m_hi;
     float hi_slope = CALCSLOPE(next_hi, hi);
 
-    LOOP1(inNumSamples, float range = hi - lo; float range2 = range * 2.f;
-          ZXP(out) = sc_fold(ZXP(in), lo, hi, range, range2);
-
-          lo += lo_slope; hi += hi_slope;);
+//    LOOP1(inNumSamples, float range = hi - lo; float range2 = range * 2.f;
+//          ZXP(out) = sc_fold(ZXP(in), lo, hi, range, range2);
+//          lo += lo_slope; hi += hi_slope;);
+    LOOP1(inNumSamples,
+          float range = hi - lo; float range2 = range * 2.f;
+          float y = sc_fold(ZXP(in), lo, hi, range, range2);
+          printf("Fold_next_kk, %.4f\n", y);
+          ZXP(out) = y;
+          lo += lo_slope; hi += hi_slope;
+          );
+    
     unit->m_lo = lo;
     unit->m_hi = hi;
 }
@@ -1790,8 +1744,18 @@ void Fold_next_aa(Fold* unit, int inNumSamples) {
     float* lo = ZIN(1);
     float* hi = ZIN(2);
 
-    LOOP1(inNumSamples, float curhi = ZXP(hi); float curlo = ZXP(lo); float range = curhi - curlo;
-          float range2 = range * 2.0; ZXP(out) = sc_fold(ZXP(in), curlo, curhi, range, range2););
+//    LOOP1(inNumSamples, float curhi = ZXP(hi); float curlo = ZXP(lo); float range = curhi - curlo;
+//          float range2 = range * 2.0; ZXP(out) = sc_fold(ZXP(in), curlo, curhi, range, range2););
+    
+    LOOP1(inNumSamples,
+          float curhi = ZXP(hi);
+          float curlo = ZXP(lo);
+          float range = curhi - curlo;
+          float range2 = range * 2.0;
+          float y = sc_fold(ZXP(in), curlo, curhi, range, range2);
+          printf("Fold_next_aa, %.4f\n", y);
+          ZXP(out) = y
+          );
 }
 
 void Fold_Ctor(Fold* unit) {
@@ -1816,7 +1780,9 @@ void Fold_Ctor(Fold* unit) {
     unit->m_lo = ZIN0(1);
     unit->m_hi = ZIN0(2);
 
+    printf("Fold_Ctor, init sample\n\t");
     Fold_next_kk(unit, 1);
+    printf("Fold_Ctor, first sample\n\t");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
