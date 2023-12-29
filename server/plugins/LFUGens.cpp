@@ -2101,9 +2101,20 @@ void ModDif_next_kk(ModDif* unit, int inNumSamples) {
     float mod = unit->m_mod;
     float mod_slope = CALCSLOPE(next_mod, mod);
 
-    LOOP1(inNumSamples, float inval = ZXP(in); float diff = std::fmod(std::abs(inval - dif), mod);
-          float modhalf = mod * 0.5; ZXP(out) = modhalf - std::fabs(diff - modhalf); dif += dif_slope;
-          mod += mod_slope;);
+//    LOOP1(inNumSamples, float inval = ZXP(in); float diff = std::fmod(std::abs(inval - dif), mod);
+//          float modhalf = mod * 0.5; ZXP(out) = modhalf - std::fabs(diff - modhalf); dif += dif_slope;
+//          mod += mod_slope;);
+    LOOP1(inNumSamples, 
+          float inval = ZXP(in);
+          float diff = std::fmod(std::abs(inval - dif), mod);
+          float modhalf = mod * 0.5; 
+          float y = modhalf - std::fabs(diff - modhalf);
+          printf("[ModDif_next_kk] %.4f\n", y);
+          ZXP(out) = y;
+          dif += dif_slope;
+          mod += mod_slope;
+          );
+    
     unit->m_dif = dif;
     unit->m_mod = mod;
 }
@@ -2118,7 +2129,11 @@ void ModDif_next_ka(ModDif* unit, int inNumSamples) {
 
     LOOP1(inNumSamples, float inval = ZXP(in); float curmod = ZXP(mod);
           float diff = std::fmod(std::abs(inval - dif), curmod); float modhalf = curmod * 0.5;
-          ZXP(out) = modhalf - std::abs(diff - modhalf); dif += dif_slope;);
+          float y = modhalf - std::abs(diff - modhalf);
+          printf("[ModDif_next_ka] %.4f\n", y);
+          ZXP(out) = y;
+//          ZXP(out) = modhalf - std::abs(diff - modhalf); 
+          dif += dif_slope;);
     unit->m_dif = dif;
 }
 
@@ -2131,7 +2146,12 @@ void ModDif_next_ak(ModDif* unit, int inNumSamples) {
     float mod_slope = CALCSLOPE(next_mod, mod);
 
     LOOP1(inNumSamples, float inval = ZXP(in); float diff = std::fmod(std::abs(inval - ZXP(dif)), mod);
-          float modhalf = mod * 0.5; ZXP(out) = modhalf - std::abs(diff - modhalf); mod += mod_slope;);
+          float modhalf = mod * 0.5; 
+          float y = modhalf - std::abs(diff - modhalf);
+          printf("[ModDif_next_ak] %.4f\n", y);
+          ZXP(out) = y;
+//          ZXP(out) = modhalf - std::abs(diff - modhalf); 
+          mod += mod_slope;);
     unit->m_mod = mod;
 }
 
@@ -2143,10 +2163,15 @@ void ModDif_next_aa(ModDif* unit, int inNumSamples) {
 
     LOOP1(inNumSamples, float inval = ZXP(in); float curmod = ZXP(mod);
           float diff = std::fmod(std::abs(inval - ZXP(dif)), curmod); float modhalf = curmod * 0.5;
-          ZXP(out) = modhalf - std::abs(diff - modhalf););
+          float y = modhalf - std::abs(diff - modhalf);
+          printf("[ModDif_next_aa] %.4f\n", y);
+          ZXP(out) = y;
+//          ZXP(out) = modhalf - std::abs(diff - modhalf);
+          );
 }
 
 void ModDif_Ctor(ModDif* unit) {
+    printf("[ModDif_Ctor]\n");
     if (BUFLENGTH == 1) {
         // _aa? Well, yes - that calc func doesn't interpolate
         // and interpolation is not needed for kr (1 sample/block)
@@ -2167,8 +2192,9 @@ void ModDif_Ctor(ModDif* unit) {
 
     unit->m_dif = ZIN0(1);
     unit->m_mod = ZIN0(2);
-
+    printf("[ModDif_Ctor] init sample:\n\t");
     ModDif_next_kk(unit, 1);
+    printf("[ModDif_Ctor] first sample:\n\t");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
