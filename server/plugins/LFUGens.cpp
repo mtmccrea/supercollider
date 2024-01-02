@@ -2572,11 +2572,13 @@ void EnvGen_Ctor(EnvGen* unit) {
     if (initialShape == shape_Hold)
         unit->m_level = *envPtr[0]; // we start at the end level;
 
+    printf("counter before init: %d\n", unit->m_counter);
+    printf("[EnvGen_Ctor] init sample:\n\t");
     EnvGen_next_k(unit, 1);
-
-    // restore initial conditions
+    printf("counter after init: %d\n", unit->m_counter);
+    printf("[EnvGen_Ctor] first sample:\n\t");
+    // restore initial conditions (but not m_counter)
     unit->m_endLevel = unit->m_level = ZIN0(kEnvGen_initLevel) * ZIN0(kEnvGen_levelScale) + ZIN0(kEnvGen_levelBias);
-    unit->m_counter = 0;
     unit->m_stage = ENVGEN_NOT_STARTED;
     unit->m_shape = shape_Hold;
     unit->m_prevGate = 0.f;
@@ -2760,6 +2762,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_hold] %.4f\n", level);
             ZXP(out) = level;
         }
     } break;
@@ -2768,6 +2771,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_lin] %.4f\n", level);
             ZXP(out) = level;
             level += grow;
         }
@@ -2777,6 +2781,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_exp] %.4f\n", level);
             ZXP(out) = level;
             level *= grow;
         }
@@ -2789,6 +2794,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_sine] %.4f\n", level);
             ZXP(out) = level;
             double y0 = b1 * y1 - y2;
             level = a2 - y0;
@@ -2806,6 +2812,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_welch] %.4f\n", level);
             ZXP(out) = level;
             double y0 = b1 * y1 - y2;
             level = a2 + y0;
@@ -2822,6 +2829,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_curve] %.4f\n", level);
             ZXP(out) = level;
             b1 *= grow;
             level = a2 - b1;
@@ -2834,6 +2842,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_sqrd] %.4f\n", level);
             ZXP(out) = level;
             y1 += grow;
             level = y1 * y1;
@@ -2846,6 +2855,7 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
         for (int i = 0; i < nsmps; ++i) {
             if (!gateCheck(i))
                 break;
+            printf("[EnvGen_cubd] %.4f\n", level);
             ZXP(out) = level;
             y1 += grow;
             y1 = sc_max(y1, 0);
@@ -2856,10 +2866,14 @@ static inline void EnvGen_perform(EnvGen* unit, float*& out, double& level, int&
     case shape_Sustain: {
         for (int i = 0; i < nsmps; ++i) {
             if (CheckGateOnSustain) {
-                if (gateCheck(i))
+                if (gateCheck(i)) {
+                    printf("[EnvGen_sus] %.4f\n", level);
                     ZXP(out) = level;
-            } else
+                }
+            } else {
+                printf("[EnvGen_sus] %.4f\n", level);
                 ZXP(out) = level;
+            }
         }
     } break;
     }
