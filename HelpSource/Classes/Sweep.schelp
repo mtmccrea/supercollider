@@ -4,26 +4,32 @@ categories::  UGens>Triggers
 
 Description::
 
-Starts a linear raise by rate/sec from zero when trig input crosses from
-non-positive to positive.
-
-When rate == 1, Sweep may be used to get a continually-updating measurement
-of the time (in seconds) since the last trigger.
-
+Produces a linear ramp from code::0.0:: at code::rate::/sec upon receiving a trigger. Can be used as a triggered timer (see below).
 
 classmethods::
 private:: categories
 
 method::ar, kr
 
-argument::trig
-
-triggers when trig input crosses from non-positive to positive.
-
+argument:: trig
+A signal which triggers a reset of the sweep to code::0.0:: when it crosses from non-positive to positive, i.e. code::trig <= 0.f:: to code::trig > 0.f::.
 
 argument::rate
+Slope of the sweep signal, in strong::rate::/seconds.
 
-rate/sec raise rate
+Discussion::
+When code::rate == 1::, code::Sweep:: can be used to measure the time (in seconds) since the last trigger.
+code::
+( // Triggered timer
+{
+	var trig = LFDNoise1.kr(4);
+	Poll.kr(trig, 0.0, label: "RESET");
+	Sweep.kr(trig, rate: 1.0).poll(label: "timer:")
+}.play
+)
+::
+
+See the link::#Examples:: for how code::Sweep:: can be used to start, pause, resume or reset a link::Classes/Phasor:: or link::Classes/Line::.
 
 
 Examples::
