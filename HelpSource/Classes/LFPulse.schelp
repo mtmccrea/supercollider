@@ -4,27 +4,43 @@ categories::UGens>Generators>Deterministic
 related::Classes/LFSaw
 
 description::
-A non-band-limited pulse oscillator. Outputs a high value of one and a low value of zero.
+A non-band-limited pulse oscillator. Outputs a high value of code::1.0:: and a low value of code::0.0::.
 
 classmethods::
 
 method::ar, kr
 
 argument::freq
-frequency in Hertz
+Frequency in Hertz.
 
 argument::iphase
-initial phase offset in cycles (0..1)
+Initial phase offset in normalized units of cycles, wrapped to the range code::[0, 1)::.
 
 argument::width
-pulse width duty cycle from zero to one.
+Pulse width (duty cycle) in normalized units of cycles code::[0,1]::.
 
 argument::mul
+The output is multiplied by this value.
 
 argument::add
+This value is added to the output.
+
+
+discussion::
+ A square wave is produced by a  strong::width:: of code::0.5::,  strong::mul:: of code::2::, and  strong::add:: of code::-1::.
+ code::
+( // A square wave
+{ [
+	LFPulse.ar(30),
+	LFPulse.ar(30, width: 0.5, mul: 2, add: -1)
+] }.plot(0.1);
+)
+::
+
 
 instancemethods::
 private::signalRange
+
 
 examples::
 
