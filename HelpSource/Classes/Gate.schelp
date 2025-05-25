@@ -18,8 +18,21 @@ The input signal.
 
 argument::trig
 
-Gate - can be any signal. The output is held fixed when this is non-positive.
+Any signal to act as the gate trigger.
 
+When code::trig <= 0.f:: the last input value is held. Otherwise, the input passes through.
+
+code::
+(
+{
+	var trig = LFPulse.ar(30, iphase: 0.25);
+	[
+		trig,
+		Gate.ar(SinOsc.ar, trig)
+	]
+}.plot(0.1)
+)
+::
 
 Examples::
 
