@@ -827,6 +827,7 @@ Plotter {
 	var <editPlotIndex, <editPos;
 	var <>drawFunc, <>editFunc;
 	var <showUnits = true, <unitLocation = \axis; // \ticks or \axis
+	var <>refreshRate = 5, refreshing = false, refreshQueued = false;
 	var axisLabelX, axisLabelY;
 
 	*new { |name, bounds, parent|
@@ -1378,8 +1379,31 @@ Plotter {
 	}
 
 	refresh {
-		parent !? { parent.refresh }
+		parent !? {
+			if (refreshing.not) {
+				"refreshing".postln;
+				parent.refresh;
+				refreshing = true;
+
+				defer({
+					refreshing = false;
+					if (refreshQueued) {
+						this.refresh;
+						refreshQueued = false;
+					}
+				}, refreshRate.reciprocal)
+			} {
+				refreshQueued = true;
+			}
+		}
 	}
+
+	// refresh {
+	// 	parent !? {
+	// 		"refreshing".postln;
+	// 		parent.refresh;
+	// 	}
+	// }
 
 	prReshape { |item|
 		var size, array = item.asArray;
