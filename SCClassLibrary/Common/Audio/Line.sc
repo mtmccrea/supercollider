@@ -69,10 +69,10 @@ AmpCompA : AmpComp {
 	}
 }
 
-K2A : PureUGen { // control rate to audio rate converter
-	*ar { arg in = 0.0;
-		^this.multiNew('audio', in)
-	}
+K2A : PureUGen { // control rate to audio rate converter with interpolation control
+    *ar { arg in = 0.0, interpSamples = 64;
+        ^this.multiNew('audio', in, interpSamples)
+    }
 }
 
 A2K : PureUGen { // audio rate to control rate converter. only needed in specific cases

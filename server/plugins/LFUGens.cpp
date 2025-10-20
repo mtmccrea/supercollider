@@ -1207,9 +1207,11 @@ void SyncSaw_Ctor(SyncSaw* unit) {
 
 struct K2A : SIMD_Unit {
     ControlRateInput<0> mLevel;
+    ControlRateInput<1> mInterpSamples;
 
     K2A(void) {
         mLevel.init(this);
+        mInterpSamples.init(this);
         if (inRate(0) == calc_ScalarRate)
             set_unrolled_calc_function<K2A, &K2A::next_i<unrolled_64>, &K2A::next_i<unrolled>, &K2A::next_i<scalar>>();
         else
@@ -1217,10 +1219,39 @@ struct K2A : SIMD_Unit {
     }
 
     template <int type> void next_k(int inNumSamples) {
-        if (mLevel.changed(this))
-            slope_vec<type>(out(0), mLevel.slope(this), inNumSamples);
-        else
+        if (mLevel.changed(this)) {
+            float* out_ptr = out(0);
+            int interpSamples = static_cast<int>(mInterpSamples);
+
+            interpSamples = std::max(1, std::min(interpSamples, inNumSamples));
+
+            if (interpSamples >= inNumSamples) {
+                // Full-block interpolation
+                slope_vec<type>(out_ptr, mLevel.slope(this), inNumSamples);
+            } else {
+                // Calculate slope for the specified interpolation length
+                float next = in0(0);
+                float current = mLevel.value;
+                float slope = (next - current) / interpSamples;
+                mLevel.value = next;
+
+                auto slope_arg = slope_argument(current, slope);
+
+                // Apply interpolation for specified samples
+                slope_vec<type>(out_ptr, slope_arg, interpSamples);
+
+                // Calculate final interpolated value
+                float final_value = current + slope * interpSamples;
+
+                // Hold final value for remaining samples
+                int remaining = inNumSamples - interpSamples;
+                if (remaining > 0) {
+                    set_vec<type>(out_ptr + interpSamples, final_value, remaining);
+                }
+            }
+        } else {
             next_i<type>(inNumSamples);
+        }
     }
 
     template <int type> void next_i(int inNumSamples) { set_vec<type>(out(0), mLevel, inNumSamples); }
